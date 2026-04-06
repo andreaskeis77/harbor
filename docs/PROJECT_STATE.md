@@ -2,75 +2,67 @@
 
 ## Current phase
 
-A0.4 — Handbook, Blueprint, and Workflow baseline
+A0.5 — System architecture and runtime boundary baseline
 
 ## Completed
 
-- A0.1 product scope and documentation bootstrap
+- A0.1 product scope baseline
 - A0.2 domain model baseline
 - A0.3 user stories and functional requirements baseline
-- A0.4 handbook specification baseline
-- A0.4 blueprint model baseline
-- A0.4 workflow model baseline
+- A0.4 handbook, blueprint, and workflow baseline
+- A0.5 system architecture and runtime boundary baseline
 
-## Current architecture posture
+## Current validated posture
 
-Harbor is currently defined as:
+Harbor is currently in a documentation-first architecture phase.
 
-- a documentation-first project
-- a project-partitioned research system
-- a system with Postgres as system of record
-- one canonical backend for website and Custom GPT
-- explicit separation between source, evidence, analysis, and review
-- explicit separation between project-local meaning and globally deduplicated artifacts
-- a system designed for resume, review, refresh, and later monitoring
+The current accepted baseline includes:
 
-## Current validated functional posture
+- Harbor is a project-partitioned research system, not a generic chat RAG
+- Postgres is the system of record
+- Website and Custom GPT must share one canonical backend
+- projects are strictly separated at the business layer
+- the Research Handbook is the core steering object per project
+- archived projects can become explicit blueprints
+- refresh and later monitoring are part of the product direction
+- agentic behavior is deferred beyond v1 and must not write unchecked truth
 
-The current documentation baseline now defines:
+## Current architectural posture
 
-- project partitioning
-- project lifecycle
-- research handbook as a versioned steering object
-- blueprint reuse of archived projects
-- workflow states for draft, active research, review, archive, and blueprint release
-- refresh/discovery/monitoring as staged capability layers
+The recommended phase-1 architecture posture is:
 
-## What is now clearer than in A0.3
+- FastAPI backend as the canonical application/API surface
+- Postgres as the canonical transactional and metadata store
+- pgvector-enabled semantic retrieval capability in the same platform posture
+- filesystem-based artifact storage on the VPS for raw snapshots and evidence files
+- browser-based web UI for project operations and review
+- Custom GPT as a natural-language control surface over the same backend
+- background job layer for search, refresh, parsing, chunking, indexing, and review queues
 
-A0.4 sharpens three critical areas:
+## Runtime boundary posture
 
-1. the internal structure of the research handbook
-2. the controlled reuse of archived projects via blueprints
-3. the operator-facing workflow logic for create, research, review, refresh, archive, and resume
+The current runtime boundary is explicitly split into:
 
-## Current repository posture
+- interaction layer
+- application/API layer
+- orchestration/jobs layer
+- storage layer
+- external acquisition layer
 
-The repository is still documentation-first by design.
+The system must not collapse these concerns into one undifferentiated chat workflow.
 
-No implementation runtime is introduced by this tranche.
+## What is intentionally not decided yet
 
-## Current green decisions
+Still open for the next phase:
 
-- Harbor remains project-partitioned
-- Postgres remains the intended system of record
-- handbook versioning is a core v1 requirement
-- blueprint reuse uses import snapshots, not live inheritance
-- workflow state is part of product design, not just UI behavior
-- review and resume remain first-class requirements
-- refresh is a v1 capability; agentic monitoring remains later-phase
-
-## Open items for the next tranche
-
-The next architectural step should define:
-
-- system architecture baseline
-- runtime surfaces
-- storage families
-- first API boundaries
-- first web surface boundaries
-- operational evidence posture
+- exact repo scaffolding for src/tests/tools/config/runtime files
+- exact web stack details for v1 UI
+- exact background-job mechanism
+- exact auth posture for website and GPT-facing API usage
+- exact artifact directory structure
+- exact health/smoke/release evidence commands
+- first implementation tranche layout
 
 ## Preferred next bolt
 
-A0.5 — System architecture and runtime boundary baseline
+A0.6 — Technical bootstrap and repository scaffolding baseline

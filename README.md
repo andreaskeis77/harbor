@@ -9,28 +9,25 @@ It is designed to support:
 - controlled source collection and evidence storage
 - review and resume workflows
 - refresh and later monitoring/agentic update flows
-- blueprint-based reuse of completed projects
 - one canonical backend for website and Custom GPT
 
 ## Current phase
 
-A0.4 — Handbook, Blueprint, and Workflow baseline
+A0.5 — System architecture and runtime boundary baseline
 
 ## Repository posture
 
-This repository is still documentation-first.
+This repository is currently documentation-first.
 
-The current architectural baseline now covers:
+The current architecture baseline covers:
 
 - product scope
-- project state
-- engineering and collaboration rules
 - domain model
 - user stories
 - functional requirements
-- handbook model
-- blueprint model
-- workflow model
+- handbook, blueprint, and workflow model
+- system architecture and runtime boundaries
+- future implementation and VPS-operating posture
 
 ## Local repository root
 
@@ -51,10 +48,11 @@ Read these files in this order:
 7. `docs/HANDBOOK_SPEC_v0_1.md`
 8. `docs/BLUEPRINT_MODEL_v0_1.md`
 9. `docs/WORKFLOW_MODEL_v0_1.md`
+10. `docs/SYSTEM_ARCHITECTURE_v0_1.md`
+11. `docs/RUNTIME_BOUNDARIES_v0_1.md`
+12. `docs/ENGINEERING_MANIFEST.md`
 
 ## Delivery rule
 
-Delivery tranches are applied as complete files with stable repository paths.
-
-Download package filenames may be versioned for clarity, while repository file
-names remain canonical where possible.
+Harbor tranches are delivered as complete file packages with stable repo paths and
+uniquely named delivery archives.

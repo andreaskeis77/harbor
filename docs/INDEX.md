@@ -9,7 +9,7 @@
 - `HANDOFF_GUIDE.md`
 - `PROJECT_STATE.md`
 
-## Product definition
+## Product baseline
 
 - `PRODUCT_SCOPE_v0_1.md`
 - `DOMAIN_MODEL_v0_1.md`
@@ -19,9 +19,10 @@
 - `BLUEPRINT_MODEL_v0_1.md`
 - `WORKFLOW_MODEL_v0_1.md`
 
-## ADRs
+## Architecture baseline
 
-- `adr/README.md`
+- `SYSTEM_ARCHITECTURE_v0_1.md`
+- `RUNTIME_BOUNDARIES_v0_1.md`
 
 ## Concepts
 

@@ -1,19 +1,15 @@
-# Concepts
+# Concepts README
 
-This folder is reserved for deeper concept papers and longer architecture or model
-documents.
+Harbor concept and architecture artifacts are introduced incrementally.
 
-Current baseline references:
+Current concept-level baseline:
 
-- `docs/HANDBOOK_SPEC_v0_1.md`
-- `docs/BLUEPRINT_MODEL_v0_1.md`
-- `docs/WORKFLOW_MODEL_v0_1.md`
+- `docs/SYSTEM_ARCHITECTURE_v0_1.md`
+- `docs/RUNTIME_BOUNDARIES_v0_1.md`
 
-Likely future concept documents:
+Planned next concept work:
 
-- system architecture
-- storage layout
-- API surface
-- search and retrieval orchestration
-- evidence and provenance model
-- monitoring and agent control model
+- technical bootstrap blueprint
+- storage and artifact layout
+- API surface outline
+- background job execution posture
