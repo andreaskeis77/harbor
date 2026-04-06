@@ -2,71 +2,75 @@
 
 ## Current phase
 
-A0.3 — User Stories and Functional Requirements Baseline
+A0.4 — Handbook, Blueprint, and Workflow baseline
 
 ## Completed
 
-- A0.1 product scope baseline
+- A0.1 product scope and documentation bootstrap
 - A0.2 domain model baseline
-- A0.3 user stories baseline
-- A0.3 functional requirements baseline
+- A0.3 user stories and functional requirements baseline
+- A0.4 handbook specification baseline
+- A0.4 blueprint model baseline
+- A0.4 workflow model baseline
 
-## Current validated state
+## Current architecture posture
 
-Harbor is still in a documentation-first architecture phase.
+Harbor is currently defined as:
 
-The repository now defines:
+- a documentation-first project
+- a project-partitioned research system
+- a system with Postgres as system of record
+- one canonical backend for website and Custom GPT
+- explicit separation between source, evidence, analysis, and review
+- explicit separation between project-local meaning and globally deduplicated artifacts
+- a system designed for resume, review, refresh, and later monitoring
 
-- the product purpose and scope,
-- the principle of strict project partitioning,
-- the first core domain model,
-- the first user story set,
-- the first functional requirement baseline,
-- the blueprint and reuse direction,
-- the review/resume operating model,
-- the refresh/discovery/monitoring direction.
+## Current validated functional posture
 
-## Current product posture
+The current documentation baseline now defines:
 
-Harbor is currently defined as a project-partitioned research system, not merely a chat-based RAG utility.
+- project partitioning
+- project lifecycle
+- research handbook as a versioned steering object
+- blueprint reuse of archived projects
+- workflow states for draft, active research, review, archive, and blueprint release
+- refresh/discovery/monitoring as staged capability layers
 
-The product baseline now assumes:
+## What is now clearer than in A0.3
 
-- Postgres as the system of record,
-- one canonical backend for web and Custom GPT,
-- project-local scope and review state,
-- explicit separation between sources, snapshots, extracts, analyses and review decisions,
-- archived projects as optional blueprint candidates,
-- manual initial search and refresh in v1,
-- agentic monitoring only as a later evolution.
+A0.4 sharpens three critical areas:
 
-## Open points after A0.3
-
-Still open for the next tranche:
-
-- research handbook specification in a stricter structural form,
-- blueprint model and reuse rules in more detail,
-- workflow model for search, refresh, review and resume,
-- initial system architecture,
-- initial API surface,
-- initial web information architecture,
-- initial metadata / storage model,
-- first ADR set.
-
-## Recommended next step
-
-Proceed to **A0.4 — Handbook, Blueprint, and Workflow Model Baseline**.
-
-That tranche should define:
-
-- the exact Research Handbook structure,
-- blueprint eligibility and reuse mechanics,
-- review/resume workflow states,
-- search/refresh workflow boundaries,
-- candidate vs accepted knowledge transitions.
+1. the internal structure of the research handbook
+2. the controlled reuse of archived projects via blueprints
+3. the operator-facing workflow logic for create, research, review, refresh, archive, and resume
 
 ## Current repository posture
 
-Still documentation-first by design.
+The repository is still documentation-first by design.
 
-No runtime code, ingestion code, web code, or deployment code has been introduced yet.
+No implementation runtime is introduced by this tranche.
+
+## Current green decisions
+
+- Harbor remains project-partitioned
+- Postgres remains the intended system of record
+- handbook versioning is a core v1 requirement
+- blueprint reuse uses import snapshots, not live inheritance
+- workflow state is part of product design, not just UI behavior
+- review and resume remain first-class requirements
+- refresh is a v1 capability; agentic monitoring remains later-phase
+
+## Open items for the next tranche
+
+The next architectural step should define:
+
+- system architecture baseline
+- runtime surfaces
+- storage families
+- first API boundaries
+- first web surface boundaries
+- operational evidence posture
+
+## Preferred next bolt
+
+A0.5 — System architecture and runtime boundary baseline

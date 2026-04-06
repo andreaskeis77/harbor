@@ -15,14 +15,17 @@
 - `DOMAIN_MODEL_v0_1.md`
 - `USER_STORIES_v0_1.md`
 - `FUNCTIONAL_REQUIREMENTS_v0_1.md`
-
-## Concepts
-
-- `concepts/README.md`
+- `HANDBOOK_SPEC_v0_1.md`
+- `BLUEPRINT_MODEL_v0_1.md`
+- `WORKFLOW_MODEL_v0_1.md`
 
 ## ADRs
 
 - `adr/README.md`
+
+## Concepts
+
+- `concepts/README.md`
 
 ## Handoffs
 
