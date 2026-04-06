@@ -1,26 +1,24 @@
-# Harbor Docs Index
+# Docs Index
 
-## Core definition
+## Core method
+
 - `PROJECT_STATE.md`
 - `PRODUCT_SCOPE_v0_1.md`
-
-## Working rules
+- `DOMAIN_MODEL_v0_1.md`
 - `ENGINEERING_MANIFEST.md`
 - `WORKING_AGREEMENT.md`
-- `HANDOFF_GUIDE.md`
 - `DELIVERY_PROTOCOL.md`
 - `VALIDATION_PROTOCOL.md`
+- `HANDOFF_GUIDE.md`
 
-## Structure placeholders
+## ADRs
+
 - `adr/README.md`
+
+## Concepts
+
 - `concepts/README.md`
 
 ## Handoffs
-- `docs/_handoff/`
 
-## Recommended current reading order
-1. `PROJECT_STATE.md`
-2. `PRODUCT_SCOPE_v0_1.md`
-3. `ENGINEERING_MANIFEST.md`
-4. `WORKING_AGREEMENT.md`
-5. `HANDOFF_GUIDE.md`
+- `docs/_handoff/`
