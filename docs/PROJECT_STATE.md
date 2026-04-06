@@ -2,99 +2,75 @@
 
 ## Current phase
 
-A0.6 — Technical bootstrap and repository scaffolding baseline
+A0.x — Planning and documentation baseline
 
-## Completed
+## Current status summary
 
-- A0.1 product scope baseline
-- A0.2 domain model baseline
-- A0.3 user stories and functional requirements baseline
-- A0.4 handbook, blueprint, and workflow baseline
-- A0.5 system architecture and runtime boundaries baseline
+Harbor has a documentation-first baseline.
 
-## What A0.6 adds
+Confirmed on repo:
+- A0.1 bootstrap and scope baseline is committed and pushed
+- repository exists and tracks `main`
+- masterplan governance is being introduced so that long-range direction is held inside the repo and not in transient chat context
 
-This tranche converts the prior conceptual baseline into a concrete technical starting posture for the first implementation bolt.
+Prepared in working conversation but not yet treated as fully validated baseline in this document:
+- domain model baseline
+- user stories and functional requirements baseline
+- handbook / blueprint / workflow baseline
+- system architecture / runtime boundary baseline
+- technical bootstrap / repository scaffolding baseline
 
-That means Harbor now has an explicit answer to:
+These items may exist as prepared delivery packages, but the project should distinguish between:
+- discussed / drafted
+- applied locally
+- committed and pushed
+- accepted as baseline
 
-- which repository folders should exist first
-- which files are required before runtime code starts
-- which technical surfaces belong in the first bootstrap tranche
-- which concerns are intentionally deferred
-- which minimal health, config, and startup posture should be introduced first
+## Why this distinction matters
 
-## Current product posture
+Harbor must not lose control over what is:
+- merely discussed in chat
+- generated as a candidate artifact
+- actually present in the repository
+- actually accepted as the current baseline
 
-Harbor is currently defined as a project-partitioned research operating system with:
+## Canonical planning rule
 
-- clearly separated projects
-- versioned research handbooks
-- project-local source evaluation
-- explicit review and resume workflows
-- blueprint-based reuse of archived projects
-- refresh, discovery, and later monitoring as part of the design horizon
+Harbor uses the following documentation layers:
 
-## Current architecture posture
+1. `docs/MASTERPLAN.md`
+   - long-range direction
+   - phase order
+   - major goals
+   - deferred topics
+   - phase entry/exit logic
 
-The accepted phase-1 architecture baseline is:
+2. `docs/PROJECT_STATE.md`
+   - current validated state
+   - what is truly accepted
+   - what is next
+   - current risks and open points
 
-- FastAPI application layer
-- Postgres as system of record
-- pgvector for semantic retrieval support
-- filesystem artifact store for captured source artifacts
-- shared backend for web UI and Custom GPT
-- background-job surface for refresh, discovery, and later monitoring work
+3. `docs/_handoff/HANDOFF_*.md`
+   - per-step transfer notes
+   - evidence of what happened
+   - what was verified
+   - what still needs action
 
-## Current implementation posture
+## Current recommended next step
 
-The repository is still intentionally pre-runtime.
+Before starting T1.0 implementation, consolidate the A0 documentation baseline and decide which A0 documents are officially accepted into the repo baseline.
 
-No production code, database migrations, or running services are introduced by A0.6.
+## Current risks
 
-Instead, A0.6 prepares the repository and technical bootstrap target so that the first implementation tranche can start in a controlled way.
+- confusing drafted artifacts with validated baseline
+- losing roadmap continuity across chat handoffs
+- starting implementation before the accepted planning surface is stable
 
-## Current repository posture
+## Working recommendation
 
-The repository should now be understood as having four layers of maturity:
+From this point onward, every meaningful planning or implementation bolt should update:
 
-1. **Method baseline**
-2. **Product and domain baseline**
-3. **Architecture and runtime baseline**
-4. **Technical bootstrap target**
-
-The next phase will begin moving from documentation-first to implementation-first, but only in small, explicit bolts.
-
-## Validated next target
-
-The next recommended implementation entry is:
-
-**T1.0 — Repository scaffold and technical bootstrap implementation**
-
-This first implementation bolt should introduce only the minimum durable technical surface needed to start Harbor safely, such as:
-
-- initial directory structure
-- Python package root
-- basic configuration surface
-- app entrypoint skeleton
-- health command or health endpoint skeleton
-- initial database configuration contract
-- initial artifact-root contract
-- initial tests and validation hooks
-
-## Important non-goals at this stage
-
-Still not part of the current implementation baseline:
-
-- full source acquisition implementation
-- project CRUD implementation
-- full web UI
-- Custom GPT integration wiring
-- background scheduler runtime
-- agentic monitoring runtime
-- full Postgres migration set
-- full pgvector retrieval implementation
-
-## Preferred next bolt
-
-T1.0 — Repository scaffold and technical bootstrap implementation
+- `docs/MASTERPLAN.md`
+- `docs/PROJECT_STATE.md`
+- one new file under `docs/_handoff/`

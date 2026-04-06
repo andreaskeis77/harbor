@@ -1,5 +1,11 @@
 # Docs Index
 
+## Start here
+
+- `MASTERPLAN.md`
+- `PROJECT_STATE.md`
+- `INDEX.md`
+
 ## Core method
 
 - `ENGINEERING_MANIFEST.md`
@@ -7,27 +13,20 @@
 - `DELIVERY_PROTOCOL.md`
 - `VALIDATION_PROTOCOL.md`
 - `HANDOFF_GUIDE.md`
-- `PROJECT_STATE.md`
+- `HANDOFF_MANIFEST.md`
 
 ## Product definition
 
 - `PRODUCT_SCOPE_v0_1.md`
-- `DOMAIN_MODEL_v0_1.md`
-- `USER_STORIES_v0_1.md`
-- `FUNCTIONAL_REQUIREMENTS_v0_1.md`
-- `HANDBOOK_SPEC_v0_1.md`
-- `BLUEPRINT_MODEL_v0_1.md`
-- `WORKFLOW_MODEL_v0_1.md`
 
-## Architecture and runtime
+## Planning and governance
 
-- `SYSTEM_ARCHITECTURE_v0_1.md`
-- `RUNTIME_BOUNDARIES_v0_1.md`
+- `MASTERPLAN.md`
+- `PROJECT_STATE.md`
 
-## Bootstrap and repository baseline
+## ADRs
 
-- `TECHNICAL_BOOTSTRAP_v0_1.md`
-- `REPOSITORY_SCAFFOLDING_v0_1.md`
+- `adr/README.md`
 
 ## Concepts
 
