@@ -1,36 +1,31 @@
 # Docs Index
 
-## Start here
+## Core governance
 
 - `MASTERPLAN.md`
 - `PROJECT_STATE.md`
-- `INDEX.md`
-
-## Core method
-
+- `A0_BASELINE_ACCEPTANCE.md`
+- `A0_CONSOLIDATION_CHECKLIST.md`
+- `HANDOFF_MANIFEST.md`
+- `HANDOFF_GUIDE.md`
 - `ENGINEERING_MANIFEST.md`
 - `WORKING_AGREEMENT.md`
 - `DELIVERY_PROTOCOL.md`
 - `VALIDATION_PROTOCOL.md`
-- `HANDOFF_GUIDE.md`
-- `HANDOFF_MANIFEST.md`
 
-## Product definition
+## Product and architecture baseline
 
 - `PRODUCT_SCOPE_v0_1.md`
-
-## Planning and governance
-
-- `MASTERPLAN.md`
-- `PROJECT_STATE.md`
-
-## ADRs
-
-- `adr/README.md`
-
-## Concepts
-
-- `concepts/README.md`
+- `DOMAIN_MODEL_v0_1.md`
+- `USER_STORIES_v0_1.md`
+- `FUNCTIONAL_REQUIREMENTS_v0_1.md`
+- `HANDBOOK_SPEC_v0_1.md`
+- `BLUEPRINT_MODEL_v0_1.md`
+- `WORKFLOW_MODEL_v0_1.md`
+- `SYSTEM_ARCHITECTURE_v0_1.md`
+- `RUNTIME_BOUNDARIES_v0_1.md`
+- `TECHNICAL_BOOTSTRAP_v0_1.md`
+- `REPOSITORY_SCAFFOLDING_v0_1.md`
 
 ## Handoffs
 

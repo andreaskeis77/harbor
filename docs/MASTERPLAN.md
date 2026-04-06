@@ -1,318 +1,177 @@
 # Harbor Masterplan
 
 Status: Active planning baseline  
-Owner: Andreas / Harbor repo  
-Purpose: Preserve the long-range Harbor plan inside the repository
+Current control point: **A0.C1 — A0 consolidation and baseline freeze preparation**
 
 ---
 
-## 1. Why this file exists
+## 1. Purpose
 
-Harbor will be developed over multiple chats, handoffs, and implementation cycles.
+This document is the long-lived masterplan for Harbor.
 
-This file exists so that the project does not lose:
+It is the canonical place for the overall sequence of work across chats.
+It is not the detailed current-state log and it is not a handoff substitute.
 
-- its phase order
-- its strategic priorities
-- its current recommended sequence
-- its explicit deferred topics
-- its transition logic between planning and implementation
+Use:
 
-The masterplan is the long-range roadmap.
-It is not the same as day-to-day project state.
+- `PROJECT_STATE.md` for the actual current accepted state
+- `docs/_handoff/HANDOFF_*.md` for local tranche handoffs
+- this file for the long-range sequence and decision frame
 
 ---
 
-## 2. Core planning model
-
-Harbor uses three persistent planning layers:
-
-### 2.1 Masterplan
-`docs/MASTERPLAN.md`
-
-Holds:
-- long-range direction
-- phase sequence
-- strategic priorities
-- major deferred topics
-- phase entry and exit criteria
-
-### 2.2 Project State
-`docs/PROJECT_STATE.md`
-
-Holds:
-- current accepted phase
-- validated state
-- real next step
-- active risks
-- open questions
-
-### 2.3 Handoffs
-`docs/_handoff/HANDOFF_*.md`
-
-Hold:
-- what was changed
-- what was verified
-- what was not verified
-- which files were involved
-- what the next bolt is
-
----
-
-## 3. Strategic product target
+## 2. Product direction
 
 Harbor is a project-partitioned research operating system.
 
-It is not just a chat tool and not just a vector database.
+Its long-term target posture is:
 
-Its strategic target is:
-- clearly separated research projects
-- a versioned research handbook per project
-- controlled source and evidence management
-- repeatable review and resume workflows
-- later refresh, discovery, monitoring, and agentic support
+- project-based research spaces
+- versioned research handbooks
+- source and evidence governance
+- review and resume capability
+- refresh and discovery capability
+- later monitoring and agentic assistance
 - one canonical backend for website and Custom GPT
+- VPS-hosted operation with explicit health, logging, and recovery posture
 
 ---
 
-## 4. Planning sequence
+## 3. Phase overview
 
-## A0 — Planning and definition baseline
+### A0 — Documentation and architecture baseline
 
 Goal:
-Create a stable product and architecture baseline before runtime implementation.
 
-Scope:
+- define Harbor clearly enough that implementation starts from a controlled target
+
+Main outputs:
+
 - product scope
 - domain model
-- user stories
-- functional requirements
-- handbook model
-- blueprint model
-- workflow model
-- system architecture
-- runtime boundaries
-- technical bootstrap definition
+- user stories and functional requirements
+- handbook/blueprint/workflow model
+- system architecture and runtime boundaries
+- technical bootstrap and repository scaffolding concept
+- masterplan and handoff governance
+- A0 consolidation and acceptance logic
 
-Exit condition:
-- planning baseline is present in repo
-- naming and terminology are stable enough
-- implementation entry point is clear
-- T1.0 scope is small and explicit
-
-## A0 consolidation gate
+### T1 — Technical bootstrap and first runtime foundation
 
 Goal:
-Do not move into implementation with an ambiguous document surface.
 
-Required outcome:
-- know which A0 documents are officially accepted
-- remove or flag contradictions
-- identify the exact first implementation bolt
+- create the first real runnable repository scaffold and minimal runtime posture
 
-Exit condition:
-- A0 accepted baseline is documented
-- T1.0 start package is explicit
+Expected outputs:
 
-## T1.0 — Technical bootstrap implementation
-
-Goal:
-Create the first real Harbor runtime skeleton.
-
-Expected contents:
 - repository scaffold
-- Python project bootstrap
-- app entrypoint skeleton
+- Python project baseline
 - config surface
+- minimal app structure
 - health endpoint
-- first tests
-- initial quality gate posture
+- tests and quality-gate seed
+- local run commands
 
-Exit condition:
-- Harbor starts locally
-- basic tests pass
-- commands are reproducible
-- no major ambiguity about runtime layout remains
-
-## T1.1 — Runtime and configuration baseline
+### T2 — Core Harbor vertical slices
 
 Goal:
-Stabilize environment, configuration, and start modes.
 
-Expected contents:
-- settings model
-- `.env` handling
-- local runtime commands
-- clear dev startup path
+- implement the first durable product slices against the canonical backend
 
-## T1.2 — Persistence baseline
+Recommended first slices:
 
-Goal:
-Introduce canonical database posture.
+1. Projects
+2. Research handbook versioning
+3. Project dashboard / resume state
+4. Sources and project-source mapping
+5. Manual source capture and snapshot basics
 
-Expected contents:
-- Postgres connection model
-- schema/migration baseline
-- first persistence layer
-- minimal durable data model entrypoint
-
-## T1.3 — Minimal application API
+### T3 — Search / refresh / review operations
 
 Goal:
-Create the first stable Harbor application surface.
 
-Expected contents:
-- `/healthz`
-- minimal API routing
-- minimal project-facing app boundary
+- add project-scoped research operations
 
-## T2.0 — First vertical product slice
+Expected outputs:
 
-Goal:
-Deliver the first end-to-end Harbor use case.
+- search campaign model
+- refresh run model
+- review queue
+- delta detection
+- candidate handling
 
-Recommended first slice:
-- create project
-- list projects
-- open project
-- store handbook text
-- view handbook history or first version state
-
-Why this slice first:
-- it validates project partitioning
-- it creates real system of record behavior
-- it supports both website and GPT later
-
-## T2.1 — Source model baseline
+### T4 — Website and GPT interaction surface
 
 Goal:
-Introduce project-linked source handling.
 
-Expected contents:
-- source
-- project source
-- manual source intake
-- minimal review status
-- source snapshot concept in code
+- expose Harbor through both the web UI and the Custom GPT against the same backend
 
-## T2.2 — Search and refresh baseline
+### T5 — VPS preview release
 
 Goal:
-Move from static project memory toward active research behavior.
 
-Expected contents:
-- first search campaign representation
-- manual refresh trigger
-- change/delta candidate handling
-- basic review queue logic
+- deploy a stable preview environment on the VPS with documented health, start,
+  stop, recovery, and smoke-test paths
 
-## T2.3 — Web UI baseline
+### T6 — Monitoring and later agentic expansion
 
 Goal:
-Provide the first real operator-facing Harbor interface.
 
-Expected contents:
-- project list UI
-- project detail UI
-- handbook view/edit path
-- source overview view
+- add long-running update discovery and monitoring safely
 
-## T2.4 — Custom GPT integration baseline
+Guardrail:
 
-Goal:
-Connect GPT to Harbor without splitting the truth surface.
-
-Expected contents:
-- GPT action surface
-- project selection
-- handbook/state retrieval
-- safe write actions
-
-## T3.x — VPS and durable operations
-
-Goal:
-Run Harbor as a controlled system outside the development laptop.
-
-Expected contents:
-- VPS deployment model
-- health checks
-- logs
-- backups
-- runbook
-- preview release and smoke test
-
-## T4.x — Monitoring and agentic extensions
-
-Goal:
-Extend Harbor from manual research memory toward governed monitoring.
-
-Expected contents:
-- scheduled refresh
-- discovery campaigns
-- candidate queues
-- alerts
-- later agentic support with strict review boundaries
+- agents never write unreviewed findings directly into the canonical accepted
+  knowledge layer
 
 ---
 
-## 5. Current recommended sequence
+## 4. Immediate execution order
 
-The currently recommended sequence is:
+The currently recommended execution order is:
 
-1. finish A0 governance and baseline control
-2. consolidate and accept A0 planning surface
-3. implement T1.0 bootstrap
-4. stabilize T1.1/T1.2 runtime and persistence
-5. build T2.0 first vertical slice
-6. only then broaden into sources, search, UI, GPT, VPS, and monitoring
-
----
-
-## 6. Explicitly deferred topics
-
-These topics are important, but not early-core priorities:
-
-- multi-user collaboration and permissions
-- unrestricted autonomous agents
-- heavy scraping of protected login content
-- advanced inheritance between blueprints and derived projects
-- enterprise workflow features
-- broad automation before review and provenance controls are stable
+1. A0.C1 — consolidate A0 and freeze the baseline
+2. T1.0 — repository scaffold and technical bootstrap implementation
+3. T1.1 — config and runtime foundations
+4. T1.2 — persistence and database foundation
+5. T1.3 — minimal API surface
+6. T2.0 — first vertical slice: projects and handbook
+7. T2.1 — sources and project-source mapping
+8. T3.x — search / refresh / review operations
+9. T4.x — web UI and GPT interaction surface
+10. T5.x — VPS preview release
+11. T6.x — monitoring and later agentic expansion
 
 ---
 
-## 7. Planning rules
+## 5. Not now
 
-### 7.1 The repo is the memory
-Do not rely on chat history for long-range continuity.
+The following are intentionally not immediate priorities:
 
-### 7.2 Project state must stay honest
-Prepared artifacts are not the same as accepted baseline.
+- multi-user collaboration
+- aggressive long-running autonomous agents
+- complex login-dependent automation
+- enterprise-grade authorization models
+- broad generic crawler behavior without review boundaries
+- live inheritance between blueprints and derived projects
 
-### 7.3 Implementation should follow explicit entry criteria
-Do not start a runtime tranche until the previous planning gate is stable enough.
+---
 
-### 7.4 Every major bolt updates three layers
-Each meaningful bolt should update:
+## 6. A0 exit criterion
+
+A0 is considered accepted only when:
+
+- the A0 document set is actually present in the repository
+- the A0 document set is reviewed for internal consistency
+- the implementation start line for T1.0 is explicit
+- `PROJECT_STATE.md` and the latest handoff both reflect the accepted A0 state
+
+---
+
+## 7. Update rule
+
+Every major tranche should update:
+
 - `docs/MASTERPLAN.md`
 - `docs/PROJECT_STATE.md`
-- a new `docs/_handoff/HANDOFF_*.md`
-
----
-
-## 8. Masterplan review trigger
-
-This file should be reviewed whenever one of these occurs:
-- major change in product direction
-- change in recommended phase order
-- new architectural constraint
-- decision to accelerate or defer a large capability
-- preparation for a handoff to a new chat or work context
-
----
-
-## 9. Immediate next planning checkpoint
-
-Immediate recommended checkpoint:
-- confirm actual accepted A0 baseline in repo
-- then define the exact T1.0 implementation package
+- one new file under `docs/_handoff/`

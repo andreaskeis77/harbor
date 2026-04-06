@@ -13,27 +13,15 @@ It is designed to support:
 
 ## Current phase
 
-A0.x — Documentation and planning baseline
+A0.C1 — A0 consolidation and baseline freeze preparation
 
 ## Repository posture
 
-This repository starts documentation-first.
+Harbor is still in the documentation-first architecture phase.
 
-That means the initial baseline focuses on:
-
-- product scope
-- project state
-- working rules
-- engineering guardrails
-- handoff structure
-- masterplan and roadmap governance
-- future domain and architecture preparation
-
-## Local repository root
-
-Canonical local path:
-
-`C:\projekte\Harbor`
+The immediate goal is no longer to add many new concept documents blindly.
+The immediate goal is to consolidate the A0 baseline so that later technical
+implementation starts from a controlled and explicitly accepted reference state.
 
 ## Initial navigation
 
@@ -41,17 +29,12 @@ Read these files in this order:
 
 1. `docs/MASTERPLAN.md`
 2. `docs/PROJECT_STATE.md`
-3. `docs/INDEX.md`
-4. latest file under `docs/_handoff/`
+3. `docs/A0_BASELINE_ACCEPTANCE.md`
+4. `docs/A0_CONSOLIDATION_CHECKLIST.md`
+5. latest file in `docs/_handoff/`
 
-## Core rule
+## Local repository root
 
-The chat is not the system of record.
+Canonical local path:
 
-The repository is the system of record for:
-
-- long-range plan
-- current validated state
-- handoffs
-- governance
-- implementation evidence
+`C:\projekte\Harbor`

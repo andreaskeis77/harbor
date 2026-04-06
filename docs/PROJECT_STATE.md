@@ -2,75 +2,56 @@
 
 ## Current phase
 
-A0.x — Planning and documentation baseline
+A0.C1 — A0 consolidation and baseline freeze preparation
 
-## Current status summary
+## What this phase is for
 
-Harbor has a documentation-first baseline.
+The current priority is to consolidate the documentation-first A0 phase into one
+explicitly accepted baseline before starting runtime implementation.
 
-Confirmed on repo:
-- A0.1 bootstrap and scope baseline is committed and pushed
-- repository exists and tracks `main`
-- masterplan governance is being introduced so that long-range direction is held inside the repo and not in transient chat context
+This means:
 
-Prepared in working conversation but not yet treated as fully validated baseline in this document:
-- domain model baseline
-- user stories and functional requirements baseline
-- handbook / blueprint / workflow baseline
-- system architecture / runtime boundary baseline
-- technical bootstrap / repository scaffolding baseline
+- verify which A0 documents are actually present in the repository
+- reduce ambiguity between roadmap, current state, and handoff material
+- confirm the order and dependency chain for T1.0 and later tranches
+- establish a controlled A0 acceptance rule
 
-These items may exist as prepared delivery packages, but the project should distinguish between:
-- discussed / drafted
-- applied locally
-- committed and pushed
-- accepted as baseline
+## Confirmed repository state
 
-## Why this distinction matters
+Confirmed from the conversation:
 
-Harbor must not lose control over what is:
-- merely discussed in chat
-- generated as a candidate artifact
-- actually present in the repository
-- actually accepted as the current baseline
+- repository exists locally at `C:\projekte\Harbor`
+- repository exists on GitHub
+- initial bootstrap baseline was applied and pushed
+- masterplan and handoff governance were later identified as necessary
 
-## Canonical planning rule
+Not yet fully verified in a single accepted A0 freeze step:
 
-Harbor uses the following documentation layers:
+- whether every prepared A0 document set from A0.2 through A0.6 is already
+  applied locally and pushed
+- whether the A0 documents are internally consistent enough to treat as one
+  accepted baseline without further cleanup
 
-1. `docs/MASTERPLAN.md`
-   - long-range direction
-   - phase order
-   - major goals
-   - deferred topics
-   - phase entry/exit logic
+## Immediate next step
 
-2. `docs/PROJECT_STATE.md`
-   - current validated state
-   - what is truly accepted
-   - what is next
-   - current risks and open points
+Perform A0 consolidation against the checklist in:
 
-3. `docs/_handoff/HANDOFF_*.md`
-   - per-step transfer notes
-   - evidence of what happened
-   - what was verified
-   - what still needs action
+- `docs/A0_CONSOLIDATION_CHECKLIST.md`
 
-## Current recommended next step
+and then record the result in:
 
-Before starting T1.0 implementation, consolidate the A0 documentation baseline and decide which A0 documents are officially accepted into the repo baseline.
+- `docs/_handoff/HANDOFF_A0_C1_consolidation_and_freeze_preparation_2026-04-06.md`
 
-## Current risks
+## Recommended next bolt after successful consolidation
 
-- confusing drafted artifacts with validated baseline
-- losing roadmap continuity across chat handoffs
-- starting implementation before the accepted planning surface is stable
+T1.0 — repository scaffold and technical bootstrap implementation
 
-## Working recommendation
+## Risks if skipped
 
-From this point onward, every meaningful planning or implementation bolt should update:
+If A0 is not consolidated before T1.0, Harbor risks:
 
-- `docs/MASTERPLAN.md`
-- `docs/PROJECT_STATE.md`
-- one new file under `docs/_handoff/`
+- concept sprawl
+- duplicate or conflicting documentation
+- uncertainty about the real implementation start line
+- weaker chat handoffs
+- avoidable rework in early runtime tranches
