@@ -1,40 +1,61 @@
 # Harbor
 
-Harbor is a project-partitioned research and monitoring system.
+Harbor ist ein projektpartitioniertes Recherche-, Wissens- und Monitoring-System.
 
-It is designed to support:
+Es unterstützt:
 
-- clearly separated research projects
-- versioned research handbooks and scope definitions
-- controlled source collection and evidence storage
-- review and resume workflows
-- refresh and later monitoring/agentic update flows
-- one canonical backend for website and Custom GPT
+- sauber getrennte Rechercheprojekte
+- versionierte Research Handbooks und Scope-Definitionen
+- kontrollierte Quellenaufnahme und Evidenzspeicherung
+- Review- und Resume-Workflows
+- Refresh sowie späteres Monitoring und agentische Update-Flows
+- ein kanonisches Backend für Website und Custom GPT
 
-## Current phase
+## Aktuelle Phase
 
-A0.C1 — A0 consolidation and baseline freeze preparation
+**A0 abgeschlossen und akzeptiert**  
+**Nächster Zielschritt: T1.0 – Repository Scaffold and Technical Bootstrap**
 
-## Repository posture
+## Repository-Posture
 
-Harbor is still in the documentation-first architecture phase.
+Dieses Repository folgt einer dokumentations- und methodikgetriebenen Startphase.
 
-The immediate goal is no longer to add many new concept documents blindly.
-The immediate goal is to consolidate the A0 baseline so that later technical
-implementation starts from a controlled and explicitly accepted reference state.
+Die A0-Baseline ist nun als akzeptiert festgehalten. Der nächste Schritt ist kein weiterer großer Konzeptsprung, sondern der kontrollierte Einstieg in die technische Umsetzung.
 
-## Initial navigation
+## Lokaler Repository-Pfad
 
-Read these files in this order:
+Kanonischer lokaler Pfad:
+
+`C:\projekte\Harbor`
+
+## Erste Navigation
+
+Diese Dokumente zuerst lesen:
 
 1. `docs/MASTERPLAN.md`
 2. `docs/PROJECT_STATE.md`
-3. `docs/A0_BASELINE_ACCEPTANCE.md`
-4. `docs/A0_CONSOLIDATION_CHECKLIST.md`
-5. latest file in `docs/_handoff/`
+3. `docs/A0_ACCEPTANCE_RECORD_2026-04-06.md`
+4. `docs/TECHNICAL_BOOTSTRAP_v0_1.md` (sobald bereits im Repo vorhanden)
+5. `docs/REPOSITORY_SCAFFOLDING_v0_1.md` (sobald bereits im Repo vorhanden)
 
-## Local repository root
+## Arbeitsprinzip
 
-Canonical local path:
+Harbor wird in kleinen, kontrollierten Tranches entwickelt.
 
-`C:\projekte\Harbor`
+Jeder größere Schritt aktualisiert mindestens:
+
+- `docs/MASTERPLAN.md`
+- `docs/PROJECT_STATE.md`
+- ein passendes `docs/_handoff/HANDOFF_*.md`
+
+## Nächste empfohlene Richtung
+
+Nach dieser A0-Abnahme soll ein T1.0-Bolt vorbereitet werden mit:
+
+- Repo-Scaffold
+- Python-Projektgrundlage
+- `src/`, `tests/`, `tools/`, `config/`, `var/`
+- minimaler App-Struktur
+- Health-Endpunkt
+- lokaler Startfähigkeit
+- ersten Tests und Qualitäts-Gates

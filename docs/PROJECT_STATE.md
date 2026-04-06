@@ -1,57 +1,82 @@
-# Project State
+# PROJECT_STATE – Harbor
 
-## Current phase
+Stand: 2026-04-06 (Europe/Berlin)
 
-A0.C1 — A0 consolidation and baseline freeze preparation
+## 1. Aktueller Status
 
-## What this phase is for
+**Aktuelle Phase:** A0 abgeschlossen und akzeptiert  
+**Nächster empfohlener Schritt:** T1.0 – Repository Scaffold and Technical Bootstrap Implementation
 
-The current priority is to consolidate the documentation-first A0 phase into one
-explicitly accepted baseline before starting runtime implementation.
+Harbor hat die dokumentations- und definitionsgetriebene A0-Phase inhaltlich abgeschlossen. Die Produkt- und Architekturgrundlagen gelten nun als belastbare Startlinie für den technischen Einstieg.
 
-This means:
+## 2. Was als A0-Baseline akzeptiert ist
 
-- verify which A0 documents are actually present in the repository
-- reduce ambiguity between roadmap, current state, and handoff material
-- confirm the order and dependency chain for T1.0 and later tranches
-- establish a controlled A0 acceptance rule
+Die A0-Baseline umfasst mindestens:
 
-## Confirmed repository state
+- Produkt-Scope
+- Domain Model
+- User Stories
+- Functional Requirements
+- Handbook-Spezifikation
+- Blueprint-Modell
+- Workflow-Modell
+- System Architecture
+- Runtime Boundaries
+- Technical Bootstrap
+- Repository Scaffolding
+- Masterplan- und Handoff-Governance
+- A0-Konsolidierung und Acceptance-Steuerung
 
-Confirmed from the conversation:
+## 3. Bedeutung der Abnahme
 
-- repository exists locally at `C:\projekte\Harbor`
-- repository exists on GitHub
-- initial bootstrap baseline was applied and pushed
-- masterplan and handoff governance were later identified as necessary
+Die A0-Abnahme bedeutet ausdrücklich nicht, dass Harbor bereits technisch implementiert ist.
 
-Not yet fully verified in a single accepted A0 freeze step:
+Die Abnahme bedeutet:
 
-- whether every prepared A0 document set from A0.2 through A0.6 is already
-  applied locally and pushed
-- whether the A0 documents are internally consistent enough to treat as one
-  accepted baseline without further cleanup
+- die Richtung ist fachlich und architektonisch definiert,
+- die zentralen Modellierungsentscheidungen sind getroffen,
+- die nächsten technischen Schritte sind eingegrenzt,
+- T1.0 kann kontrolliert gestartet werden, ohne dass wesentliche Produktgrundlagen fehlen.
 
-## Immediate next step
+## 4. Was jetzt nicht passieren soll
 
-Perform A0 consolidation against the checklist in:
+Mit diesem Stand soll **nicht**:
 
-- `docs/A0_CONSOLIDATION_CHECKLIST.md`
+- weiterer unstrukturierter Konzepttext produziert werden,
+- Scope und Implementierung vermischt werden,
+- die Produktgrenzen stillschweigend geändert werden,
+- T1.0 ohne Bezug auf die akzeptierte A0-Baseline gestartet werden.
 
-and then record the result in:
+## 5. T1.0-Zielbild
 
-- `docs/_handoff/HANDOFF_A0_C1_consolidation_and_freeze_preparation_2026-04-06.md`
+T1.0 soll bewusst klein und technisch sauber bleiben.
 
-## Recommended next bolt after successful consolidation
+T1.0 soll mindestens vorbereiten oder liefern:
 
-T1.0 — repository scaffold and technical bootstrap implementation
+- grundlegendes Repo-Scaffold
+- Python-Projektstruktur
+- minimale App-Struktur
+- Konfigurationsoberfläche
+- Health-Endpoint
+- lokale Startfähigkeit
+- erste Tests
+- erste Quality-Gate-Basis
 
-## Risks if skipped
+## 6. Risikohinweise
 
-If A0 is not consolidated before T1.0, Harbor risks:
+Weiterhin zu beachten:
 
-- concept sprawl
-- duplicate or conflicting documentation
-- uncertainty about the real implementation start line
-- weaker chat handoffs
-- avoidable rework in early runtime tranches
+- Es darf keine globale Wissenssuppe entstehen; Projektpartitionierung bleibt Kernprinzip.
+- GPT und Web müssen dauerhaft auf dasselbe Backend zeigen.
+- Quellen, Snapshots, Evidenz, Analyse und Review dürfen nicht vermischt werden.
+- Monitoring und Agenten bleiben spätere Ausbaustufen, nicht T1.0-Kern.
+
+## 7. Nächste Arbeitslogik
+
+Der nächste saubere Übergang ist:
+
+1. A0-Abnahme dokumentiert und gepusht
+2. T1.0-Implementierungs-Bolt vorbereiten
+3. lokales Scaffold implementieren
+4. Health/Tests/Gates prüfen
+5. erst danach weitere fachliche Tiefe in Runtime umsetzen

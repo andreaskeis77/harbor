@@ -1,17 +1,5 @@
-# Concepts Index
+# Concepts README
 
-Current concept-level artifacts for Harbor include:
+Dieses Verzeichnis enthält fachliche und technische Konzepte für Harbor.
 
-- `SYSTEM_ARCHITECTURE_v0_1.md`
-- `RUNTIME_BOUNDARIES_v0_1.md`
-- `TECHNICAL_BOOTSTRAP_v0_1.md`
-- `REPOSITORY_SCAFFOLDING_v0_1.md`
-
-Future concepts are expected to cover areas such as:
-
-- storage layout and artifact policy
-- metadata and audit model
-- source governance model
-- retrieval and indexing model
-- review and candidate queue model
-- monitoring and agent policy
+Mit akzeptierter A0-Baseline ist der nächste Schwerpunkt der Übergang in T1.0.
