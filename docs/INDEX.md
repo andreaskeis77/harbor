@@ -9,7 +9,7 @@
 - `HANDOFF_GUIDE.md`
 - `PROJECT_STATE.md`
 
-## Product baseline
+## Product definition
 
 - `PRODUCT_SCOPE_v0_1.md`
 - `DOMAIN_MODEL_v0_1.md`
@@ -19,10 +19,15 @@
 - `BLUEPRINT_MODEL_v0_1.md`
 - `WORKFLOW_MODEL_v0_1.md`
 
-## Architecture baseline
+## Architecture and runtime
 
 - `SYSTEM_ARCHITECTURE_v0_1.md`
 - `RUNTIME_BOUNDARIES_v0_1.md`
+
+## Bootstrap and repository baseline
+
+- `TECHNICAL_BOOTSTRAP_v0_1.md`
+- `REPOSITORY_SCAFFOLDING_v0_1.md`
 
 ## Concepts
 

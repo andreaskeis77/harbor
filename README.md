@@ -13,21 +13,22 @@ It is designed to support:
 
 ## Current phase
 
-A0.5 — System architecture and runtime boundary baseline
+A0.6 — Technical bootstrap and repository scaffolding baseline
 
 ## Repository posture
 
-This repository is currently documentation-first.
+This repository is still documentation-first, but it now has an explicit technical bootstrap target.
 
-The current architecture baseline covers:
+That means the current baseline covers:
 
 - product scope
 - domain model
-- user stories
-- functional requirements
+- user stories and functional requirements
 - handbook, blueprint, and workflow model
 - system architecture and runtime boundaries
-- future implementation and VPS-operating posture
+- technical bootstrap plan
+- repository scaffolding target
+- handoff structure for the first implementation tranche
 
 ## Local repository root
 
@@ -50,9 +51,9 @@ Read these files in this order:
 9. `docs/WORKFLOW_MODEL_v0_1.md`
 10. `docs/SYSTEM_ARCHITECTURE_v0_1.md`
 11. `docs/RUNTIME_BOUNDARIES_v0_1.md`
-12. `docs/ENGINEERING_MANIFEST.md`
+12. `docs/TECHNICAL_BOOTSTRAP_v0_1.md`
+13. `docs/REPOSITORY_SCAFFOLDING_v0_1.md`
 
 ## Delivery rule
 
-Harbor tranches are delivered as complete file packages with stable repo paths and
-uniquely named delivery archives.
+Harbor changes are delivered in small, explicit bolts with updated documentation, a handoff artifact, and clear application steps.

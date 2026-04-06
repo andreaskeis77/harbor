@@ -1,15 +1,17 @@
-# Concepts README
+# Concepts Index
 
-Harbor concept and architecture artifacts are introduced incrementally.
+Current concept-level artifacts for Harbor include:
 
-Current concept-level baseline:
+- `SYSTEM_ARCHITECTURE_v0_1.md`
+- `RUNTIME_BOUNDARIES_v0_1.md`
+- `TECHNICAL_BOOTSTRAP_v0_1.md`
+- `REPOSITORY_SCAFFOLDING_v0_1.md`
 
-- `docs/SYSTEM_ARCHITECTURE_v0_1.md`
-- `docs/RUNTIME_BOUNDARIES_v0_1.md`
+Future concepts are expected to cover areas such as:
 
-Planned next concept work:
-
-- technical bootstrap blueprint
-- storage and artifact layout
-- API surface outline
-- background job execution posture
+- storage layout and artifact policy
+- metadata and audit model
+- source governance model
+- retrieval and indexing model
+- review and candidate queue model
+- monitoring and agent policy

@@ -2,7 +2,7 @@
 
 ## Current phase
 
-A0.5 — System architecture and runtime boundary baseline
+A0.6 — Technical bootstrap and repository scaffolding baseline
 
 ## Completed
 
@@ -10,59 +10,91 @@ A0.5 — System architecture and runtime boundary baseline
 - A0.2 domain model baseline
 - A0.3 user stories and functional requirements baseline
 - A0.4 handbook, blueprint, and workflow baseline
-- A0.5 system architecture and runtime boundary baseline
+- A0.5 system architecture and runtime boundaries baseline
 
-## Current validated posture
+## What A0.6 adds
 
-Harbor is currently in a documentation-first architecture phase.
+This tranche converts the prior conceptual baseline into a concrete technical starting posture for the first implementation bolt.
 
-The current accepted baseline includes:
+That means Harbor now has an explicit answer to:
 
-- Harbor is a project-partitioned research system, not a generic chat RAG
-- Postgres is the system of record
-- Website and Custom GPT must share one canonical backend
-- projects are strictly separated at the business layer
-- the Research Handbook is the core steering object per project
-- archived projects can become explicit blueprints
-- refresh and later monitoring are part of the product direction
-- agentic behavior is deferred beyond v1 and must not write unchecked truth
+- which repository folders should exist first
+- which files are required before runtime code starts
+- which technical surfaces belong in the first bootstrap tranche
+- which concerns are intentionally deferred
+- which minimal health, config, and startup posture should be introduced first
 
-## Current architectural posture
+## Current product posture
 
-The recommended phase-1 architecture posture is:
+Harbor is currently defined as a project-partitioned research operating system with:
 
-- FastAPI backend as the canonical application/API surface
-- Postgres as the canonical transactional and metadata store
-- pgvector-enabled semantic retrieval capability in the same platform posture
-- filesystem-based artifact storage on the VPS for raw snapshots and evidence files
-- browser-based web UI for project operations and review
-- Custom GPT as a natural-language control surface over the same backend
-- background job layer for search, refresh, parsing, chunking, indexing, and review queues
+- clearly separated projects
+- versioned research handbooks
+- project-local source evaluation
+- explicit review and resume workflows
+- blueprint-based reuse of archived projects
+- refresh, discovery, and later monitoring as part of the design horizon
 
-## Runtime boundary posture
+## Current architecture posture
 
-The current runtime boundary is explicitly split into:
+The accepted phase-1 architecture baseline is:
 
-- interaction layer
-- application/API layer
-- orchestration/jobs layer
-- storage layer
-- external acquisition layer
+- FastAPI application layer
+- Postgres as system of record
+- pgvector for semantic retrieval support
+- filesystem artifact store for captured source artifacts
+- shared backend for web UI and Custom GPT
+- background-job surface for refresh, discovery, and later monitoring work
 
-The system must not collapse these concerns into one undifferentiated chat workflow.
+## Current implementation posture
 
-## What is intentionally not decided yet
+The repository is still intentionally pre-runtime.
 
-Still open for the next phase:
+No production code, database migrations, or running services are introduced by A0.6.
 
-- exact repo scaffolding for src/tests/tools/config/runtime files
-- exact web stack details for v1 UI
-- exact background-job mechanism
-- exact auth posture for website and GPT-facing API usage
-- exact artifact directory structure
-- exact health/smoke/release evidence commands
-- first implementation tranche layout
+Instead, A0.6 prepares the repository and technical bootstrap target so that the first implementation tranche can start in a controlled way.
+
+## Current repository posture
+
+The repository should now be understood as having four layers of maturity:
+
+1. **Method baseline**
+2. **Product and domain baseline**
+3. **Architecture and runtime baseline**
+4. **Technical bootstrap target**
+
+The next phase will begin moving from documentation-first to implementation-first, but only in small, explicit bolts.
+
+## Validated next target
+
+The next recommended implementation entry is:
+
+**T1.0 — Repository scaffold and technical bootstrap implementation**
+
+This first implementation bolt should introduce only the minimum durable technical surface needed to start Harbor safely, such as:
+
+- initial directory structure
+- Python package root
+- basic configuration surface
+- app entrypoint skeleton
+- health command or health endpoint skeleton
+- initial database configuration contract
+- initial artifact-root contract
+- initial tests and validation hooks
+
+## Important non-goals at this stage
+
+Still not part of the current implementation baseline:
+
+- full source acquisition implementation
+- project CRUD implementation
+- full web UI
+- Custom GPT integration wiring
+- background scheduler runtime
+- agentic monitoring runtime
+- full Postgres migration set
+- full pgvector retrieval implementation
 
 ## Preferred next bolt
 
-A0.6 — Technical bootstrap and repository scaffolding baseline
+T1.0 — Repository scaffold and technical bootstrap implementation
