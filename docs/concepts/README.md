@@ -1,17 +1,15 @@
 # Concepts
 
-This directory is reserved for concept documents that go beyond the scope, domain model, and core working rules.
+This directory contains cross-cutting concept documents for Harbor.
 
-Current posture:
+Current concept maturity:
 
-- no standalone concept documents have been added yet
-- the current baseline is still centered on product definition and domain definition
+- no standalone concept documents yet beyond product-level scope and domain definition
+- handbook model, blueprint model, workflow model, and architecture concept are expected next
 
-Expected later concept areas include:
+Current relevant upstream definition documents live at:
 
-- system architecture
-- read model design
-- search and retrieval orchestration
-- handbook representation model
-- review workflow model
-- blueprint module model
+- `docs/PRODUCT_SCOPE_v0_1.md`
+- `docs/DOMAIN_MODEL_v0_1.md`
+- `docs/USER_STORIES_v0_1.md`
+- `docs/FUNCTIONAL_REQUIREMENTS_v0_1.md`

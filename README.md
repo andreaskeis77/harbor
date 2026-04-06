@@ -13,7 +13,7 @@ It is designed to support:
 
 ## Current phase
 
-A0.2 - Domain model baseline
+A0.3 — User stories and functional requirements baseline
 
 ## Repository posture
 
@@ -23,11 +23,12 @@ That means the initial baseline focuses on:
 
 - product scope
 - domain model
+- user stories and functional requirements
 - project state
 - working rules
 - engineering guardrails
 - handoff structure
-- future domain and architecture preparation
+- future architecture preparation
 
 ## Local repository root
 
@@ -39,16 +40,9 @@ Canonical local path:
 
 Read these files in this order:
 
-1. `docs/INDEX.md`
-2. `docs/PROJECT_STATE.md`
-3. `docs/PRODUCT_SCOPE_v0_1.md`
-4. `docs/DOMAIN_MODEL_v0_1.md`
-5. `docs/ENGINEERING_MANIFEST.md`
-6. `docs/WORKING_AGREEMENT.md`
-7. `docs/HANDOFF_GUIDE.md`
-
-## Current intent
-
-Harbor is treated as a research operating system, not as a thin chat wrapper around vector search.
-
-The current priority is to stabilize the product definition before implementation begins.
+1. `docs/PRODUCT_SCOPE_v0_1.md`
+2. `docs/DOMAIN_MODEL_v0_1.md`
+3. `docs/USER_STORIES_v0_1.md`
+4. `docs/FUNCTIONAL_REQUIREMENTS_v0_1.md`
+5. `docs/PROJECT_STATE.md`
+6. `docs/INDEX.md`

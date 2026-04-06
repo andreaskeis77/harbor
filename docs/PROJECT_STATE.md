@@ -2,63 +2,71 @@
 
 ## Current phase
 
-A0.2 - Domain model baseline
+A0.3 — User Stories and Functional Requirements Baseline
 
 ## Completed
 
 - A0.1 product scope baseline
-- A0.1 repository and documentation bootstrap
-- A0.2 first domain model baseline
+- A0.2 domain model baseline
+- A0.3 user stories baseline
+- A0.3 functional requirements baseline
+
+## Current validated state
+
+Harbor is still in a documentation-first architecture phase.
+
+The repository now defines:
+
+- the product purpose and scope,
+- the principle of strict project partitioning,
+- the first core domain model,
+- the first user story set,
+- the first functional requirement baseline,
+- the blueprint and reuse direction,
+- the review/resume operating model,
+- the refresh/discovery/monitoring direction.
 
 ## Current product posture
 
-Harbor is currently defined as:
+Harbor is currently defined as a project-partitioned research system, not merely a chat-based RAG utility.
 
-- a project-partitioned research system
-- a versioned handbook-driven workflow
-- a source and evidence management surface
-- a review/resume-oriented operating model
-- a future-ready refresh, discovery, monitoring, and blueprint system
-- a single-backend architecture for website and Custom GPT
+The product baseline now assumes:
 
-## Current technical posture
+- Postgres as the system of record,
+- one canonical backend for web and Custom GPT,
+- project-local scope and review state,
+- explicit separation between sources, snapshots, extracts, analyses and review decisions,
+- archived projects as optional blueprint candidates,
+- manual initial search and refresh in v1,
+- agentic monitoring only as a later evolution.
 
-The current technical target posture is:
-
-- Postgres as system of record
-- documentation-first repository phase
-- no runtime code introduced yet
-- implementation deferred until product definition, domain model, and working rules are stable
-
-## What is now clarified
-
-The repository now has a clearer model for:
-
-- project partitioning
-- project lifecycle
-- handbook versioning
-- source vs project-source separation
-- snapshot/evidence storage
-- search, refresh, review, and monitoring runs
-- archived projects as blueprint candidates
-- explicit reuse without hidden live inheritance
-
-## What is intentionally still open
+## Open points after A0.3
 
 Still open for the next tranche:
 
-- user stories and functional requirements
-- first API surface concept
-- first relational schema outline
-- first UI/read model concept
-- first runtime/bootstrap plan
-- search/retrieval orchestration design
-- review workflow details at field level
+- research handbook specification in a stricter structural form,
+- blueprint model and reuse rules in more detail,
+- workflow model for search, refresh, review and resume,
+- initial system architecture,
+- initial API surface,
+- initial web information architecture,
+- initial metadata / storage model,
+- first ADR set.
 
-## Current cycle
+## Recommended next step
 
-We are still in architecture/product-definition mode.
+Proceed to **A0.4 — Handbook, Blueprint, and Workflow Model Baseline**.
 
-## Preferred next bolt
+That tranche should define:
 
-A0.3 - User stories and functional requirements baseline
+- the exact Research Handbook structure,
+- blueprint eligibility and reuse mechanics,
+- review/resume workflow states,
+- search/refresh workflow boundaries,
+- candidate vs accepted knowledge transitions.
+
+## Current repository posture
+
+Still documentation-first by design.
+
+No runtime code, ingestion code, web code, or deployment code has been introduced yet.
