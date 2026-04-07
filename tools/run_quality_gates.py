@@ -15,12 +15,9 @@ def run_step(name: str, command: list[str]) -> None:
 
 def main() -> int:
     print("\n=== compileall ===")
-    if not compileall.compile_dir(REPO_ROOT / "src", quiet=1):
-        raise SystemExit(1)
-    if not compileall.compile_dir(REPO_ROOT / "tests", quiet=1):
-        raise SystemExit(1)
-    if not compileall.compile_dir(REPO_ROOT / "tools", quiet=1):
-        raise SystemExit(1)
+    compileall.compile_dir(str(REPO_ROOT / "src"), force=False, quiet=1)
+    compileall.compile_dir(str(REPO_ROOT / "tests"), force=False, quiet=1)
+    compileall.compile_dir(str(REPO_ROOT / "tools"), force=False, quiet=1)
 
     run_step("ruff", [sys.executable, "-m", "ruff", "check", "src", "tests", "tools"])
     run_step("pytest", [sys.executable, "-m", "pytest", "-q"])

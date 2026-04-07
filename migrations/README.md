@@ -1,5 +1,5 @@
-# Harbor migrations
+# Migrations
 
-This directory contains Alembic migration scaffolding.
+This directory contains the Alembic migration environment for Harbor.
 
-At T1.2 there are intentionally no Harbor domain migrations yet.
+T1.3 ships the first project-registry migration baseline.

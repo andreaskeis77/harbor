@@ -13,20 +13,19 @@ It is designed to support:
 
 ## Current phase
 
-T1.2 — Persistence foundation and Postgres baseline
+T1.3A — Project registry stabilization fix
 
 ## Repository posture
 
-Harbor is now in the early runtime bootstrap phase.
+Harbor is now beyond documentation-only bootstrap.
 
-The repository currently contains:
+The current repository contains:
 
-- accepted A0 documentation baseline
-- runtime configuration baseline
-- local operator surface
-- FastAPI bootstrap runtime
+- accepted A0 product and architecture baseline
+- runtime bootstrap and local operator surface
 - persistence foundation and Postgres baseline
-- quality gates and local smoke paths
+- first real vertical product slice for project registration
+- stabilization fix for project-slice smoke and route/style compliance
 
 ## Local repository root
 
@@ -41,15 +40,22 @@ Read these files in this order:
 1. `docs/MASTERPLAN.md`
 2. `docs/PROJECT_STATE.md`
 3. `docs/INDEX.md`
-4. `docs/PERSISTENCE_FOUNDATION_v0_1.md`
-5. `docs/POSTGRES_BASELINE_v0_1.md`
+4. `docs/PROJECT_REGISTRY_VERTICAL_SLICE_v0_1.md`
+5. `docs/_handoff/HANDOFF_T1_3A_project_registry_stabilization_fix_2026-04-07.md`
 
-## Dev quickstart
+## Local commands
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-python .\tools\task_runner.py show-settings
-python .\tools\task_runner.py show-db-settings
-python .\tools\task_runner.py quality-gates
-python .\tools\task_runner.py run-dev
+python .	ools	ask_runner.py show-settings
+python .	ools	ask_runner.py show-db-settings
+python .	ools	ask_runner.py quality-gates
+python .	ools	ask_runner.py run-dev
 ```
+
+## Current proof points
+
+- `/healthz`
+- `/runtime`
+- `/db/status`
+- `/api/v1/projects` (when a DB URL is configured)

@@ -1,12 +1,17 @@
 # Concepts
 
-This directory holds Harbor concept documents that are more detailed than the high-level scope docs but not yet ADRs.
+Core accepted concept documents currently include:
 
-Current focus areas already captured elsewhere in the repository:
-
-- project-partitioned research model
-- handbook specification
-- blueprint model
-- workflow model
-- runtime configuration
-- persistence foundation
+- `PRODUCT_SCOPE_v0_1.md`
+- `DOMAIN_MODEL_v0_1.md`
+- `HANDBOOK_SPEC_v0_1.md`
+- `BLUEPRINT_MODEL_v0_1.md`
+- `WORKFLOW_MODEL_v0_1.md`
+- `SYSTEM_ARCHITECTURE_v0_1.md`
+- `RUNTIME_BOUNDARIES_v0_1.md`
+- `TECHNICAL_BOOTSTRAP_v0_1.md`
+- `RUNTIME_CONFIGURATION_v0_1.md`
+- `LOCAL_OPERATOR_SURFACE_v0_1.md`
+- `PERSISTENCE_FOUNDATION_v0_1.md`
+- `POSTGRES_BASELINE_v0_1.md`
+- `PROJECT_REGISTRY_VERTICAL_SLICE_v0_1.md`

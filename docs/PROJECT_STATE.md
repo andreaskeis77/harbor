@@ -1,57 +1,49 @@
-# Project State — Harbor
+# Project State
 
 ## Current phase
 
-T1.2 — Persistence foundation and Postgres baseline
+T1.3A — Project registry stabilization fix
 
 ## Confirmed completed
 
-- A0 accepted baseline
-- T1.0 repository scaffold and runtime bootstrap
+- A0 baseline accepted
+- T1.0 runtime bootstrap
 - T1.1 runtime configuration and local operator surface
 - T1.2 persistence foundation and Postgres baseline
+- T1.3 first vertical slice for project registration
+- T1.3A stabilization fix for project-slice smoke and route/style compliance
 
 ## Current runtime posture
 
 Harbor now has:
 
-- FastAPI bootstrap runtime
-- runtime settings loaded through `.env` / environment variables
-- local operator commands through `tools/task_runner.py`
-- persistence package boundary under `src/harbor/persistence/`
-- SQLAlchemy base and session bootstrap
-- optional Postgres configuration and connectivity check
-- `/healthz`, `/runtime`, and `/db/status` endpoints
-- local quality gates and smoke checks
+- running FastAPI runtime
+- local operator commands
+- DB status surface
+- persistence foundation with SQLAlchemy + Alembic baseline
+- first persisted product entity: project registry
+- first create/list/get project API
+- stabilized smoke command for the project slice
 
-## Current persistence posture
+## Confirmed local proof for T1.3A
 
-The persistence layer is intentionally still minimal.
+Expected green proof after apply:
 
-It now includes:
+- `python .\tools\task_runner.py quality-gates`
+- `python .\tools\task_runner.py db-status`
+- `python .\tools\task_runner.py smoke-project-slice`
+- `/api/v1/projects` works when a DB URL is configured
 
-- typed Postgres configuration in runtime settings
-- redacted connection visibility
-- SQLAlchemy engine factory
-- session factory boundary
-- declarative base
-- lightweight DB status service
-- Alembic baseline scaffolding
+## Current recommended next step
 
-It does **not** yet include:
+T1.4 — Handbook persistence baseline
 
-- Harbor domain tables
-- project persistence
-- handbook persistence
-- source persistence
-- pgvector usage in runtime logic
+## Notes
 
-## Current release posture
+The first real Harbor product object is now in place: `Project`.
 
-Local runtime and local operator surface are green.
-
-The current next step is to build the first real persistence-backed Harbor domain slice on top of the new baseline.
-
-## Recommended next step
-
-T1.3 — Project registry vertical slice
+This is intentionally still narrow:
+- no handbook persistence yet
+- no sources yet
+- no UI yet
+- no GPT integration yet

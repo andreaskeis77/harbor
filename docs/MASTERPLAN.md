@@ -4,48 +4,71 @@
 
 Harbor is a project-partitioned research operating system, not a generic chat-RAG.
 
-## Phase sequence
+The sequence stays:
 
-### A0 — Definition and architecture
-Accepted.
+- A0 — accepted product / architecture / governance baseline
+- T1 — local technical bootstrap and first vertical slices
+- T2 — broader research workflow surface
+- T3 — VPS preview/runtime stabilization
+- T4 — Custom GPT integration against the canonical backend
+- T5 — refresh / discovery / monitoring evolution
 
-### T1.0 — Runtime bootstrap
-Accepted.
+## Current accepted state
 
-### T1.1 — Runtime configuration and local operator surface
-Accepted.
+Accepted:
+- A0 baseline
+- T1.0 runtime bootstrap
+- T1.1 runtime configuration and local operator surface
+- T1.2 persistence foundation and Postgres baseline
 
-### T1.2 — Persistence foundation and Postgres baseline
-Accepted with the current tranche.
+Current focus:
+- T1.3 project registry vertical slice
 
-### T1.3 — Project registry vertical slice
-Planned next.
+## T1 sequence
 
-Target outcome:
-- create project
-- list projects
-- read project
-- first persistence-backed Harbor domain object
+### T1.0
+- repository scaffold
+- FastAPI runtime
+- health endpoint
+- quality gates
 
-### T1.4 — Handbook persistence baseline
-Planned after T1.3.
+### T1.1
+- runtime settings
+- operator commands
+- local smoke surface
 
-### T1.5 — Source registry baseline
-Planned after T1.4.
+### T1.2
+- persistence package
+- Postgres config
+- DB status surface
+- Alembic baseline
 
-### T2.x — Search / refresh / review / GPT / VPS
-Deferred until the local product spine is real.
+### T1.3
+- first project persistence model
+- first migration
+- create/list/get project API
+- project registry tests
 
-## Current recommendation
+### T1.4
+- handbook persistence baseline
 
-Do not jump to ingestion, GPT actions, or VPS rollout yet.
+### T1.5
+- source / project-source first slice
 
-Build the Harbor product spine in this order:
+## Explicit non-goals right now
 
-1. persistence baseline
-2. project registry
-3. handbook persistence
-4. source baseline
-5. search / refresh
-6. GPT surface
-7. VPS preview
+Not now:
+- UI build-out
+- Custom GPT actions
+- vector search
+- source crawling
+- monitoring agents
+- multi-user collaboration
+
+## Transition rule
+
+We continue with small vertical slices.
+Every slice updates:
+- `MASTERPLAN.md`
+- `PROJECT_STATE.md`
+- one `HANDOFF_*.md`

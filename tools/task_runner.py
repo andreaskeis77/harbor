@@ -1,86 +1,92 @@
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import sys
 from pathlib import Path
 
+from harbor.config import get_settings
 from harbor.operator_surface import (
-    render_db_settings,
-    render_db_status,
-    render_runtime_settings,
-    render_smoke_payload,
+    database_status_for_operator,
+    print_json,
+    show_db_settings_payload,
+    show_settings_payload,
+    smoke_local_payload,
+    smoke_project_slice_payload,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def cmd_show_settings() -> int:
-    print(render_runtime_settings())
-    return 0
+def run_subprocess(args: list[str]) -> int:
+    completed = subprocess.run(args, cwd=REPO_ROOT, check=False)
+    return completed.returncode
 
 
-def cmd_show_db_settings() -> int:
-    print(render_db_settings())
-    return 0
-
-
-def cmd_db_status(check: bool) -> int:
-    print(render_db_status(check=check))
-    return 0
-
-
-def cmd_smoke_local() -> int:
-    payload = json.loads(render_smoke_payload())
-    print("=== root ===")
-    print(json.dumps(payload["root"], indent=2, sort_keys=True))
-    print("=== healthz ===")
-    print(json.dumps(payload["healthz"], indent=2, sort_keys=True))
-    print("=== runtime ===")
-    print(json.dumps(payload["runtime"], indent=2, sort_keys=True))
-    print("=== db_status ===")
-    print(json.dumps(payload["db_status"], indent=2, sort_keys=True))
-    return 0
-
-
-def cmd_quality_gates() -> int:
-    subprocess.run([sys.executable, str(REPO_ROOT / "tools" / "run_quality_gates.py")], check=True)
-    return 0
-
-
-def cmd_run_dev() -> int:
-    subprocess.run(
+def command_run_dev() -> int:
+    settings = get_settings()
+    return run_subprocess(
         [
             sys.executable,
             "-m",
             "uvicorn",
             "harbor.app:app",
             "--host",
-            "127.0.0.1",
+            settings.host,
             "--port",
-            "8000",
-            "--reload",
-        ],
-        cwd=REPO_ROOT,
-        check=True,
+            str(settings.port),
+            *(["--reload"] if settings.reload else []),
+        ]
     )
+
+
+def command_quality_gates() -> int:
+    return run_subprocess([sys.executable, str(REPO_ROOT / "tools" / "run_quality_gates.py")])
+
+
+def command_show_settings() -> int:
+    print_json(show_settings_payload())
+    return 0
+
+
+def command_show_db_settings() -> int:
+    print_json(show_db_settings_payload())
+    return 0
+
+
+def command_db_status() -> int:
+    print_json(database_status_for_operator())
+    return 0
+
+
+def command_smoke_local() -> int:
+    payload = smoke_local_payload()
+    print("=== root ===")
+    print_json(payload["root"])
+    print("=== healthz ===")
+    print_json(payload["healthz"])
+    print("=== runtime ===")
+    print_json(payload["runtime"])
+    return 0
+
+
+def command_smoke_project_slice() -> int:
+    print_json(smoke_project_slice_payload())
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Harbor local operator surface")
+    parser = argparse.ArgumentParser(description="Harbor task runner")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    subparsers.add_parser("run-dev")
+    subparsers.add_parser("quality-gates")
     subparsers.add_parser("show-settings")
     subparsers.add_parser("show-db-settings")
-
-    parser_db_status = subparsers.add_parser("db-status")
-    parser_db_status.add_argument("--check", action="store_true")
-
+    subparsers.add_parser("db-status")
     subparsers.add_parser("smoke-local")
-    subparsers.add_parser("quality-gates")
-    subparsers.add_parser("run-dev")
+    subparsers.add_parser("smoke-project-slice")
+
     return parser
 
 
@@ -88,21 +94,16 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    if args.command == "show-settings":
-        return cmd_show_settings()
-    if args.command == "show-db-settings":
-        return cmd_show_db_settings()
-    if args.command == "db-status":
-        return cmd_db_status(check=args.check)
-    if args.command == "smoke-local":
-        return cmd_smoke_local()
-    if args.command == "quality-gates":
-        return cmd_quality_gates()
-    if args.command == "run-dev":
-        return cmd_run_dev()
-
-    parser.error(f"Unsupported command: {args.command}")
-    return 2
+    command_map = {
+        "run-dev": command_run_dev,
+        "quality-gates": command_quality_gates,
+        "show-settings": command_show_settings,
+        "show-db-settings": command_show_db_settings,
+        "db-status": command_db_status,
+        "smoke-local": command_smoke_local,
+        "smoke-project-slice": command_smoke_project_slice,
+    }
+    return command_map[args.command]()
 
 
 if __name__ == "__main__":

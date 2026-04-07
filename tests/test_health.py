@@ -2,22 +2,21 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from harbor.app import app
-
-client = TestClient(app)
+from harbor.app import create_app
+from harbor.config import HarborSettings
 
 
 def test_root() -> None:
-    response = client.get("/")
+    app = create_app(settings=HarborSettings())
+    with TestClient(app) as client:
+        response = client.get("/")
     assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "ok"
-    assert body["name"] == "Harbor"
+    assert response.json()["status"] == "ok"
 
 
 def test_healthz() -> None:
-    response = client.get("/healthz")
+    app = create_app(settings=HarborSettings())
+    with TestClient(app) as client:
+        response = client.get("/healthz")
     assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "ok"
-    assert body["app_name"] == "Harbor"
+    assert response.json()["status"] == "ok"

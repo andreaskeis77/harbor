@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.get("/")
-def root() -> dict[str, str]:
+def root() -> dict[str, object]:
     settings = get_settings()
     return {
         "name": settings.app_name,
@@ -19,7 +19,7 @@ def root() -> dict[str, str]:
 
 
 @router.get("/healthz")
-def healthz() -> dict[str, str]:
+def healthz() -> dict[str, object]:
     settings = get_settings()
     return {
         "status": "ok",
@@ -32,4 +32,7 @@ def healthz() -> dict[str, str]:
 @router.get("/runtime")
 def runtime() -> dict[str, object]:
     settings = get_settings()
-    return {"status": "ok", "runtime": runtime_payload(settings)}
+    return {
+        "status": "ok",
+        "runtime": runtime_payload(settings),
+    }

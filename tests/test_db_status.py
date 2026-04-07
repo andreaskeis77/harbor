@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
-
-from harbor.app import app
-
-client = TestClient(app)
+from harbor.config import HarborSettings
+from harbor.persistence.status import database_status_payload
 
 
-def test_db_status_reports_not_configured_by_default() -> None:
-    response = client.get("/db/status")
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "not_configured"
-    assert body["database"]["postgres_configured"] is False
+def test_db_status_not_configured() -> None:
+    payload = database_status_payload(settings=HarborSettings())
+
+    assert payload["status"] == "not_configured"
+    assert payload["database"]["postgres_configured"] is False

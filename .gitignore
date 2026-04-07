@@ -1,19 +1,32 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 *.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual env
 .venv/
 
-# Environment
+# Environment / secrets
 .env
 
-# Local runtime outputs
-var/logs/*
+# Local DB and runtime outputs
+var/**/*
+!var/.gitkeep
+!var/logs/
 !var/logs/.gitkeep
-var/reports/*
+!var/reports/
 !var/reports/.gitkeep
-data/artifacts/*
+!var/tmp/
+!var/tmp/.gitkeep
+
+data/**/*
+!data/.gitkeep
+!data/artifacts/
 !data/artifacts/.gitkeep
 
-# IDE
-.vscode/
+# Alembic cache
+migrations/versions/__pycache__/

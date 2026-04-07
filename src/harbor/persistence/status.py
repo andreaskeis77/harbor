@@ -1,39 +1,59 @@
 from __future__ import annotations
 
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 
-from harbor.config import get_settings
-from harbor.runtime import db_runtime_payload
+from harbor.config import HarborSettings, get_settings
+from harbor.persistence.session import get_engine
 
 
-def get_database_status(check: bool = False) -> dict[str, object]:
-    settings = get_settings()
-    payload: dict[str, object] = {
-        "status": "ok",
-        "database": db_runtime_payload(settings),
-        "connectivity_check_requested": check,
-        "connectivity": None,
-    }
+def database_status_payload(
+    settings: HarborSettings | None = None,
+    connectivity_check_requested: bool = False,
+) -> dict[str, object]:
+    settings = settings or get_settings()
+    database = settings.db_runtime_dict()
 
     if not settings.postgres_configured:
-        payload["status"] = "not_configured"
-        return payload
+        return {
+            "status": "not_configured",
+            "database": database,
+            "connectivity_check_requested": connectivity_check_requested,
+            "connectivity": None,
+        }
 
-    if not check:
-        payload["connectivity"] = "not_checked"
-        return payload
+    if not connectivity_check_requested:
+        return {
+            "status": "configured",
+            "database": database,
+            "connectivity_check_requested": connectivity_check_requested,
+            "connectivity": None,
+        }
 
-    from harbor.persistence.session import build_engine
+    engine = get_engine(settings)
+    if engine is None:
+        return {
+            "status": "not_configured",
+            "database": database,
+            "connectivity_check_requested": connectivity_check_requested,
+            "connectivity": None,
+        }
 
     try:
-        engine = build_engine()
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-        payload["connectivity"] = "ok"
-        return payload
-    except (RuntimeError, SQLAlchemyError) as exc:
-        payload["status"] = "error"
-        payload["connectivity"] = "error"
-        payload["error"] = str(exc)
-        return payload
+        connectivity = "ok"
+        status = "ok"
+    except Exception as exc:  # noqa: BLE001
+        connectivity = {
+            "status": "error",
+            "error_type": exc.__class__.__name__,
+            "message": str(exc),
+        }
+        status = "connectivity_error"
+
+    return {
+        "status": status,
+        "database": database,
+        "connectivity_check_requested": connectivity_check_requested,
+        "connectivity": connectivity,
+    }
