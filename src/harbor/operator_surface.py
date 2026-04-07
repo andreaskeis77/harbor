@@ -93,7 +93,8 @@ def smoke_project_slice_payload() -> dict[str, object]:
 
 def smoke_handbook_slice_payload() -> dict[str, object]:
     with tempfile.TemporaryDirectory(
-        prefix="harbor_handbook_slice_", ignore_cleanup_errors=True
+        prefix="harbor_handbook_slice_",
+        ignore_cleanup_errors=True,
     ) as tmpdir:
         db_file = Path(tmpdir) / "handbook_smoke.db"
         os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
