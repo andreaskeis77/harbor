@@ -3,52 +3,74 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, computed_field
+from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from harbor import __version__
 
-
-class HarborSettings(BaseSettings):
+class Settings(BaseSettings):
     model_config = SettingsConfigDict(
+        env_prefix="HARBOR_",
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=False,
         extra="ignore",
     )
 
-    app_name: str = Field(default="Harbor", alias="HARBOR_APP_NAME")
-    app_version: str = Field(default=__version__, alias="HARBOR_APP_VERSION")
-    environment: str = Field(default="dev", alias="HARBOR_ENVIRONMENT")
-    api_v1_prefix: str = Field(default="/api/v1", alias="HARBOR_API_V1_PREFIX")
-    host: str = Field(default="127.0.0.1", alias="HARBOR_HOST")
-    port: int = Field(default=8000, alias="HARBOR_PORT")
-    reload: bool = Field(default=True, alias="HARBOR_RELOAD")
-    log_level: str = Field(default="INFO", alias="HARBOR_LOG_LEVEL")
-    data_root: Path = Field(default=Path("data"), alias="HARBOR_DATA_ROOT")
-    var_root: Path = Field(default=Path("var"), alias="HARBOR_VAR_ROOT")
-    postgres_dsn: str | None = Field(default=None, alias="HARBOR_POSTGRES_DSN")
+    app_name: str = "Harbor"
+    environment: str = "dev"
+    version: str = "0.1.2a0"
+    api_v1_prefix: str = "/api/v1"
+    host: str = "127.0.0.1"
+    port: int = 8000
+    reload: bool = True
+    log_level: str = "INFO"
 
-    @computed_field  # type: ignore[misc]
-    @property
-    def artifact_root(self) -> Path:
-        return self.data_root / "artifacts"
+    data_root: Path = Path("data")
+    artifact_root: Path = Path("data/artifacts")
+    var_root: Path = Path("var")
+    log_root: Path = Path("var/logs")
+    report_root: Path = Path("var/reports")
 
-    @computed_field  # type: ignore[misc]
-    @property
-    def log_root(self) -> Path:
-        return self.var_root / "logs"
+    postgres_host: str | None = None
+    postgres_port: int = 5432
+    postgres_db: str | None = None
+    postgres_user: str | None = None
+    postgres_password: str | None = None
+    postgres_echo: bool = False
+    postgres_pool_pre_ping: bool = True
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
-    def report_root(self) -> Path:
-        return self.var_root / "reports"
+    def postgres_configured(self) -> bool:
+        return all(
+            [
+                bool(self.postgres_host),
+                bool(self.postgres_db),
+                bool(self.postgres_user),
+                bool(self.postgres_password),
+            ]
+        )
+
+    @computed_field
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        if not self.postgres_configured:
+            raise ValueError("Postgres is not fully configured.")
+        return (
+            f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
+
+    @computed_field
+    @property
+    def sqlalchemy_database_url_redacted(self) -> str | None:
+        if not self.postgres_configured:
+            return None
+        return (
+            f"postgresql+psycopg://{self.postgres_user}:***"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
 
 
 @lru_cache(maxsize=1)
-def get_settings() -> HarborSettings:
-    return HarborSettings()
-
-
-def reset_settings_cache() -> None:
-    get_settings.cache_clear()
+def get_settings() -> Settings:
+    return Settings()

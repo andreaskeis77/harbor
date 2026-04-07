@@ -15,14 +15,16 @@ def run_step(name: str, command: list[str]) -> None:
 
 def main() -> int:
     print("\n=== compileall ===")
-    ok = compileall.compile_dir(REPO_ROOT / "src", quiet=1)
-    ok = compileall.compile_dir(REPO_ROOT / "tests", quiet=1) and ok
-    ok = compileall.compile_dir(REPO_ROOT / "tools", quiet=1) and ok
-    if not ok:
-        raise SystemExit("compileall failed")
+    if not compileall.compile_dir(REPO_ROOT / "src", quiet=1):
+        raise SystemExit(1)
+    if not compileall.compile_dir(REPO_ROOT / "tests", quiet=1):
+        raise SystemExit(1)
+    if not compileall.compile_dir(REPO_ROOT / "tools", quiet=1):
+        raise SystemExit(1)
 
     run_step("ruff", [sys.executable, "-m", "ruff", "check", "src", "tests", "tools"])
-    run_step("pytest", [sys.executable, "-m", "pytest"])
+    run_step("pytest", [sys.executable, "-m", "pytest", "-q"])
+
     print("\nQuality gates passed.")
     return 0
 

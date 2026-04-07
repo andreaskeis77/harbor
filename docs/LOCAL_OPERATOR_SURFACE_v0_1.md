@@ -1,58 +1,34 @@
-# Local Operator Surface v0.1
+# Harbor Local Operator Surface v0.1
 
-Status: T1.1 baseline
+Status: accepted local operator baseline
 
-## 1. Purpose
+## Purpose
 
-This document defines the minimum local operator command surface for Harbor.
+This document describes the local command surface for Harbor operators on the DEV-LAPTOP.
 
-The goal is to make local execution reproducible and easier to hand off across
-chat sessions and engineering steps.
+## Current commands
 
-## 2. Required local tasks
+- `python .\tools\task_runner.py show-settings`
+- `python .\tools\task_runner.py show-db-settings`
+- `python .\tools\task_runner.py db-status`
+- `python .\tools\task_runner.py smoke-local`
+- `python .\tools\task_runner.py quality-gates`
+- `python .\tools\task_runner.py run-dev`
 
-The T1.1 baseline includes these commands:
+## Design rule
 
-- `quality-gates`
-- `show-settings`
-- `smoke-local`
-- `run-dev`
+The operator surface is intentionally small, explicit, and Windows-friendly.
 
-## 3. Canonical command entry
+It exists to reduce ad-hoc command drift and to make later VPS and runbook work easier.
 
-The canonical entry for local operator tasks is:
+## Current boundaries
 
-```powershell
-python .\tools\task_runner.py <command>
-```
+The operator surface is currently for:
 
-## 4. Why this matters
+- local runtime inspection
+- local smoke checks
+- quality-gate execution
+- local dev server startup
+- persistence-configuration inspection
 
-This keeps local engineering from drifting into ad hoc command memory.
-
-The operator surface is part of the system contract, not a side note.
-
-## 5. Current command meanings
-
-### `quality-gates`
-Runs compile, lint, and test validation.
-
-### `show-settings`
-Prints the effective runtime settings summary.
-
-### `smoke-local`
-Runs root, health, and runtime checks through an in-process client.
-
-### `run-dev`
-Starts the local uvicorn development server with settings-derived host, port,
-and reload behavior.
-
-## 6. Later expansion
-
-Later phases may add:
-
-- migration commands
-- DB bootstrap commands
-- project seeding commands
-- snapshot inspection commands
-- VPS smoke commands
+It is not yet a full production operator console.

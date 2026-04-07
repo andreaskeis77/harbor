@@ -1,15 +1,15 @@
-from harbor.config import get_settings, reset_settings_cache
-from harbor.runtime import runtime_summary
+from __future__ import annotations
+
+from harbor.config import Settings
 
 
-def test_runtime_summary_contains_expected_keys() -> None:
-    reset_settings_cache()
-    settings = get_settings()
+def test_default_settings_postgres_not_configured() -> None:
+    settings = Settings()
+    assert settings.postgres_configured is False
+    assert settings.sqlalchemy_database_url_redacted is None
 
-    summary = runtime_summary(settings)
 
-    assert summary["app_name"] == "Harbor"
-    assert summary["environment"] == "dev"
-    assert summary["postgres_configured"] is False
-    assert "artifact_root" in summary
-    assert "report_root" in summary
+def test_runtime_defaults() -> None:
+    settings = Settings()
+    assert settings.environment == "dev"
+    assert settings.port == 8000

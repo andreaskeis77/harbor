@@ -13,23 +13,24 @@ It is designed to support:
 
 ## Current phase
 
-T1.1 — Runtime configuration and local operator surface
+T1.2 — Persistence foundation and Postgres baseline
 
 ## Repository posture
 
-Harbor is moving from documentation baseline into controlled runtime implementation.
+Harbor is now in the early runtime bootstrap phase.
 
-The current technical baseline now includes:
+The repository currently contains:
 
-- Python package scaffold
+- accepted A0 documentation baseline
+- runtime configuration baseline
+- local operator surface
 - FastAPI bootstrap runtime
-- `/healthz` and `/` endpoints
-- quality gates
-- typed runtime settings
-- `.env`-driven configuration
-- local operator commands for settings inspection and smoke validation
+- persistence foundation and Postgres baseline
+- quality gates and local smoke paths
 
-## Canonical local path
+## Local repository root
+
+Canonical local path:
 
 `C:\projekte\Harbor`
 
@@ -37,40 +38,18 @@ The current technical baseline now includes:
 
 Read these files in this order:
 
-1. `docs/PROJECT_STATE.md`
-2. `docs/MASTERPLAN.md`
+1. `docs/MASTERPLAN.md`
+2. `docs/PROJECT_STATE.md`
 3. `docs/INDEX.md`
-4. `docs/RUNTIME_CONFIGURATION_v0_1.md`
-5. `docs/LOCAL_OPERATOR_SURFACE_v0_1.md`
+4. `docs/PERSISTENCE_FOUNDATION_v0_1.md`
+5. `docs/POSTGRES_BASELINE_v0_1.md`
 
-## Common local commands
-
-Activate the venv first:
+## Dev quickstart
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-```
-
-Show effective runtime settings:
-
-```powershell
 python .\tools\task_runner.py show-settings
-```
-
-Run local smoke checks without starting a separate shell session:
-
-```powershell
-python .\tools\task_runner.py smoke-local
-```
-
-Run quality gates:
-
-```powershell
+python .\tools\task_runner.py show-db-settings
 python .\tools\task_runner.py quality-gates
-```
-
-Start the local development server:
-
-```powershell
 python .\tools\task_runner.py run-dev
 ```

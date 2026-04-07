@@ -1,91 +1,45 @@
 from __future__ import annotations
 
-import argparse
 import json
-import subprocess
-import sys
-from pathlib import Path
+from typing import Any
 
-from fastapi.testclient import TestClient
-
-from harbor.app import app
 from harbor.config import get_settings
-from harbor.runtime import runtime_summary
+from harbor.persistence.status import get_database_status
+from harbor.runtime import db_runtime_payload, runtime_payload
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
-
-def cmd_show_settings() -> int:
-    payload = runtime_summary(get_settings())
-    print(json.dumps(payload, indent=2, sort_keys=True))
-    return 0
-
-
-def cmd_smoke_local() -> int:
-    with TestClient(app) as client:
-        root_response = client.get("/")
-        health_response = client.get("/healthz")
-        runtime_response = client.get("/runtime")
-
-    if root_response.status_code != 200:
-        raise SystemExit(f"Root smoke failed: {root_response.status_code}")
-    if health_response.status_code != 200:
-        raise SystemExit(f"Health smoke failed: {health_response.status_code}")
-    if runtime_response.status_code != 200:
-        raise SystemExit(f"Runtime smoke failed: {runtime_response.status_code}")
-
-    print("=== root ===")
-    print(json.dumps(root_response.json(), indent=2, sort_keys=True))
-    print("=== healthz ===")
-    print(json.dumps(health_response.json(), indent=2, sort_keys=True))
-    print("=== runtime ===")
-    print(json.dumps(runtime_response.json(), indent=2, sort_keys=True))
-    return 0
-
-
-def cmd_run_dev() -> int:
+def render_runtime_settings() -> str:
     settings = get_settings()
-    command = [
-        sys.executable,
-        "-m",
-        "uvicorn",
-        "harbor.app:app",
-        "--host",
-        settings.host,
-        "--port",
-        str(settings.port),
-    ]
-    if settings.reload:
-        command.append("--reload")
-    return subprocess.call(command, cwd=_repo_root())
+    return json.dumps(runtime_payload(settings), indent=2, sort_keys=True)
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Harbor local operator surface.")
-    parser.add_argument(
-        "command",
-        choices=("show-settings", "smoke-local", "run-dev"),
-        help="Operator command to execute.",
-    )
-    return parser
+def render_db_settings() -> str:
+    settings = get_settings()
+    return json.dumps(db_runtime_payload(settings), indent=2, sort_keys=True)
 
 
-def main() -> int:
-    parser = build_parser()
-    args = parser.parse_args()
-
-    if args.command == "show-settings":
-        return cmd_show_settings()
-    if args.command == "smoke-local":
-        return cmd_smoke_local()
-    if args.command == "run-dev":
-        return cmd_run_dev()
-
-    parser.error(f"Unsupported command: {args.command}")
-    return 2
+def render_db_status(check: bool = False) -> str:
+    return json.dumps(get_database_status(check=check), indent=2, sort_keys=True)
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+def render_smoke_payload() -> str:
+    settings = get_settings()
+    payload: dict[str, Any] = {
+        "root": {
+            "name": settings.app_name,
+            "status": "ok",
+            "message": "Harbor bootstrap runtime is up.",
+        },
+        "healthz": {
+            "status": "ok",
+            "app_name": settings.app_name,
+            "environment": settings.environment,
+            "version": settings.version,
+        },
+        "runtime": {
+            "status": "ok",
+            "runtime": runtime_payload(settings),
+        },
+        "db_status": get_database_status(check=False),
+    }
+    return json.dumps(payload, indent=2, sort_keys=True)

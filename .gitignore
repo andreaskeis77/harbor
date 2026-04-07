@@ -1,36 +1,19 @@
 # Python
-.venv/
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-.pytest_cache/
-.ruff_cache/
-.coverage
-htmlcov/
 *.egg-info/
+.venv/
 
-# Environment / secrets
+# Environment
 .env
-.env.local
 
-# Editors / OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Runtime data (keep directory skeletons)
-data/*
-!data/.gitkeep
-
-var/*
-!var/.gitkeep
-!var/logs/
-!var/reports/
-
+# Local runtime outputs
 var/logs/*
 !var/logs/.gitkeep
-
 var/reports/*
 !var/reports/.gitkeep
+data/artifacts/*
+!data/artifacts/.gitkeep
+
+# IDE
+.vscode/

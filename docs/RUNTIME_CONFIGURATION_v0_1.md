@@ -1,64 +1,31 @@
-# Runtime Configuration v0.1
+# Harbor Runtime Configuration v0.1
 
-Status: T1.1 baseline
+Status: accepted runtime configuration baseline
 
-## 1. Purpose
+## Purpose
 
-This document defines the runtime configuration posture for Harbor before domain
-persistence is introduced.
+Harbor runtime configuration must be explicit, typed, and inspectable.
 
-## 2. Goals
-
-The runtime configuration model must:
-
-- be typed
-- be inspectable
-- support local development first
-- later extend cleanly to VPS deployment
-- separate secrets from tracked repo defaults
-
-## 3. Current posture
-
-The current runtime settings are defined in `src/harbor/config.py` using a typed
-settings model.
-
-Configuration sources:
-
-1. code defaults
-2. `.env.example` as documentation baseline
-3. `.env` for local non-tracked overrides
-4. environment variables
-
-## 4. Required settings classes in T1.1
-
-The current baseline includes at least:
+## Current configuration areas
 
 - app identity
-- app version
-- runtime environment name
-- host and port
-- reload flag
-- log level
-- API prefix
-- local data root
-- local var root
-- optional Postgres DSN placeholder
+- environment
+- host / port / reload
+- data root
+- artifact root
+- var root
+- log root
+- report root
+- Postgres host / port / db / user / password / echo / pool pre-ping
 
-## 5. Current non-goals
+## Configuration sources
 
-T1.1 does not yet introduce:
+1. code defaults
+2. `.env`
+3. environment variables
 
-- split settings per environment file family
-- secret manager integration
-- structured database pool settings
-- advanced deployment matrix
-- multi-runtime profile inheritance
+## Important rule
 
-## 6. Exit criteria
+Secrets must not be committed to Git.
 
-T1.1 runtime configuration is successful when:
-
-- effective settings can be shown locally
-- local development can run via typed settings
-- runtime directories are created predictably
-- `.env` posture is documented and repo-safe
+`.env.example` documents the expected shape, but real credentials belong only in local non-tracked `.env` files or environment variables.

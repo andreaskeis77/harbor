@@ -1,58 +1,51 @@
 # Harbor Masterplan
 
-## 1. Product target
+## Product direction
 
-Harbor is a project-partitioned research operating system.
+Harbor is a project-partitioned research operating system, not a generic chat-RAG.
 
-It is not merely a chat-based RAG surface. Its long-term target is a governed
-system for:
+## Phase sequence
 
-- project-specific research definition
-- source collection and evidence storage
-- review and resume workflows
-- refresh and discovery workflows
-- blueprint reuse
-- later monitoring and agentic candidate generation
-
-## 2. Canonical phase order
-
-### A0 — product / domain / architecture definition
+### A0 — Definition and architecture
 Accepted.
 
-### T1 — technical bootstrap and local single-node foundation
-Current active implementation phase.
+### T1.0 — Runtime bootstrap
+Accepted.
 
-### T2 — first vertical product slices
-Planned after local technical foundation is stable.
+### T1.1 — Runtime configuration and local operator surface
+Accepted.
 
-### T3 — VPS preview deployment and hosted runtime
-Planned after first stable local slices exist.
+### T1.2 — Persistence foundation and Postgres baseline
+Accepted with the current tranche.
 
-### T4 — Custom GPT integration on canonical backend
-Planned after stable hosted API surface exists.
+### T1.3 — Project registry vertical slice
+Planned next.
 
-### T5 — refresh / discovery expansion
-Planned after source and project fundamentals are stable.
+Target outcome:
+- create project
+- list projects
+- read project
+- first persistence-backed Harbor domain object
 
-### T6 — monitoring / agentic candidate generation
-Later phase. Not part of current delivery focus.
+### T1.4 — Handbook persistence baseline
+Planned after T1.3.
 
-## 3. Current implementation sequence
+### T1.5 — Source registry baseline
+Planned after T1.4.
 
-1. T1.0 repository scaffold and bootstrap runtime
-2. T1.1 runtime configuration and local operator surface
-3. T1.2 persistence foundation and Postgres baseline
-4. T1.3 first project storage slice
-5. T2.0 first vertical domain slice: projects + handbook
-6. T2.x source and snapshot model
-7. T3.x hosted runtime and VPS operations
-8. T4.x GPT integration
-9. T5/T6 refresh, discovery, monitoring, agentic evolution
+### T2.x — Search / refresh / review / GPT / VPS
+Deferred until the local product spine is real.
 
-## 4. Principle for moving forward
+## Current recommendation
 
-Do not widen Harbor horizontally too early.
+Do not jump to ingestion, GPT actions, or VPS rollout yet.
 
-The next priority is not more concept sprawl. The next priority is a disciplined,
-testable transition from bootstrap runtime into persistence and then the first
-real Harbor product slice.
+Build the Harbor product spine in this order:
+
+1. persistence baseline
+2. project registry
+3. handbook persistence
+4. source baseline
+5. search / refresh
+6. GPT surface
+7. VPS preview
