@@ -83,3 +83,84 @@ class HandbookVersionRecord(Base):
         nullable=False,
         default=utcnow,
     )
+
+
+def default_source_id() -> str:
+    return str(uuid.uuid4())
+
+
+def default_project_source_id() -> str:
+    return str(uuid.uuid4())
+
+
+class SourceRecord(Base):
+    __tablename__ = "source_registry"
+    __table_args__ = (
+        UniqueConstraint(
+            "canonical_url",
+            name="uq_source_registry_canonical_url",
+        ),
+    )
+
+    source_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_source_id,
+    )
+    source_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    title: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    canonical_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    trust_tier: Mapped[str] = mapped_column(String(32), nullable=False, default="candidate")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )
+
+
+class ProjectSourceRecord(Base):
+    __tablename__ = "project_source_registry"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            "source_id",
+            name="uq_project_source_registry_project_source",
+        ),
+    )
+
+    project_source_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_project_source_id,
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("project_registry.project_id"),
+        nullable=False,
+    )
+    source_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("source_registry.source_id"),
+        nullable=False,
+    )
+    relevance: Mapped[str] = mapped_column(String(32), nullable=False, default="candidate")
+    review_status: Mapped[str] = mapped_column(String(32), nullable=False, default="candidate")
+    note: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )

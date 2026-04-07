@@ -13,7 +13,7 @@ It is designed to support:
 
 ## Current phase
 
-T1.4 — Handbook persistence baseline
+T1.5 — Source and project-source first slice
 
 ## Repository posture
 
@@ -26,6 +26,7 @@ The current repository contains:
 - persistence foundation and Postgres baseline
 - first real vertical product slice for project registration
 - second real vertical product slice for handbook persistence and version history
+- first global source + project-source attachment slice
 
 ## Local repository root
 
@@ -40,19 +41,20 @@ Read these files in this order:
 1. `docs/MASTERPLAN.md`
 2. `docs/PROJECT_STATE.md`
 3. `docs/INDEX.md`
-4. `docs/HANDBOOK_PERSISTENCE_v0_1.md`
-5. `docs/_handoff/HANDOFF_T1_4_handbook_persistence_baseline_2026-04-07.md`
+4. `docs/SOURCE_SLICE_v0_1.md`
+5. `docs/_handoff/HANDOFF_T1_5_source_and_project_source_first_slice_2026-04-07.md`
 
 ## Local commands
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-python .\tools\task_runner.py show-settings
-python .\tools\task_runner.py show-db-settings
-python .\tools\task_runner.py quality-gates
-python .\tools\task_runner.py smoke-project-slice
-python .\tools\task_runner.py smoke-handbook-slice
-python .\tools\task_runner.py run-dev
+python .	ools	ask_runner.py show-settings
+python .	ools	ask_runner.py show-db-settings
+python .	ools	ask_runner.py quality-gates
+python .	ools	ask_runner.py smoke-project-slice
+python .	ools	ask_runner.py smoke-handbook-slice
+python .	ools	ask_runner.py smoke-source-slice
+python .	ools	ask_runner.py run-dev
 ```
 
 ## Current proof points
@@ -62,3 +64,5 @@ python .\tools\task_runner.py run-dev
 - `/db/status`
 - `/api/v1/projects` (when a DB URL is configured)
 - `/api/v1/projects/{project_id}/handbook` (when a DB URL is configured)
+- `/api/v1/sources` (when a DB URL is configured)
+- `/api/v1/projects/{project_id}/sources` (when a DB URL is configured)

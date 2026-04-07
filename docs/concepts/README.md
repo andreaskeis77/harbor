@@ -16,3 +16,4 @@ Core accepted concept documents currently include:
 - `POSTGRES_BASELINE_v0_1.md`
 - `PROJECT_REGISTRY_VERTICAL_SLICE_v0_1.md`
 - `HANDBOOK_PERSISTENCE_v0_1.md`
+- `SOURCE_SLICE_v0_1.md`

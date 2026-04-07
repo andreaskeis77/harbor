@@ -21,9 +21,10 @@ Accepted:
 - T1.1 runtime configuration and local operator surface
 - T1.2 persistence foundation and Postgres baseline
 - T1.3 project registry vertical slice
+- T1.4 handbook persistence baseline
 
 Current focus:
-- T1.4 handbook persistence baseline
+- T1.5 source / project-source first slice
 
 ## T1 sequence
 
@@ -57,7 +58,11 @@ Current focus:
 - handbook version list API
 
 ### T1.5
-- source / project-source first slice
+- source registry
+- project-source attachment registry
+- create/list source API
+- attach/list project source API
+- first duplicate-protection for project/source
 
 ## Explicit non-goals right now
 

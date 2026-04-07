@@ -45,9 +45,7 @@ def smoke_project_slice_payload() -> dict[str, object]:
     os.close(fd)
     db_file = Path(db_path)
 
-    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = (
-        f"sqlite+pysqlite:///{db_file.as_posix()}"
-    )
+    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
     clear_settings_cache()
     settings = get_settings()
 
@@ -94,13 +92,84 @@ def smoke_project_slice_payload() -> dict[str, object]:
 
 
 def smoke_handbook_slice_payload() -> dict[str, object]:
-    fd, db_path = tempfile.mkstemp(prefix="harbor_handbook_slice_smoke_", suffix=".db")
+    with tempfile.TemporaryDirectory(prefix="harbor_handbook_slice_") as tmpdir:
+        db_file = Path(tmpdir) / "handbook_smoke.db"
+        os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
+        clear_settings_cache()
+        settings = get_settings()
+
+        engine = build_engine(settings)
+        assert engine is not None
+        Base.metadata.create_all(bind=engine)
+
+        app = create_app(settings=settings)
+        with TestClient(app) as client:
+            project = client.post(
+                f"{settings.api_v1_prefix}/projects",
+                json={
+                    "title": "Smoke Handbook Project",
+                    "short_description": "Smoke-created handbook project",
+                    "project_type": "standard",
+                },
+            )
+            project.raise_for_status()
+            project_id = project.json()["project_id"]
+
+            current_empty = client.get(f"{settings.api_v1_prefix}/projects/{project_id}/handbook")
+            current_empty.raise_for_status()
+
+            first = client.put(
+                f"{settings.api_v1_prefix}/projects/{project_id}/handbook",
+                json={
+                    "handbook_markdown": "# Scope\n\nInitial handbook.",
+                    "change_note": "Initial handbook version",
+                },
+            )
+            first.raise_for_status()
+
+            second = client.put(
+                f"{settings.api_v1_prefix}/projects/{project_id}/handbook",
+                json={
+                    "handbook_markdown": "# Scope\n\nSecond handbook version.",
+                    "change_note": "Refined handbook scope",
+                },
+            )
+            second.raise_for_status()
+
+            current = client.get(f"{settings.api_v1_prefix}/projects/{project_id}/handbook")
+            current.raise_for_status()
+
+            versions = client.get(
+                f"{settings.api_v1_prefix}/projects/{project_id}/handbook/versions"
+            )
+            versions.raise_for_status()
+
+        try:
+            payload = {
+                "project": project.json(),
+                "empty_has_handbook": current_empty.json()["has_handbook"],
+                "first_version": first.json()["version_number"],
+                "current_version": current.json()["current"]["version_number"],
+                "version_count": len(versions.json()["items"]),
+            }
+        finally:
+            engine.dispose()
+            os.environ.pop("HARBOR_SQLALCHEMY_DATABASE_URL", None)
+            clear_settings_cache()
+
+        return payload
+
+
+def print_json(payload: dict[str, object]) -> None:
+    print(json.dumps(payload, indent=2, sort_keys=True, default=str))
+
+
+def smoke_source_slice_payload() -> dict[str, object]:
+    fd, db_path = tempfile.mkstemp(prefix="harbor_source_slice_smoke_", suffix=".db")
     os.close(fd)
     db_file = Path(db_path)
 
-    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = (
-        f"sqlite+pysqlite:///{db_file.as_posix()}"
-    )
+    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
     clear_settings_cache()
     settings = get_settings()
 
@@ -113,50 +182,47 @@ def smoke_handbook_slice_payload() -> dict[str, object]:
         project = client.post(
             f"{settings.api_v1_prefix}/projects",
             json={
-                "title": "Smoke Handbook Project",
-                "short_description": "Smoke-created handbook project",
+                "title": "Smoke Source Project",
+                "short_description": "Smoke-created source project",
                 "project_type": "standard",
             },
         )
         project.raise_for_status()
         project_id = project.json()["project_id"]
 
-        current_empty = client.get(f"{settings.api_v1_prefix}/projects/{project_id}/handbook")
-        current_empty.raise_for_status()
-
-        first = client.put(
-            f"{settings.api_v1_prefix}/projects/{project_id}/handbook",
+        source = client.post(
+            f"{settings.api_v1_prefix}/sources",
             json={
-                "handbook_markdown": "# Scope\n\nInitial handbook.",
-                "change_note": "Initial handbook version",
+                "source_type": "web_page",
+                "title": "Smoke Source",
+                "canonical_url": "https://example.com/smoke-source",
+                "content_type": "text/html",
+                "trust_tier": "candidate",
             },
         )
-        first.raise_for_status()
+        source.raise_for_status()
+        source_id = source.json()["source_id"]
 
-        second = client.put(
-            f"{settings.api_v1_prefix}/projects/{project_id}/handbook",
+        attached = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/sources",
             json={
-                "handbook_markdown": "# Scope\n\nSecond handbook version.",
-                "change_note": "Refined handbook scope",
+                "source_id": source_id,
+                "relevance": "high",
+                "review_status": "candidate",
+                "note": "Smoke source attachment",
             },
         )
-        second.raise_for_status()
+        attached.raise_for_status()
 
-        current = client.get(f"{settings.api_v1_prefix}/projects/{project_id}/handbook")
-        current.raise_for_status()
-
-        versions = client.get(
-            f"{settings.api_v1_prefix}/projects/{project_id}/handbook/versions"
-        )
-        versions.raise_for_status()
+        listed = client.get(f"{settings.api_v1_prefix}/projects/{project_id}/sources")
+        listed.raise_for_status()
 
     try:
         payload = {
             "project": project.json(),
-            "empty_has_handbook": current_empty.json()["has_handbook"],
-            "first_version": first.json()["version_number"],
-            "current_version": current.json()["current"]["version_number"],
-            "version_count": len(versions.json()["items"]),
+            "source": source.json(),
+            "attached": attached.json(),
+            "project_source_count": len(listed.json()["items"]),
         }
     finally:
         engine.dispose()
@@ -169,7 +235,3 @@ def smoke_handbook_slice_payload() -> dict[str, object]:
             pass
 
     return payload
-
-
-def print_json(payload: dict[str, object]) -> None:
-    print(json.dumps(payload, indent=2, sort_keys=True, default=str))

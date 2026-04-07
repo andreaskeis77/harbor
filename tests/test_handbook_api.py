@@ -43,7 +43,6 @@ def create_project(client: TestClient) -> dict[str, object]:
     return response.json()
 
 
-
 def test_handbook_empty_then_versioned(client: TestClient) -> None:
     project = create_project(client)
     project_id = project["project_id"]
@@ -89,7 +88,6 @@ def test_handbook_empty_then_versioned(client: TestClient) -> None:
     assert len(versions_payload["items"]) == 2
     assert versions_payload["items"][0]["version_number"] == 2
     assert versions_payload["items"][1]["version_number"] == 1
-
 
 
 def test_handbook_404_for_missing_project(client: TestClient) -> None:

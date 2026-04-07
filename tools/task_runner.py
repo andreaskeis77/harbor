@@ -14,6 +14,7 @@ from harbor.operator_surface import (
     smoke_handbook_slice_payload,
     smoke_local_payload,
     smoke_project_slice_payload,
+    smoke_source_slice_payload,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -81,6 +82,11 @@ def command_smoke_handbook_slice() -> int:
     return 0
 
 
+def command_smoke_source_slice() -> int:
+    print_json(smoke_source_slice_payload())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Harbor task runner")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -93,6 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("smoke-local")
     subparsers.add_parser("smoke-project-slice")
     subparsers.add_parser("smoke-handbook-slice")
+    subparsers.add_parser("smoke-source-slice")
 
     return parser
 
@@ -110,6 +117,7 @@ def main() -> int:
         "smoke-local": command_smoke_local,
         "smoke-project-slice": command_smoke_project_slice,
         "smoke-handbook-slice": command_smoke_handbook_slice,
+        "smoke-source-slice": command_smoke_source_slice,
     }
     return command_map[args.command]()
 
