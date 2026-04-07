@@ -1,5 +1,5 @@
-# Concepts README
+# Harbor Concepts Readme
 
-Dieses Verzeichnis enthält fachliche und technische Konzepte für Harbor.
+Concept-level documents are tracked in `docs/` during the early bootstrap phase.
 
-Mit akzeptierter A0-Baseline ist der nächste Schwerpunkt der Übergang in T1.0.
+As Harbor grows, larger conceptual documents can be split into dedicated concept files under this folder.

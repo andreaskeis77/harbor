@@ -1,88 +1,52 @@
 # Harbor Engineering Manifest v0.1
 
-## 1. Purpose
+## Purpose
 
-This manifest defines the top-level engineering rules for Harbor.
+This manifest defines the engineering rules for Harbor.
 
-Harbor is not a throwaway notebook project. It is intended to become a durable, inspectable,
-operable research system with strong emphasis on project separation, evidence integrity,
-traceability, recoverability, and documentation quality.
+Harbor is treated as a long-lived, operable, research system rather than an ad hoc prototype.
 
-## 2. Priority order
+## Priority order
 
-When goals conflict, the order is:
+1. Correctness
+2. Traceability
+3. Operability
+4. Maintainability
+5. Testability
+6. Delivery speed
+7. Cleverness
 
-1. correctness and provenance integrity
-2. project separation and state clarity
-3. reproducibility and recoverability
-4. operational robustness
-5. understandability and maintainability
-6. testability and observability
-7. implementation speed
-8. elegance or technical novelty
+## Core rules
 
-## 3. Core principles
+### Small controlled bolts
+Work is delivered in small, understandable tranches.
 
-### 3.1 Small tranches
-Work is delivered in clearly scoped, reviewable tranches.
+### One canonical backend
+Website and Custom GPT must use the same backend.
 
-### 3.2 Docs are part of the system
-If docs are stale, the system is partially stale.
+### Docs are part of the system
+If the docs are outdated, the system is degraded.
 
-### 3.3 No blind trust in AI output
-AI-generated structure, code, summaries, or classifications are untrusted until reviewed.
+### No blind trust in AI output
+AI-generated code or structure is untrusted until reviewed and validated.
 
-### 3.4 Source, evidence, and analysis are different things
-Harbor must never silently collapse raw sources, extracted evidence, and AI-generated
-analysis into one undifferentiated truth layer.
+### Honest state handling
+Prepared is not the same as validated.
+Accepted is not the same as merely discussed.
 
-### 3.5 Project partitioning is sacred
-Cross-project contamination is a system defect, not a cosmetic issue.
+### Health and evidence first
+Runtime work must establish health, logs, and repeatable commands early.
 
-### 3.6 Resume and review are first-class requirements
-The system must be designed so that a paused project can be resumed without hidden context.
+## Delivery rule
 
-### 3.7 Explicit reuse only
-Blueprint reuse must be deliberate and documented.
+Repo updates should be delivered as complete file packages, preferably as flat-root ZIP artifacts for controlled application on the DEV-LAPTOP.
 
-## 4. Architecture rules
+## Definition of done for a bolt
 
-### 4.1 One canonical backend
-The website and the Custom GPT must use the same backend state.
-
-### 4.2 System of record
-Postgres is the planned system of record unless a later ADR changes that decision.
-
-### 4.3 Metadata-first posture
-Runs, source changes, review status, and provenance are product assets, not implementation detail.
-
-### 4.4 Snapshot before inference
-Where feasible, Harbor should store the source state used for later reasoning.
-
-### 4.5 No silent architecture drift
-Important architectural direction changes require explicit documentation.
-
-## 5. Delivery rules
-
-### 5.1 Complete files by default
-Harbor changes should be delivered as complete files with clear target paths.
-
-### 5.2 Explicit execution context
-Commands must explicitly state whether they run on:
-- DEV-LAPTOP
-- VPS-USER
-- VPS-ADMIN
-
-### 5.3 Validation before progress
-A tranche is not green if required validation is still red.
-
-## 6. Definition of done for a tranche
-
-A tranche is done only when:
-
-- scope is clear
-- files are internally consistent
-- documentation is updated
-- validation expectations are stated
-- next step is clear
-- no critical ambiguity is hidden
+A bolt is done only when:
+- purpose is clear
+- files are consistent
+- checks are run
+- docs are updated
+- project state is updated
+- next step is explicit

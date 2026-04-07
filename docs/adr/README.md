@@ -1,5 +1,5 @@
-# ADR README
+# Harbor ADR Index
 
-Hier werden spätere ADRs für Harbor gesammelt.
+No accepted ADR files are present yet.
 
-In A0 liegt der Schwerpunkt noch auf Produkt-, Modell- und Architekturgrundlagen.
+The first expected ADR set should appear once runtime or persistence choices become executable rather than merely conceptual.

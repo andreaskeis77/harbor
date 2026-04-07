@@ -1,28 +1,27 @@
-# Harbor Validation Protocol v0.1
+# Harbor Validation Protocol
 
-## Purpose
+## Goal
 
-This protocol defines the validation mindset for Harbor.
+Validation distinguishes discussion, preparation, and accepted state.
 
-## Current phase note
+## Validation levels
 
-In the documentation-first phase, validation means:
+### Discussed
+An idea exists, but no artifact baseline exists.
 
-- document consistency
-- naming consistency
-- scope consistency
-- directory/path consistency
-- no hidden contradictions across core docs
+### Prepared
+Files exist, but they have not yet been confirmed in the real repository state.
 
-## Later implementation phase
+### Validated
+The files are in the repository and were reviewed or checked.
 
-When runtime work begins, validation must expand to include:
+### Accepted
+The validated state is explicitly accepted as the current baseline.
 
-- import and startup checks
-- schema validation
-- API and health checks
-- search/retrieval path validation
-- project separation tests
-- blueprint reuse tests
-- refresh/update tests
-- VPS smoke tests
+## T1.0 expected minimum checks
+
+- importability of the package
+- `/healthz`
+- pytest green
+- ruff green
+- compileall green

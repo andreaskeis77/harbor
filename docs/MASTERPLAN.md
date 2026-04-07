@@ -1,134 +1,97 @@
-# Harbor – Masterplan
+# Harbor Masterplan
 
-Status: aktiv  
-Letzte Aktualisierung: 2026-04-06  
-Aktueller Programmstand: **A0 akzeptiert**
+## Purpose
 
-## 1. Zielbild
+This document is the long-lived roadmap for Harbor.
 
-Harbor ist ein projektpartitioniertes Research Operating System mit:
+It is the canonical reference for:
+- phase sequence
+- strategic priorities
+- what is deferred
+- transition gates between phases
 
-- sauber getrennten Projekten
-- versionierten Research Handbooks
-- kontrollierter Quellen- und Evidenzverwaltung
-- Review- und Resume-Fähigkeit
-- gemeinsamem Backend für Website und Custom GPT
-- späterem Refresh-, Discovery-, Monitoring- und Agentenhorizont
+## Product direction
 
-## 2. Phasenübersicht
+Harbor is a project-partitioned research operating system.
 
-### A0 – Produkt-, Modell- und Architekturdefinition
-Ziel:
-- Scope, Modell, Workflows, Architektur und technische Startlinie definieren
+It is not only a chat experience and not only a vector-search feature set.
+It is a governed system for:
+- project definition
+- source collection
+- evidence storage
+- review
+- resume
+- refresh
+- later monitoring and agentic assistance
 
-Status:
-- **abgeschlossen und akzeptiert**
+## Phase sequence
 
-### T1 – Technical Bootstrap and Foundation
-Ziel:
-- Repo-Scaffold
-- Python-Grundstruktur
-- minimale App
-- Konfiguration
-- Health
-- erste Tests/Gates
+### A0 — Definition and architecture baseline
+Goal:
+- product, domain, architecture, workflow, and bootstrap definition
 
 Status:
-- **nächste Phase**
+- accepted
 
-### T2 – First Vertical Slice
-Ziel:
-- erstes durchgehendes Harbor-Produktinkrement
-- wahrscheinlich: Projects + Handbook als erster Fachslice
-
-Status:
-- noch nicht gestartet
-
-### T3 – Source and Evidence Slice
-Ziel:
-- Source
-- ProjectSource
-- Snapshot
-- manuelle Evidenzaufnahme
-- erste projektbezogene Review-Zustände
+### T1.0 — Repository scaffold and technical bootstrap
+Goal:
+- canonical repository structure
+- minimal FastAPI application
+- health endpoint
+- local bootstrap
+- minimal tests and quality gates
 
 Status:
-- noch nicht gestartet
+- current phase
 
-### T4 – Search / Refresh Slice
-Ziel:
-- Search Campaign
-- Refresh Run
-- Kandidaten
-- erste Delta-/Freshness-Logik
+### T1.1 — Runtime configuration and local operator surface
+Goal:
+- stronger runtime settings
+- local operator commands
+- local start-run conventions
+- clearer environment handling
 
-Status:
-- noch nicht gestartet
+### T1.2 — Persistence foundation
+Goal:
+- database posture starts to become executable
+- schema bootstrap
+- migration posture
+- canonical persistence boundaries
 
-### T5 – Web / GPT Operational Surface
-Ziel:
-- Web UI auf stabilem Backend
-- GPT-Actions gegen dasselbe Backend
+### T1.3 — Minimal application surface
+Goal:
+- first project-facing API surface
+- likely project list, project create, and handbook baseline
 
-Status:
-- noch nicht gestartet
+### T2.x — First vertical functional slices
+Goal:
+- Projects
+- Handbook versions
+- project dashboards
+- then Sources
+- then Search and Refresh
+- then Review and Resume
 
-### T6 – VPS / Operational Hosting
-Ziel:
-- stabiler VPS-Betrieb
-- Health, Logging, Runbooks, Deploy-Pfade
+### VPS preview phase
+Goal:
+- stable deployable preview environment
+- health and restart posture
+- operator runbook
 
-Status:
-- noch nicht gestartet
+### GPT integration phase
+Goal:
+- same backend used by website and Custom GPT
+- first stable actions surface
 
-### T7 – Monitoring / Agentic Expansion
-Ziel:
-- geplante Refresh-Zyklen
-- Discovery-Kampagnen
-- agentische Beobachtung mit Review-Grenzen
+### Monitoring and Agent phase
+Goal:
+- controlled refresh automation
+- later candidate-producing agents
+- never unchecked write access into canonical knowledge
 
-Status:
-- ausdrücklich später
+## Rules for roadmap changes
 
-## 3. Aktuelle Reihenfolge
-
-Die aktuell empfohlene Reihenfolge lautet:
-
-1. A0 akzeptieren
-2. T1.0 scaffolden
-3. T1.x Foundation stabilisieren
-4. ersten Vertical Slice bauen
-5. Sources/Evidence ergänzen
-6. Search/Refresh ergänzen
-7. Web/GPT anbinden
-8. VPS sauber etablieren
-9. Monitoring/Agenten erst danach
-
-## 4. Nicht jetzt
-
-Bewusst nicht frühe Priorität:
-
-- Multi-User-Kollaboration
-- aggressive autonome Agentik
-- komplexe Live-Vererbungsmodelle für Blueprints
-- unkontrollierte Login-/Paywall-Automation
-- Enterprise-Ausbau
-
-## 5. Steuerungsregel
-
-Jeder größere Schritt aktualisiert:
-
+Any major roadmap change must update:
 - `docs/MASTERPLAN.md`
 - `docs/PROJECT_STATE.md`
-- ein `docs/_handoff/HANDOFF_*.md`
-
-## 6. Eintrittskriterium für T1.0
-
-T1.0 darf beginnen, wenn:
-
-- die A0-Baseline akzeptiert ist,
-- keine offenen Widersprüche in den Kernentscheidungen bestehen,
-- der nächste technische Scope bewusst klein gehalten wird,
-- die Arbeitsreihenfolge klar ist.
-
-Dieses Eintrittskriterium gilt mit der vorliegenden A0-Abnahme als erfüllt.
+- one new `docs/_handoff/HANDOFF_*.md`

@@ -1,41 +1,33 @@
-# Harbor Working Agreement v0.1
+# Harbor Working Agreement
 
-## Purpose
+## Basic mode
 
-This document defines the collaboration mode for Harbor work between Andreas and ChatGPT.
+Harbor is developed with:
+- one clear recommendation rather than many weak options
+- explicit execution context
+- repeatable commands
+- visible transition between phases
 
-## Working style
+## Execution contexts
 
-- work in small controlled bolts
-- prefer one robust recommendation over vague option lists
-- make assumptions explicit
-- mark open questions honestly
-- do not silently widen scope
-- keep project and architecture language precise
+Commands should identify where they belong:
+- DEV-LAPTOP
+- VPS-USER
+- VPS-ADMIN
 
-## Delivery expectations
+## Chat to repo rule
 
-Standard delivery should include:
+The chat may help think and package work, but the repository is the canonical memory.
 
-- complete file contents
-- exact target paths
-- exact execution context for commands
-- clear apply instructions
-- explicit note of what is still unknown
-
-## Documentation expectations
-
-Every meaningful tranche should update at least the relevant subset of:
-
+Key files:
+- `docs/MASTERPLAN.md`
 - `docs/PROJECT_STATE.md`
-- a concept/specification document
-- a handoff document if the state meaningfully changed
+- `docs/_handoff/HANDOFF_*.md`
 
-## Guardrails
+## Preferred delivery style
 
-Do not:
-
-- mix future ideas into accepted v1 scope without labeling them
-- treat AI synthesis as accepted evidence
-- treat convenience shortcuts as architecture
-- propose hidden cross-project coupling
+For meaningful changes:
+- download package
+- exact PowerShell apply commands
+- exact git commands
+- exact cleanup commands

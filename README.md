@@ -1,61 +1,85 @@
 # Harbor
 
-Harbor ist ein projektpartitioniertes Recherche-, Wissens- und Monitoring-System.
+Harbor is a project-partitioned research and monitoring system.
 
-Es unterstützt:
+It is designed to support:
 
-- sauber getrennte Rechercheprojekte
-- versionierte Research Handbooks und Scope-Definitionen
-- kontrollierte Quellenaufnahme und Evidenzspeicherung
-- Review- und Resume-Workflows
-- Refresh sowie späteres Monitoring und agentische Update-Flows
-- ein kanonisches Backend für Website und Custom GPT
+- clearly separated research projects
+- versioned research handbooks and scope definitions
+- controlled source collection and evidence storage
+- review and resume workflows
+- refresh and later monitoring or agentic update flows
+- one canonical backend for website and Custom GPT
 
-## Aktuelle Phase
+## Current phase
 
-**A0 abgeschlossen und akzeptiert**  
-**Nächster Zielschritt: T1.0 – Repository Scaffold and Technical Bootstrap**
+T1.0 — Repository scaffold and technical bootstrap implementation
 
-## Repository-Posture
+## Repository posture
 
-Dieses Repository folgt einer dokumentations- und methodikgetriebenen Startphase.
+Harbor started documentation-first and now enters the first technical bootstrap phase.
 
-Die A0-Baseline ist nun als akzeptiert festgehalten. Der nächste Schritt ist kein weiterer großer Konzeptsprung, sondern der kontrollierte Einstieg in die technische Umsetzung.
+The current implementation goal is intentionally narrow:
 
-## Lokaler Repository-Pfad
+- establish the canonical repository scaffold
+- provide a minimal FastAPI application
+- provide a `/healthz` endpoint
+- establish local bootstrap commands
+- establish minimal quality gates
+- prepare the next vertical slice for Projects plus Handbook
 
-Kanonischer lokaler Pfad:
+## Local repository root
+
+Canonical local path:
 
 `C:\projekte\Harbor`
 
-## Erste Navigation
-
-Diese Dokumente zuerst lesen:
+## Recommended reading order
 
 1. `docs/MASTERPLAN.md`
 2. `docs/PROJECT_STATE.md`
-3. `docs/A0_ACCEPTANCE_RECORD_2026-04-06.md`
-4. `docs/TECHNICAL_BOOTSTRAP_v0_1.md` (sobald bereits im Repo vorhanden)
-5. `docs/REPOSITORY_SCAFFOLDING_v0_1.md` (sobald bereits im Repo vorhanden)
+3. `docs/PRODUCT_SCOPE_v0_1.md`
+4. `docs/DOMAIN_MODEL_v0_1.md`
+5. `docs/SYSTEM_ARCHITECTURE_v0_1.md`
+6. `docs/TECHNICAL_BOOTSTRAP_v0_1.md`
 
-## Arbeitsprinzip
+## Quickstart
 
-Harbor wird in kleinen, kontrollierten Tranches entwickelt.
+### Create virtual environment
 
-Jeder größere Schritt aktualisiert mindestens:
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -e ".[dev]"
+```
 
-- `docs/MASTERPLAN.md`
-- `docs/PROJECT_STATE.md`
-- ein passendes `docs/_handoff/HANDOFF_*.md`
+### Run the quality gates
 
-## Nächste empfohlene Richtung
+```powershell
+python .\tools\run_quality_gates.py
+```
 
-Nach dieser A0-Abnahme soll ein T1.0-Bolt vorbereitet werden mit:
+### Start the local API
 
-- Repo-Scaffold
-- Python-Projektgrundlage
-- `src/`, `tests/`, `tools/`, `config/`, `var/`
-- minimaler App-Struktur
-- Health-Endpunkt
-- lokaler Startfähigkeit
-- ersten Tests und Qualitäts-Gates
+```powershell
+python -m uvicorn harbor.app:app --host 127.0.0.1 --port 8000 --reload
+```
+
+### Smoke-check the app
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/healthz
+```
+
+Expected response includes `status: ok`.
+
+## Canonical directories
+
+- `src/` — application code
+- `tests/` — automated checks
+- `tools/` — operational helpers and quality-gate tooling
+- `config/` — environment examples and config notes
+- `docs/` — product, architecture, governance, handoffs
+- `data/` — local non-canonical data zone
+- `var/` — logs, run artifacts, reports

@@ -1,28 +1,47 @@
-.venv/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+*.so
 
+# Virtualenv
+.venv/
+venv/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local env / secrets
 .env
 .env.*
 !.env.example
 
-data/
-var/
-logs/
-tmp/
-cache/
+# Local runtime zones
+data/*
+!data/.gitkeep
+var/*
+!var/.gitkeep
+!var/logs/
+!var/logs/.gitkeep
+!var/runs/
+!var/runs/.gitkeep
+!var/reports/
+!var/reports/.gitkeep
 
-*.duckdb
-*.sqlite
-*.sqlite3
-
-docs/_ops/
-docs/_build/
-
-Thumbs.db
-.DS_Store
+# Coverage
+.coverage
+htmlcov/
