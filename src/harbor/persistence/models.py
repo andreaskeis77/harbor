@@ -205,6 +205,48 @@ def default_review_queue_item_id() -> str:
     return str(uuid.uuid4())
 
 
+def default_search_run_id() -> str:
+    return str(uuid.uuid4())
+
+
+class SearchRunRecord(Base):
+    __tablename__ = "search_run_registry"
+
+    search_run_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_search_run_id,
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("project_registry.project_id"),
+        nullable=False,
+    )
+    search_campaign_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("search_campaign_registry.search_campaign_id"),
+        nullable=False,
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    run_kind: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="planned")
+    query_text_snapshot: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )
+
+
 class ReviewQueueItemRecord(Base):
     __tablename__ = "review_queue_item_registry"
 

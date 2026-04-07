@@ -418,3 +418,93 @@ def smoke_review_queue_slice_payload() -> dict[str, object]:
             pass
 
     return payload
+
+
+def smoke_search_run_slice_payload() -> dict[str, object]:
+    fd, db_path = tempfile.mkstemp(prefix="harbor_search_run_slice_smoke_", suffix=".db")
+    os.close(fd)
+    db_file = Path(db_path)
+
+    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
+    clear_settings_cache()
+    settings = get_settings()
+
+    engine = build_engine(settings)
+    assert engine is not None
+    Base.metadata.create_all(bind=engine)
+
+    app = create_app(settings=settings)
+    with TestClient(app) as client:
+        project = client.post(
+            f"{settings.api_v1_prefix}/projects",
+            json={
+                "title": "Smoke Search Run Project",
+                "short_description": "Smoke-created search run project",
+                "project_type": "standard",
+            },
+        )
+        project.raise_for_status()
+        project_id = project.json()["project_id"]
+
+        campaign = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns",
+            json={
+                "title": "Initial discovery",
+                "query_text": "house reef dive resort",
+                "campaign_kind": "manual",
+                "status": "planned",
+                "note": "seed campaign",
+            },
+        )
+        campaign.raise_for_status()
+        search_campaign_id = campaign.json()["search_campaign_id"]
+
+        created = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs",
+            json={
+                "title": "Run 1",
+                "run_kind": "manual",
+                "status": "planned",
+                "query_text_snapshot": "house reef dive resort",
+                "note": "first run",
+            },
+        )
+        created.raise_for_status()
+        search_run_id = created.json()["search_run_id"]
+
+        listed = client.get(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs"
+        )
+        listed.raise_for_status()
+
+        patched = client.patch(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/status",
+            json={"status": "running", "note": "started"},
+        )
+        patched.raise_for_status()
+
+        fetched = client.get(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}"
+        )
+        fetched.raise_for_status()
+
+    try:
+        payload = {
+            "project": project.json(),
+            "campaign": campaign.json(),
+            "created": created.json(),
+            "run_count": len(listed.json()["items"]),
+            "patched": patched.json(),
+            "fetched": fetched.json(),
+        }
+    finally:
+        engine.dispose()
+        os.environ.pop("HARBOR_SQLALCHEMY_DATABASE_URL", None)
+        clear_settings_cache()
+        try:
+            if db_file.exists():
+                db_file.unlink()
+        except PermissionError:
+            pass
+
+    return payload

@@ -73,3 +73,8 @@ python .\tools\task_runner.py run-dev
 - `/api/v1/projects/{project_id}/sources` (when a DB URL is configured)
 - `/api/v1/projects/{project_id}/search-campaigns` (when a DB URL is configured)
 - `/api/v1/projects/{project_id}/review-queue-items` (when a DB URL is configured)
+
+
+## Latest validated baseline
+
+T1.7A — Search Run Registry Baseline

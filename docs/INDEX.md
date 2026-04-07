@@ -48,3 +48,5 @@
 
 - `docs/adr/README.md`
 
+
+- SEARCH_RUN_REGISTRY_v0_1.md

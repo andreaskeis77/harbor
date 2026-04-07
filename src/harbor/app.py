@@ -8,6 +8,7 @@ from harbor.api.routes.health import router as health_router
 from harbor.api.routes.projects import router as projects_router
 from harbor.api.routes.review_queue import router as review_queue_router
 from harbor.api.routes.search_campaigns import router as search_campaigns_router
+from harbor.api.routes.search_runs import router as search_runs_router
 from harbor.api.routes.sources import router as sources_router
 from harbor.config import HarborSettings, get_settings
 
@@ -23,6 +24,7 @@ def create_app(settings: HarborSettings | None = None) -> FastAPI:
     app.include_router(handbook_router, prefix=settings.api_v1_prefix)
     app.include_router(sources_router, prefix=settings.api_v1_prefix)
     app.include_router(search_campaigns_router, prefix=settings.api_v1_prefix)
+    app.include_router(search_runs_router, prefix=settings.api_v1_prefix)
     app.include_router(review_queue_router, prefix=settings.api_v1_prefix)
 
     return app

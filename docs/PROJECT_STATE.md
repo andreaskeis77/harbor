@@ -49,3 +49,8 @@ Expected green proof after apply:
 ## Recommended next step
 
 T1.7A — Search run registry baseline
+
+
+Recommended next step
+
+T1.7A — Search Run Registry Baseline
