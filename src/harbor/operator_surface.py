@@ -305,3 +305,116 @@ def smoke_search_campaign_slice_payload() -> dict[str, object]:
             pass
 
     return payload
+
+
+def smoke_review_queue_slice_payload() -> dict[str, object]:
+    fd, db_path = tempfile.mkstemp(prefix="harbor_review_queue_slice_smoke_", suffix=".db")
+    os.close(fd)
+    db_file = Path(db_path)
+
+    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
+    clear_settings_cache()
+    settings = get_settings()
+
+    engine = build_engine(settings)
+    assert engine is not None
+    Base.metadata.create_all(bind=engine)
+
+    app = create_app(settings=settings)
+    with TestClient(app) as client:
+        project = client.post(
+            f"{settings.api_v1_prefix}/projects",
+            json={
+                "title": "Smoke Review Queue Project",
+                "short_description": "Smoke-created review queue project",
+                "project_type": "standard",
+            },
+        )
+        project.raise_for_status()
+        project_id = project.json()["project_id"]
+
+        source = client.post(
+            f"{settings.api_v1_prefix}/sources",
+            json={
+                "source_type": "web_page",
+                "title": "Smoke Queue Source",
+                "canonical_url": "https://example.com/review-queue-source",
+                "content_type": "text/html",
+                "trust_tier": "candidate",
+            },
+        )
+        source.raise_for_status()
+        source_id = source.json()["source_id"]
+
+        attached = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/sources",
+            json={
+                "source_id": source_id,
+                "relevance": "high",
+                "review_status": "candidate",
+                "note": "queue source",
+            },
+        )
+        attached.raise_for_status()
+
+        campaign = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns",
+            json={
+                "title": "Initial discovery",
+                "query_text": "house reef dive resort",
+                "campaign_kind": "manual",
+                "status": "planned",
+                "note": "seed campaign",
+            },
+        )
+        campaign.raise_for_status()
+
+        created = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/review-queue-items",
+            json={
+                "title": "Review attached source",
+                "queue_kind": "source_review",
+                "status": "open",
+                "priority": "high",
+                "note": "Needs review",
+                "source_id": source_id,
+                "project_source_id": attached.json()["project_source_id"],
+                "search_campaign_id": campaign.json()["search_campaign_id"],
+            },
+        )
+        created.raise_for_status()
+        queue_id = created.json()["review_queue_item_id"]
+
+        listed = client.get(f"{settings.api_v1_prefix}/projects/{project_id}/review-queue-items")
+        listed.raise_for_status()
+
+        patched = client.patch(
+            f"{settings.api_v1_prefix}/projects/{project_id}/review-queue-items/{queue_id}/status",
+            json={"status": "in_review", "note": "Started review"},
+        )
+        patched.raise_for_status()
+
+        fetched = client.get(
+            f"{settings.api_v1_prefix}/projects/{project_id}/review-queue-items/{queue_id}"
+        )
+        fetched.raise_for_status()
+
+    try:
+        payload = {
+            "project": project.json(),
+            "created": created.json(),
+            "queue_count": len(listed.json()["items"]),
+            "patched": patched.json(),
+            "fetched": fetched.json(),
+        }
+    finally:
+        engine.dispose()
+        os.environ.pop("HARBOR_SQLALCHEMY_DATABASE_URL", None)
+        clear_settings_cache()
+        try:
+            if db_file.exists():
+                db_file.unlink()
+        except PermissionError:
+            pass
+
+    return payload

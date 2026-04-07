@@ -14,7 +14,7 @@ It is designed to support:
 
 ## Current phase
 
-T1.5 — Source and project-source first slice
+T1.6B — Review queue baseline
 
 ## Repository posture
 
@@ -28,6 +28,8 @@ The current repository contains:
 - first real vertical product slice for project registration
 - second real vertical product slice for handbook persistence and version history
 - first global source + project-source attachment slice
+- search campaign registry baseline
+- review queue baseline
 
 ## Local repository root
 
@@ -42,8 +44,8 @@ Read these files in this order:
 1. `docs/MASTERPLAN.md`
 2. `docs/PROJECT_STATE.md`
 3. `docs/INDEX.md`
-4. `docs/SOURCE_SLICE_v0_1.md`
-5. `docs/_handoff/HANDOFF_T1_5_source_and_project_source_first_slice_2026-04-07.md`
+4. `docs/REVIEW_QUEUE_BASELINE_v0_1.md`
+5. `docs/_handoff/HANDOFF_T1_6B_review_queue_baseline_2026-04-07.md`
 
 ## Local commands
 
@@ -54,8 +56,10 @@ python .	ools	ask_runner.py show-db-settings
 python .	ools	ask_runner.py quality-gates
 python .	ools	ask_runner.py smoke-project-slice
 python .	ools	ask_runner.py smoke-handbook-slice
-python .	ools	ask_runner.py smoke-source-slice
-python .	ools	ask_runner.py run-dev
+python .\tools\task_runner.py smoke-source-slice
+python .\tools\task_runner.py smoke-search-campaign-slice
+python .\tools\task_runner.py smoke-review-queue-slice
+python .\tools\task_runner.py run-dev
 ```
 
 ## Current proof points
@@ -67,3 +71,5 @@ python .	ools	ask_runner.py run-dev
 - `/api/v1/projects/{project_id}/handbook` (when a DB URL is configured)
 - `/api/v1/sources` (when a DB URL is configured)
 - `/api/v1/projects/{project_id}/sources` (when a DB URL is configured)
+- `/api/v1/projects/{project_id}/search-campaigns` (when a DB URL is configured)
+- `/api/v1/projects/{project_id}/review-queue-items` (when a DB URL is configured)

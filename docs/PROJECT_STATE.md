@@ -2,7 +2,7 @@
 
 ## Current phase
 
-T1.5 — Source and project-source first slice
+T1.6B — Review queue baseline
 
 ## Confirmed completed
 
@@ -13,6 +13,8 @@ T1.5 — Source and project-source first slice
 - T1.3 project registry vertical slice
 - T1.4 handbook persistence baseline
 - T1.5 first global source + project-source slice
+- T1.6A search campaign registry baseline
+- T1.6B review queue baseline
 
 ## Current runtime posture
 
@@ -28,24 +30,22 @@ Harbor now has:
 - project-source attachment registry
 - live project and handbook APIs
 - live source attach/list APIs
+- live search campaign APIs
+- live review queue APIs
 
-## Confirmed local proof for T1.5
+## Confirmed local proof for T1.6B
 
 Expected green proof after apply:
 
 - `python .\tools\task_runner.py smoke-project-slice`
 - `python .\tools\task_runner.py smoke-handbook-slice`
 - `python .\tools\task_runner.py smoke-source-slice`
+- `python .\tools\task_runner.py smoke-search-campaign-slice`
+- `python .\tools\task_runner.py smoke-review-queue-slice`
 - `python .\tools\task_runner.py quality-gates`
 - `python -m alembic upgrade head`
-- `/api/v1/sources` works when a DB URL is configured
-- `/api/v1/projects/{project_id}/sources` works when a DB URL is configured
-
-## Current recommended next step
-
-T1.6 — Search campaign and review queue baseline
-
+- `/api/v1/projects/{project_id}/review-queue-items` works when a DB URL is configured
 
 ## Recommended next step
 
-T1.6A — Search campaign registry baseline
+T1.7A — Search run registry baseline

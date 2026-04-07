@@ -199,3 +199,53 @@ class SearchCampaignRecord(Base):
         default=utcnow,
         onupdate=utcnow,
     )
+
+
+def default_review_queue_item_id() -> str:
+    return str(uuid.uuid4())
+
+
+class ReviewQueueItemRecord(Base):
+    __tablename__ = "review_queue_item_registry"
+
+    review_queue_item_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_review_queue_item_id,
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("project_registry.project_id"),
+        nullable=False,
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    queue_kind: Mapped[str] = mapped_column(String(32), nullable=False, default="source_review")
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="open")
+    priority: Mapped[str] = mapped_column(String(32), nullable=False, default="normal")
+    note: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    source_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("source_registry.source_id"),
+        nullable=True,
+    )
+    project_source_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("project_source_registry.project_source_id"),
+        nullable=True,
+    )
+    search_campaign_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("search_campaign_registry.search_campaign_id"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )
