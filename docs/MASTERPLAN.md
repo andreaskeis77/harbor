@@ -20,9 +20,10 @@ Accepted:
 - T1.0 runtime bootstrap
 - T1.1 runtime configuration and local operator surface
 - T1.2 persistence foundation and Postgres baseline
+- T1.3 project registry vertical slice
 
 Current focus:
-- T1.3 project registry vertical slice
+- T1.4 handbook persistence baseline
 
 ## T1 sequence
 
@@ -51,6 +52,9 @@ Current focus:
 
 ### T1.4
 - handbook persistence baseline
+- handbook version history
+- read/write current handbook API
+- handbook version list API
 
 ### T1.5
 - source / project-source first slice

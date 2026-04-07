@@ -11,7 +11,7 @@ class HarborSettings(BaseSettings):
 
     app_name: str = "Harbor"
     environment: str = "dev"
-    version: str = "0.1.3a0"
+    version: str = "0.1.4a0"
 
     api_v1_prefix: str = "/api/v1"
     host: str = "127.0.0.1"

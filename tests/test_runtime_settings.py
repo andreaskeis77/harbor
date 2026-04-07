@@ -9,7 +9,7 @@ def test_runtime_dict_contains_expected_fields() -> None:
 
     assert payload["app_name"] == "Harbor"
     assert payload["environment"] == "dev"
-    assert payload["version"] == "0.1.3a0"
+    assert payload["version"] == "0.1.4a0"
     assert payload["postgres_configured"] is False
 
 

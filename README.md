@@ -13,7 +13,7 @@ It is designed to support:
 
 ## Current phase
 
-T1.3A — Project registry stabilization fix
+T1.4 — Handbook persistence baseline
 
 ## Repository posture
 
@@ -25,7 +25,7 @@ The current repository contains:
 - runtime bootstrap and local operator surface
 - persistence foundation and Postgres baseline
 - first real vertical product slice for project registration
-- stabilization fix for project-slice smoke and route/style compliance
+- second real vertical product slice for handbook persistence and version history
 
 ## Local repository root
 
@@ -40,17 +40,19 @@ Read these files in this order:
 1. `docs/MASTERPLAN.md`
 2. `docs/PROJECT_STATE.md`
 3. `docs/INDEX.md`
-4. `docs/PROJECT_REGISTRY_VERTICAL_SLICE_v0_1.md`
-5. `docs/_handoff/HANDOFF_T1_3A_project_registry_stabilization_fix_2026-04-07.md`
+4. `docs/HANDBOOK_PERSISTENCE_v0_1.md`
+5. `docs/_handoff/HANDOFF_T1_4_handbook_persistence_baseline_2026-04-07.md`
 
 ## Local commands
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-python .	ools	ask_runner.py show-settings
-python .	ools	ask_runner.py show-db-settings
-python .	ools	ask_runner.py quality-gates
-python .	ools	ask_runner.py run-dev
+python .\tools\task_runner.py show-settings
+python .\tools\task_runner.py show-db-settings
+python .\tools\task_runner.py quality-gates
+python .\tools\task_runner.py smoke-project-slice
+python .\tools\task_runner.py smoke-handbook-slice
+python .\tools\task_runner.py run-dev
 ```
 
 ## Current proof points
@@ -59,3 +61,4 @@ python .	ools	ask_runner.py run-dev
 - `/runtime`
 - `/db/status`
 - `/api/v1/projects` (when a DB URL is configured)
+- `/api/v1/projects/{project_id}/handbook` (when a DB URL is configured)

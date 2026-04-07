@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "harbor"
-version = "0.1.3a0"
+version = "0.1.4a0"
 description = "Harbor project-partitioned research operating system"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -17,9 +17,7 @@ dependencies = [
     "psycopg[binary]>=3.2,<4.0",
     "alembic>=1.13,<2.0",
 ]
-authors = [
-    { name = "Andreas Keis" }
-]
+authors = [{ name = "Andreas Keis" }]
 
 [project.optional-dependencies]
 dev = [

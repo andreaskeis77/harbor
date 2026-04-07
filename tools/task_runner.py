@@ -11,6 +11,7 @@ from harbor.operator_surface import (
     print_json,
     show_db_settings_payload,
     show_settings_payload,
+    smoke_handbook_slice_payload,
     smoke_local_payload,
     smoke_project_slice_payload,
 )
@@ -25,19 +26,19 @@ def run_subprocess(args: list[str]) -> int:
 
 def command_run_dev() -> int:
     settings = get_settings()
-    return run_subprocess(
-        [
-            sys.executable,
-            "-m",
-            "uvicorn",
-            "harbor.app:app",
-            "--host",
-            settings.host,
-            "--port",
-            str(settings.port),
-            *(["--reload"] if settings.reload else []),
-        ]
-    )
+    command = [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "harbor.app:app",
+        "--host",
+        settings.host,
+        "--port",
+        str(settings.port),
+    ]
+    if settings.reload:
+        command.append("--reload")
+    return run_subprocess(command)
 
 
 def command_quality_gates() -> int:
@@ -75,6 +76,11 @@ def command_smoke_project_slice() -> int:
     return 0
 
 
+def command_smoke_handbook_slice() -> int:
+    print_json(smoke_handbook_slice_payload())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Harbor task runner")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -86,6 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("db-status")
     subparsers.add_parser("smoke-local")
     subparsers.add_parser("smoke-project-slice")
+    subparsers.add_parser("smoke-handbook-slice")
 
     return parser
 
@@ -102,6 +109,7 @@ def main() -> int:
         "db-status": command_db_status,
         "smoke-local": command_smoke_local,
         "smoke-project-slice": command_smoke_project_slice,
+        "smoke-handbook-slice": command_smoke_handbook_slice,
     }
     return command_map[args.command]()
 
