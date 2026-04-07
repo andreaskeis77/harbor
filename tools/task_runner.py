@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import subprocess
 import sys
 from pathlib import Path
@@ -7,51 +8,32 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(command: list[str]) -> int:
-    return subprocess.run(command, cwd=REPO_ROOT).returncode
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Harbor task runner.")
+    parser.add_argument(
+        "command",
+        choices=("quality-gates", "show-settings", "smoke-local", "run-dev"),
+        help="Task to execute.",
+    )
+    return parser
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) < 2:
-        print("Usage: python .\\tools\\task_runner.py [quality-gates|run-dev|smoke]")
-        return 2
+def run_subprocess(args: list[str]) -> int:
+    return subprocess.call(args, cwd=REPO_ROOT)
 
-    task = argv[1]
-    python = sys.executable
 
-    if task == "quality-gates":
-        return run([python, str(REPO_ROOT / "tools" / "run_quality_gates.py")])
+def main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
 
-    if task == "run-dev":
-        return run(
-            [
-                python,
-                "-m",
-                "uvicorn",
-                "harbor.app:app",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "8000",
-                "--reload",
-            ]
-        )
+    if args.command == "quality-gates":
+        return run_subprocess([sys.executable, "tools/run_quality_gates.py"])
+    if args.command in {"show-settings", "smoke-local", "run-dev"}:
+        return run_subprocess([sys.executable, "-m", "harbor.operator_surface", args.command])
 
-    if task == "smoke":
-        return run(
-            [
-                python,
-                "-c",
-                (
-                    "import urllib.request; "
-                    "print(urllib.request.urlopen('http://127.0.0.1:8000/healthz').read().decode())"
-                ),
-            ]
-        )
-
-    print(f"Unknown task: {task}")
+    parser.error(f"Unsupported command: {args.command}")
     return 2
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv))
+    raise SystemExit(main())

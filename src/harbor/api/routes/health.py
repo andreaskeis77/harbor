@@ -1,14 +1,26 @@
-from __future__ import annotations
-
 from fastapi import APIRouter
 
 from harbor.config import get_settings
-from harbor.runtime import build_runtime_payload
+from harbor.runtime import runtime_summary
 
-router = APIRouter(tags=["health"])
+router = APIRouter()
 
 
 @router.get("/healthz")
-def healthz() -> dict[str, object]:
+def healthz() -> dict[str, str]:
     settings = get_settings()
-    return build_runtime_payload(settings)
+    return {
+        "status": "ok",
+        "app_name": settings.app_name,
+        "environment": settings.environment,
+        "version": settings.app_version,
+    }
+
+
+@router.get("/runtime")
+def runtime_info() -> dict[str, object]:
+    settings = get_settings()
+    return {
+        "status": "ok",
+        "runtime": runtime_summary(settings),
+    }

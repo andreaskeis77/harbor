@@ -1,97 +1,58 @@
 # Harbor Masterplan
 
-## Purpose
-
-This document is the long-lived roadmap for Harbor.
-
-It is the canonical reference for:
-- phase sequence
-- strategic priorities
-- what is deferred
-- transition gates between phases
-
-## Product direction
+## 1. Product target
 
 Harbor is a project-partitioned research operating system.
 
-It is not only a chat experience and not only a vector-search feature set.
-It is a governed system for:
-- project definition
-- source collection
-- evidence storage
-- review
-- resume
-- refresh
-- later monitoring and agentic assistance
+It is not merely a chat-based RAG surface. Its long-term target is a governed
+system for:
 
-## Phase sequence
+- project-specific research definition
+- source collection and evidence storage
+- review and resume workflows
+- refresh and discovery workflows
+- blueprint reuse
+- later monitoring and agentic candidate generation
 
-### A0 — Definition and architecture baseline
-Goal:
-- product, domain, architecture, workflow, and bootstrap definition
+## 2. Canonical phase order
 
-Status:
-- accepted
+### A0 — product / domain / architecture definition
+Accepted.
 
-### T1.0 — Repository scaffold and technical bootstrap
-Goal:
-- canonical repository structure
-- minimal FastAPI application
-- health endpoint
-- local bootstrap
-- minimal tests and quality gates
+### T1 — technical bootstrap and local single-node foundation
+Current active implementation phase.
 
-Status:
-- current phase
+### T2 — first vertical product slices
+Planned after local technical foundation is stable.
 
-### T1.1 — Runtime configuration and local operator surface
-Goal:
-- stronger runtime settings
-- local operator commands
-- local start-run conventions
-- clearer environment handling
+### T3 — VPS preview deployment and hosted runtime
+Planned after first stable local slices exist.
 
-### T1.2 — Persistence foundation
-Goal:
-- database posture starts to become executable
-- schema bootstrap
-- migration posture
-- canonical persistence boundaries
+### T4 — Custom GPT integration on canonical backend
+Planned after stable hosted API surface exists.
 
-### T1.3 — Minimal application surface
-Goal:
-- first project-facing API surface
-- likely project list, project create, and handbook baseline
+### T5 — refresh / discovery expansion
+Planned after source and project fundamentals are stable.
 
-### T2.x — First vertical functional slices
-Goal:
-- Projects
-- Handbook versions
-- project dashboards
-- then Sources
-- then Search and Refresh
-- then Review and Resume
+### T6 — monitoring / agentic candidate generation
+Later phase. Not part of current delivery focus.
 
-### VPS preview phase
-Goal:
-- stable deployable preview environment
-- health and restart posture
-- operator runbook
+## 3. Current implementation sequence
 
-### GPT integration phase
-Goal:
-- same backend used by website and Custom GPT
-- first stable actions surface
+1. T1.0 repository scaffold and bootstrap runtime
+2. T1.1 runtime configuration and local operator surface
+3. T1.2 persistence foundation and Postgres baseline
+4. T1.3 first project storage slice
+5. T2.0 first vertical domain slice: projects + handbook
+6. T2.x source and snapshot model
+7. T3.x hosted runtime and VPS operations
+8. T4.x GPT integration
+9. T5/T6 refresh, discovery, monitoring, agentic evolution
 
-### Monitoring and Agent phase
-Goal:
-- controlled refresh automation
-- later candidate-producing agents
-- never unchecked write access into canonical knowledge
+## 4. Principle for moving forward
 
-## Rules for roadmap changes
+Do not widen Harbor horizontally too early.
 
-Any major roadmap change must update:
-- `docs/MASTERPLAN.md`
-- `docs/PROJECT_STATE.md`
-- one new `docs/_handoff/HANDOFF_*.md`
+The next priority is not more concept sprawl. The next priority is a disciplined,
+testable transition from bootstrap runtime into persistence and then the first
+real Harbor product slice.

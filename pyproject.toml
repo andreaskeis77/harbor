@@ -1,28 +1,26 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "harbor"
-version = "0.1.0a0"
-description = "Harbor research operating system bootstrap"
+version = "0.1.1a0"
+description = "Harbor research operating system bootstrap runtime"
 readme = "README.md"
 requires-python = ">=3.12"
-authors = [
-  { name = "Andreas Keis" }
-]
 dependencies = [
-  "fastapi>=0.115,<1.0",
-  "uvicorn[standard]>=0.30,<1.0",
+  "fastapi>=0.111,<1.0",
+  "uvicorn>=0.30,<1.0",
   "pydantic-settings>=2.3,<3.0",
-]
-
-[project.optional-dependencies]
-dev = [
   "httpx>=0.27,<1.0",
+]
+optional-dependencies.dev = [
   "pytest>=8.2,<9.0",
   "ruff>=0.6,<1.0",
 ]
+
+[project.scripts]
+harbor-task = "harbor.operator_surface:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -37,11 +35,8 @@ addopts = "-q"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+src = ["src", "tests", "tools"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W"]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "lf"
+select = ["E", "F", "I", "UP", "B"]
+ignore = []

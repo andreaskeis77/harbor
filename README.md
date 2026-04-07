@@ -8,78 +8,69 @@ It is designed to support:
 - versioned research handbooks and scope definitions
 - controlled source collection and evidence storage
 - review and resume workflows
-- refresh and later monitoring or agentic update flows
+- refresh and later monitoring/agentic update flows
 - one canonical backend for website and Custom GPT
 
 ## Current phase
 
-T1.0 — Repository scaffold and technical bootstrap implementation
+T1.1 — Runtime configuration and local operator surface
 
 ## Repository posture
 
-Harbor started documentation-first and now enters the first technical bootstrap phase.
+Harbor is moving from documentation baseline into controlled runtime implementation.
 
-The current implementation goal is intentionally narrow:
+The current technical baseline now includes:
 
-- establish the canonical repository scaffold
-- provide a minimal FastAPI application
-- provide a `/healthz` endpoint
-- establish local bootstrap commands
-- establish minimal quality gates
-- prepare the next vertical slice for Projects plus Handbook
+- Python package scaffold
+- FastAPI bootstrap runtime
+- `/healthz` and `/` endpoints
+- quality gates
+- typed runtime settings
+- `.env`-driven configuration
+- local operator commands for settings inspection and smoke validation
 
-## Local repository root
-
-Canonical local path:
+## Canonical local path
 
 `C:\projekte\Harbor`
 
-## Recommended reading order
+## Initial navigation
 
-1. `docs/MASTERPLAN.md`
-2. `docs/PROJECT_STATE.md`
-3. `docs/PRODUCT_SCOPE_v0_1.md`
-4. `docs/DOMAIN_MODEL_v0_1.md`
-5. `docs/SYSTEM_ARCHITECTURE_v0_1.md`
-6. `docs/TECHNICAL_BOOTSTRAP_v0_1.md`
+Read these files in this order:
 
-## Quickstart
+1. `docs/PROJECT_STATE.md`
+2. `docs/MASTERPLAN.md`
+3. `docs/INDEX.md`
+4. `docs/RUNTIME_CONFIGURATION_v0_1.md`
+5. `docs/LOCAL_OPERATOR_SURFACE_v0_1.md`
 
-### Create virtual environment
+## Common local commands
+
+Activate the venv first:
 
 ```powershell
-py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -e ".[dev]"
 ```
 
-### Run the quality gates
+Show effective runtime settings:
 
 ```powershell
-python .\tools\run_quality_gates.py
+python .\tools\task_runner.py show-settings
 ```
 
-### Start the local API
+Run local smoke checks without starting a separate shell session:
 
 ```powershell
-python -m uvicorn harbor.app:app --host 127.0.0.1 --port 8000 --reload
+python .\tools\task_runner.py smoke-local
 ```
 
-### Smoke-check the app
+Run quality gates:
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:8000/healthz
+python .\tools\task_runner.py quality-gates
 ```
 
-Expected response includes `status: ok`.
+Start the local development server:
 
-## Canonical directories
-
-- `src/` — application code
-- `tests/` — automated checks
-- `tools/` — operational helpers and quality-gate tooling
-- `config/` — environment examples and config notes
-- `docs/` — product, architecture, governance, handoffs
-- `data/` — local non-canonical data zone
-- `var/` — logs, run artifacts, reports
+```powershell
+python .\tools\task_runner.py run-dev
+```
