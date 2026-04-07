@@ -45,3 +45,5 @@
 ## ADRs
 
 - `docs/adr/README.md`
+
+- SEARCH_CAMPAIGN_REGISTRY_v0_1.md

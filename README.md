@@ -9,6 +9,7 @@ It is designed to support:
 - controlled source collection and evidence storage
 - review and resume workflows
 - refresh and later monitoring/agentic update flows
+- search campaign registry baseline
 - one canonical backend for website and Custom GPT
 
 ## Current phase

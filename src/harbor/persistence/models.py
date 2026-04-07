@@ -164,3 +164,38 @@ class ProjectSourceRecord(Base):
         default=utcnow,
         onupdate=utcnow,
     )
+
+
+def default_search_campaign_id() -> str:
+    return str(uuid.uuid4())
+
+
+class SearchCampaignRecord(Base):
+    __tablename__ = "search_campaign_registry"
+
+    search_campaign_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_search_campaign_id,
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("project_registry.project_id"),
+        nullable=False,
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    query_text: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    campaign_kind: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="planned")
+    note: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )

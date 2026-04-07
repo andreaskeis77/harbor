@@ -238,3 +238,70 @@ def smoke_source_slice_payload() -> dict[str, object]:
             pass
 
     return payload
+
+
+def smoke_search_campaign_slice_payload() -> dict[str, object]:
+    fd, db_path = tempfile.mkstemp(prefix="harbor_search_campaign_slice_smoke_", suffix=".db")
+    os.close(fd)
+    db_file = Path(db_path)
+
+    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
+    clear_settings_cache()
+    settings = get_settings()
+
+    engine = build_engine(settings)
+    assert engine is not None
+    Base.metadata.create_all(bind=engine)
+
+    app = create_app(settings=settings)
+    with TestClient(app) as client:
+        project = client.post(
+            f"{settings.api_v1_prefix}/projects",
+            json={
+                "title": "Smoke Search Campaign Project",
+                "short_description": "Smoke-created search campaign project",
+                "project_type": "standard",
+            },
+        )
+        project.raise_for_status()
+        project_id = project.json()["project_id"]
+
+        created = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns",
+            json={
+                "title": "Initial discovery",
+                "query_text": "house reef dive resort",
+                "campaign_kind": "manual",
+                "status": "planned",
+                "note": "Seed search campaign",
+            },
+        )
+        created.raise_for_status()
+        campaign_id = created.json()["search_campaign_id"]
+
+        listed = client.get(f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns")
+        listed.raise_for_status()
+
+        fetched = client.get(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{campaign_id}"
+        )
+        fetched.raise_for_status()
+
+    try:
+        payload = {
+            "project": project.json(),
+            "created": created.json(),
+            "campaign_count": len(listed.json()["items"]),
+            "fetched": fetched.json(),
+        }
+    finally:
+        engine.dispose()
+        os.environ.pop("HARBOR_SQLALCHEMY_DATABASE_URL", None)
+        clear_settings_cache()
+        try:
+            if db_file.exists():
+                db_file.unlink()
+        except PermissionError:
+            pass
+
+    return payload

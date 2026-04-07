@@ -14,6 +14,7 @@ from harbor.operator_surface import (
     smoke_handbook_slice_payload,
     smoke_local_payload,
     smoke_project_slice_payload,
+    smoke_search_campaign_slice_payload,
     smoke_source_slice_payload,
 )
 
@@ -87,6 +88,11 @@ def command_smoke_source_slice() -> int:
     return 0
 
 
+def command_smoke_search_campaign_slice() -> int:
+    print_json(smoke_search_campaign_slice_payload())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Harbor task runner")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -100,6 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("smoke-project-slice")
     subparsers.add_parser("smoke-handbook-slice")
     subparsers.add_parser("smoke-source-slice")
+    subparsers.add_parser("smoke-search-campaign-slice")
 
     return parser
 
@@ -118,6 +125,7 @@ def main() -> int:
         "smoke-project-slice": command_smoke_project_slice,
         "smoke-handbook-slice": command_smoke_handbook_slice,
         "smoke-source-slice": command_smoke_source_slice,
+        "smoke-search-campaign-slice": command_smoke_search_campaign_slice,
     }
     return command_map[args.command]()
 

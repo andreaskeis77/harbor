@@ -44,3 +44,8 @@ Expected green proof after apply:
 ## Current recommended next step
 
 T1.6 — Search campaign and review queue baseline
+
+
+## Recommended next step
+
+T1.6A — Search campaign registry baseline
