@@ -840,3 +840,156 @@ def smoke_review_queue_source_promotion_slice_payload() -> dict[str, object]:
                 pass
 
     return payload
+
+
+def smoke_promotion_duplicate_guard_slice_payload() -> dict[str, object]:
+    fd, db_path = tempfile.mkstemp(
+        prefix="harbor_promotion_duplicate_guard_slice_smoke_",
+        suffix=".db",
+    )
+    os.close(fd)
+    db_file = Path(db_path)
+
+    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
+    clear_settings_cache()
+
+    settings = get_settings()
+    engine = build_engine(settings)
+    assert engine is not None
+    Base.metadata.create_all(bind=engine)
+
+    app = create_app(settings=settings)
+    with TestClient(app) as client:
+        project = client.post(
+            f"{settings.api_v1_prefix}/projects",
+            json={
+                "title": "Smoke Promotion Duplicate Guard Project",
+                "short_description": "Smoke-created duplicate guard project",
+                "project_type": "standard",
+            },
+        )
+        project.raise_for_status()
+        project_id = project.json()["project_id"]
+
+        campaign = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns",
+            json={
+                "title": "Initial discovery",
+                "query_text": "house reef dive resort",
+                "campaign_kind": "manual",
+                "status": "planned",
+                "note": "seed campaign",
+            },
+        )
+        campaign.raise_for_status()
+        search_campaign_id = campaign.json()["search_campaign_id"]
+
+        first_run = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs",
+            json={
+                "title": "Run 1",
+                "run_kind": "manual",
+                "status": "planned",
+                "query_text_snapshot": "house reef dive resort",
+                "note": "first run",
+            },
+        )
+        first_run.raise_for_status()
+        first_run_id = first_run.json()["search_run_id"]
+
+        first_candidate = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{first_run_id}/result-candidates",
+            json={
+                "title": "Example Dive Resort",
+                "url": "https://example.com/dive-resort",
+                "domain": "example.com",
+                "snippet": "Direct house reef and beginner-friendly diving.",
+                "rank": 1,
+                "disposition": "pending",
+                "note": "first candidate",
+            },
+        )
+        first_candidate.raise_for_status()
+        first_candidate_id = first_candidate.json()["search_result_candidate_id"]
+
+        first_review_item = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{first_run_id}/result-candidates/{first_candidate_id}/promote-to-review",
+            json={"note": "send to review queue"},
+        )
+        first_review_item.raise_for_status()
+        duplicate_review_attempt = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{first_run_id}/result-candidates/{first_candidate_id}/promote-to-review",
+            json={"note": "send to review queue"},
+        )
+
+        promote_first_source = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/review-queue-items/{first_review_item.json()['review_queue_item_id']}/promote-to-source",
+            json={"note": "accepted into project sources"},
+        )
+        promote_first_source.raise_for_status()
+
+        second_run = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs",
+            json={
+                "title": "Run 2",
+                "run_kind": "manual",
+                "status": "planned",
+                "query_text_snapshot": "house reef dive resort",
+                "note": "second run",
+            },
+        )
+        second_run.raise_for_status()
+        second_run_id = second_run.json()["search_run_id"]
+
+        second_candidate = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{second_run_id}/result-candidates",
+            json={
+                "title": "Example Dive Resort",
+                "url": "https://example.com/dive-resort",
+                "domain": "example.com",
+                "snippet": "Direct house reef and beginner-friendly diving.",
+                "rank": 1,
+                "disposition": "pending",
+                "note": "second candidate",
+            },
+        )
+        second_candidate.raise_for_status()
+        second_candidate_id = second_candidate.json()["search_result_candidate_id"]
+
+        second_review_item = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{second_run_id}/result-candidates/{second_candidate_id}/promote-to-review",
+            json={"note": "send to review queue"},
+        )
+        second_review_item.raise_for_status()
+        duplicate_source_attempt = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/review-queue-items/{second_review_item.json()['review_queue_item_id']}/promote-to-source",
+            json={"note": "accepted into project sources"},
+        )
+
+        try:
+            payload = {
+                "project": project.json(),
+                "campaign": campaign.json(),
+                "first_run": first_run.json(),
+                "first_candidate": first_candidate.json(),
+                "first_review_item": first_review_item.json(),
+                "duplicate_review_status": duplicate_review_attempt.status_code,
+                "duplicate_review_body": duplicate_review_attempt.json(),
+                "promote_first_source": promote_first_source.json(),
+                "second_run": second_run.json(),
+                "second_candidate": second_candidate.json(),
+                "second_review_item": second_review_item.json(),
+                "duplicate_source_status": duplicate_source_attempt.status_code,
+                "duplicate_source_body": duplicate_source_attempt.json(),
+            }
+        finally:
+            engine.dispose()
+            os.environ.pop("HARBOR_SQLALCHEMY_DATABASE_URL", None)
+            clear_settings_cache()
+            try:
+                if db_file.exists():
+                    db_file.unlink()
+            except PermissionError:
+                pass
+
+    return payload

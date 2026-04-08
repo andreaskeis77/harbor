@@ -190,3 +190,52 @@ def test_promote_review_queue_item_to_source_twice_returns_409(
         json={"note": "accepted into project sources"},
     )
     assert second_response.status_code == 409
+
+
+def test_promote_second_review_queue_item_for_same_url_returns_409(
+    client: TestClient,
+) -> None:
+    project = create_project(client)
+    campaign = create_campaign(client, project["project_id"])
+
+    first_run = create_run(client, project["project_id"], campaign["search_campaign_id"])
+    first_candidate = create_candidate(
+        client,
+        project["project_id"],
+        campaign["search_campaign_id"],
+        first_run["search_run_id"],
+    )
+    first_review_item = promote_candidate_to_review(
+        client,
+        project["project_id"],
+        campaign["search_campaign_id"],
+        first_run["search_run_id"],
+        first_candidate["search_result_candidate_id"],
+    )
+
+    second_run = create_run(client, project["project_id"], campaign["search_campaign_id"])
+    second_candidate = create_candidate(
+        client,
+        project["project_id"],
+        campaign["search_campaign_id"],
+        second_run["search_run_id"],
+    )
+    second_review_item = promote_candidate_to_review(
+        client,
+        project["project_id"],
+        campaign["search_campaign_id"],
+        second_run["search_run_id"],
+        second_candidate["search_result_candidate_id"],
+    )
+
+    first_response = client.post(
+        f"/api/v1/projects/{project['project_id']}/review-queue-items/{first_review_item['review_queue_item_id']}/promote-to-source",
+        json={"note": "accepted into project sources"},
+    )
+    assert first_response.status_code == 201
+
+    second_response = client.post(
+        f"/api/v1/projects/{project['project_id']}/review-queue-items/{second_review_item['review_queue_item_id']}/promote-to-source",
+        json={"note": "accepted into project sources"},
+    )
+    assert second_response.status_code == 409

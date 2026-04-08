@@ -146,3 +146,29 @@ def test_promote_candidate_404_for_missing_candidate(client: TestClient) -> None
         json={"note": "send to review queue"},
     )
     assert response.status_code == 404
+
+
+def test_promote_candidate_to_review_queue_twice_returns_409(
+    client: TestClient,
+) -> None:
+    project = create_project(client)
+    campaign = create_campaign(client, project["project_id"])
+    search_run = create_run(client, project["project_id"], campaign["search_campaign_id"])
+    candidate = create_candidate(
+        client,
+        project["project_id"],
+        campaign["search_campaign_id"],
+        search_run["search_run_id"],
+    )
+
+    first_response = client.post(
+        f"/api/v1/projects/{project['project_id']}/search-campaigns/{campaign['search_campaign_id']}/runs/{search_run['search_run_id']}/result-candidates/{candidate['search_result_candidate_id']}/promote-to-review",
+        json={"note": "send to review queue"},
+    )
+    assert first_response.status_code == 201
+
+    second_response = client.post(
+        f"/api/v1/projects/{project['project_id']}/search-campaigns/{campaign['search_campaign_id']}/runs/{search_run['search_run_id']}/result-candidates/{candidate['search_result_candidate_id']}/promote-to-review",
+        json={"note": "send to review queue"},
+    )
+    assert second_response.status_code == 409

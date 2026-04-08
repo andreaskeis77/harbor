@@ -187,6 +187,25 @@ def get_review_queue_item(
     return session.execute(stmt).scalar_one_or_none()
 
 
+def get_candidate_review_queue_item(
+    session: Session,
+    project_id: str,
+    search_campaign_id: str,
+    search_run_id: str,
+    search_result_candidate_id: str,
+) -> ReviewQueueItemRecord | None:
+    stmt = (
+        select(ReviewQueueItemRecord)
+        .where(ReviewQueueItemRecord.project_id == project_id)
+        .where(ReviewQueueItemRecord.queue_kind == "candidate_review")
+        .where(ReviewQueueItemRecord.search_campaign_id == search_campaign_id)
+        .where(ReviewQueueItemRecord.search_run_id == search_run_id)
+        .where(ReviewQueueItemRecord.search_result_candidate_id == search_result_candidate_id)
+        .order_by(ReviewQueueItemRecord.created_at.desc())
+    )
+    return session.execute(stmt).scalars().first()
+
+
 def update_review_queue_item_status(
     session: Session,
     project_id: str,
@@ -239,6 +258,19 @@ def promote_search_result_candidate_to_review_queue(
         or candidate.search_run_id != search_run_id
     ):
         raise KeyError("search_result_candidate_not_found")
+
+    existing_review_item = get_candidate_review_queue_item(
+        session,
+        project_id,
+        search_campaign_id,
+        search_run_id,
+        search_result_candidate_id,
+    )
+    if existing_review_item is not None or candidate.disposition in {
+        "promoted",
+        "accepted",
+    }:
+        raise ValueError("candidate_already_promoted_to_review_queue")
 
     review_item = ReviewQueueItemRecord(
         project_id=project_id,

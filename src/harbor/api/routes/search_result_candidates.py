@@ -38,6 +38,19 @@ def _translate_key_error(exc: KeyError) -> HTTPException:
     return HTTPException(status_code=404, detail="Search result candidate not found.")
 
 
+def _translate_value_error(exc: ValueError) -> HTTPException:
+    key = str(exc)
+    if key == "candidate_already_promoted_to_review_queue":
+        return HTTPException(
+            status_code=409,
+            detail="Search result candidate already promoted to review queue.",
+        )
+    return HTTPException(
+        status_code=409,
+        detail="Search result candidate is not promotable to review queue.",
+    )
+
+
 @router.post(
     "/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/result-candidates",
     response_model=SearchResultCandidateRead,
@@ -161,4 +174,6 @@ def promote_search_result_candidate_to_review_endpoint(
         )
     except KeyError as exc:
         raise _translate_key_error(exc) from exc
+    except ValueError as exc:
+        raise _translate_value_error(exc) from exc
     return ReviewQueueItemRead.from_record(record)
