@@ -3,11 +3,14 @@
 ## Strategy / governance
 - `MASTERPLAN.md`
 - `PROJECT_STATE.md`
+- `STRATEGY_ROADMAP_v0_1.md`
 - `HANDOFF_MANIFEST.md`
 - `ENGINEERING_MANIFEST.md`
 - `WORKING_AGREEMENT.md`
 - `DELIVERY_PROTOCOL.md`
 - `VALIDATION_PROTOCOL.md`
+- `RELEASE_CHECKLIST_ALPHA_v0_1.md`
+- `RUNBOOK_ALPHA_OPERATOR_v0_1.md`
 
 ## Accepted A0 baseline
 - `PRODUCT_SCOPE_v0_1.md`
@@ -36,12 +39,9 @@
 - `SEARCH_RESULT_CANDIDATE_BASELINE_v0_1.md`
 - `WORKFLOW_SUMMARY_SURFACE_v0_1.md`
 
-## Runbooks / release
-- `RUNBOOK_ALPHA_OPERATOR_v0_1.md`
-- `RELEASE_CHECKLIST_ALPHA_v0_1.md`
-
 ## Handoffs
 - `docs/_handoff/`
+- `docs/_handoff/HANDOFF_2026-04-08_next_chat.md`
 
 ## Concepts
 - `docs/concepts/README.md`
