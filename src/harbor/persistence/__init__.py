@@ -7,6 +7,7 @@ from harbor.persistence.models import (
     ProjectSourceRecord,
     ReviewQueueItemRecord,
     SearchCampaignRecord,
+    SearchResultCandidateRecord,
     SearchRunRecord,
     SourceRecord,
 )
@@ -19,5 +20,6 @@ __all__ = [
     "SourceRecord",
     "SearchCampaignRecord",
     "SearchRunRecord",
+    "SearchResultCandidateRecord",
     "ReviewQueueItemRecord",
 ]
