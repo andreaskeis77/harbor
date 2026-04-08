@@ -4,6 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from harbor.persistence.models import (
@@ -37,6 +38,15 @@ class ReviewQueueStatusUpdate(BaseModel):
 
 
 class CandidateReviewPromotionRequest(BaseModel):
+    note: str | None = None
+
+
+class ReviewQueueSourcePromotionRequest(BaseModel):
+    source_type: str = Field(default="web_page", min_length=1, max_length=32)
+    content_type: str | None = Field(default=None, max_length=100)
+    trust_tier: str = Field(default="candidate", min_length=1, max_length=32)
+    relevance: str = Field(default="candidate", min_length=1, max_length=32)
+    review_status: str = Field(default="accepted", min_length=1, max_length=32)
     note: str | None = None
 
 
@@ -247,5 +257,104 @@ def promote_search_result_candidate_to_review_queue(
     session.add(candidate)
     session.add(review_item)
     session.commit()
+    session.refresh(review_item)
+    return review_item
+
+
+def promote_review_queue_item_to_source(
+    session: Session,
+    project_id: str,
+    review_queue_item_id: str,
+    payload: ReviewQueueSourcePromotionRequest,
+) -> ReviewQueueItemRecord:
+    project = get_project(session, project_id)
+    if project is None:
+        raise KeyError("project_not_found")
+
+    review_item = get_review_queue_item(session, project_id, review_queue_item_id)
+    if review_item is None:
+        raise KeyError("review_queue_item_not_found")
+
+    if review_item.queue_kind != "candidate_review":
+        raise ValueError("review_queue_item_not_promotable")
+
+    if review_item.source_id is not None or review_item.project_source_id is not None:
+        raise ValueError("review_queue_item_already_promoted")
+
+    if (
+        review_item.search_campaign_id is None
+        or review_item.search_run_id is None
+        or review_item.search_result_candidate_id is None
+    ):
+        raise ValueError("review_queue_item_not_promotable")
+
+    campaign = session.get(SearchCampaignRecord, review_item.search_campaign_id)
+    if campaign is None or campaign.project_id != project_id:
+        raise KeyError("search_campaign_not_found")
+
+    search_run = session.get(SearchRunRecord, review_item.search_run_id)
+    if (
+        search_run is None
+        or search_run.project_id != project_id
+        or search_run.search_campaign_id != review_item.search_campaign_id
+    ):
+        raise KeyError("search_run_not_found")
+
+    candidate = session.get(
+        SearchResultCandidateRecord,
+        review_item.search_result_candidate_id,
+    )
+    if (
+        candidate is None
+        or candidate.project_id != project_id
+        or candidate.search_campaign_id != review_item.search_campaign_id
+        or candidate.search_run_id != review_item.search_run_id
+    ):
+        raise KeyError("search_result_candidate_not_found")
+
+    existing_source = session.execute(
+        select(SourceRecord).where(SourceRecord.canonical_url == candidate.url)
+    ).scalar_one_or_none()
+    if existing_source is not None:
+        raise ValueError("duplicate_source")
+
+    source = SourceRecord(
+        source_type=payload.source_type,
+        title=candidate.title,
+        canonical_url=candidate.url,
+        content_type=payload.content_type,
+        trust_tier=payload.trust_tier,
+    )
+    session.add(source)
+    session.flush()
+
+    project_source = ProjectSourceRecord(
+        project_id=project_id,
+        source_id=source.source_id,
+        relevance=payload.relevance,
+        review_status=payload.review_status,
+        note=payload.note,
+    )
+    session.add(project_source)
+    session.flush()
+
+    review_item.source_id = source.source_id
+    review_item.project_source_id = project_source.project_source_id
+    review_item.status = "completed"
+    if payload.note is not None:
+        review_item.note = payload.note
+
+    candidate.disposition = "accepted"
+    candidate.updated_at = utcnow()
+
+    session.add(review_item)
+    session.add(candidate)
+
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        raise ValueError("duplicate_source") from exc
+
     session.refresh(review_item)
     return review_item

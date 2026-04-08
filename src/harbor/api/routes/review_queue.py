@@ -10,10 +10,12 @@ from harbor.review_queue_registry import (
     ReviewQueueItemCreate,
     ReviewQueueItemRead,
     ReviewQueueListResponse,
+    ReviewQueueSourcePromotionRequest,
     ReviewQueueStatusUpdate,
     create_review_queue_item,
     get_review_queue_item,
     list_review_queue_items,
+    promote_review_queue_item_to_source,
     update_review_queue_item_status,
 )
 
@@ -40,6 +42,21 @@ def _translate_key_error(exc: KeyError) -> HTTPException:
             detail="Search result candidate not found.",
         )
     return HTTPException(status_code=404, detail="Review queue item not found.")
+
+
+def _translate_value_error(exc: ValueError) -> HTTPException:
+    key = str(exc)
+    if key == "duplicate_source":
+        return HTTPException(status_code=409, detail="Source already exists.")
+    if key == "review_queue_item_already_promoted":
+        return HTTPException(
+            status_code=409,
+            detail="Review queue item already promoted.",
+        )
+    return HTTPException(
+        status_code=409,
+        detail="Review queue item is not promotable to source.",
+    )
 
 
 @router.post(
@@ -111,4 +128,29 @@ def update_review_queue_item_status_endpoint(
         )
     except KeyError as exc:
         raise _translate_key_error(exc) from exc
+    return ReviewQueueItemRead.from_record(record)
+
+
+@router.post(
+    "/projects/{project_id}/review-queue-items/{review_queue_item_id}/promote-to-source",
+    response_model=ReviewQueueItemRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def promote_review_queue_item_to_source_endpoint(
+    project_id: str,
+    review_queue_item_id: str,
+    payload: ReviewQueueSourcePromotionRequest,
+    session: DbSession,
+) -> ReviewQueueItemRead:
+    try:
+        record = promote_review_queue_item_to_source(
+            session,
+            project_id,
+            review_queue_item_id,
+            payload,
+        )
+    except KeyError as exc:
+        raise _translate_key_error(exc) from exc
+    except ValueError as exc:
+        raise _translate_value_error(exc) from exc
     return ReviewQueueItemRead.from_record(record)

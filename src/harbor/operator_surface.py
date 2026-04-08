@@ -724,3 +724,119 @@ def smoke_candidate_review_promotion_slice_payload() -> dict[str, object]:
                 pass
 
     return payload
+
+
+def smoke_review_queue_source_promotion_slice_payload() -> dict[str, object]:
+    fd, db_path = tempfile.mkstemp(
+        prefix="harbor_review_queue_source_promotion_slice_smoke_",
+        suffix=".db",
+    )
+    os.close(fd)
+    db_file = Path(db_path)
+
+    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
+    clear_settings_cache()
+
+    settings = get_settings()
+    engine = build_engine(settings)
+    assert engine is not None
+    Base.metadata.create_all(bind=engine)
+
+    app = create_app(settings=settings)
+    with TestClient(app) as client:
+        project = client.post(
+            f"{settings.api_v1_prefix}/projects",
+            json={
+                "title": "Smoke Review Queue Source Promotion Project",
+                "short_description": "Smoke-created review queue source promotion project",
+                "project_type": "standard",
+            },
+        )
+        project.raise_for_status()
+        project_id = project.json()["project_id"]
+
+        campaign = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns",
+            json={
+                "title": "Initial discovery",
+                "query_text": "house reef dive resort",
+                "campaign_kind": "manual",
+                "status": "planned",
+                "note": "seed campaign",
+            },
+        )
+        campaign.raise_for_status()
+        search_campaign_id = campaign.json()["search_campaign_id"]
+
+        search_run = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs",
+            json={
+                "title": "Run 1",
+                "run_kind": "manual",
+                "status": "planned",
+                "query_text_snapshot": "house reef dive resort",
+                "note": "first run",
+            },
+        )
+        search_run.raise_for_status()
+        search_run_id = search_run.json()["search_run_id"]
+
+        candidate = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/result-candidates",
+            json={
+                "title": "Example Dive Resort",
+                "url": "https://example.com/dive-resort",
+                "domain": "example.com",
+                "snippet": "Direct house reef and beginner-friendly diving.",
+                "rank": 1,
+                "disposition": "pending",
+                "note": "first candidate",
+            },
+        )
+        candidate.raise_for_status()
+        search_result_candidate_id = candidate.json()["search_result_candidate_id"]
+
+        review_queue_item = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/result-candidates/{search_result_candidate_id}/promote-to-review",
+            json={"note": "send to review queue"},
+        )
+        review_queue_item.raise_for_status()
+        review_queue_item_id = review_queue_item.json()["review_queue_item_id"]
+
+        promoted = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/review-queue-items/{review_queue_item_id}/promote-to-source",
+            json={"note": "accepted into project sources"},
+        )
+        promoted.raise_for_status()
+
+        project_sources = client.get(f"{settings.api_v1_prefix}/projects/{project_id}/sources")
+        project_sources.raise_for_status()
+
+        fetched_candidate = client.get(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/result-candidates/{search_result_candidate_id}"
+        )
+        fetched_candidate.raise_for_status()
+
+        try:
+            payload = {
+                "project": project.json(),
+                "campaign": campaign.json(),
+                "run": search_run.json(),
+                "candidate": candidate.json(),
+                "review_queue_item": review_queue_item.json(),
+                "promoted_review_queue_item": promoted.json(),
+                "project_source_count": len(project_sources.json()["items"]),
+                "project_sources": project_sources.json()["items"],
+                "fetched_candidate": fetched_candidate.json(),
+            }
+        finally:
+            engine.dispose()
+            os.environ.pop("HARBOR_SQLALCHEMY_DATABASE_URL", None)
+            clear_settings_cache()
+            try:
+                if db_file.exists():
+                    db_file.unlink()
+            except PermissionError:
+                pass
+
+    return payload
