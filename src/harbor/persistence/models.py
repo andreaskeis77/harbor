@@ -328,6 +328,16 @@ class ReviewQueueItemRecord(Base):
         ForeignKey("search_campaign_registry.search_campaign_id"),
         nullable=True,
     )
+    search_run_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("search_run_registry.search_run_id"),
+        nullable=True,
+    )
+    search_result_candidate_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("search_result_candidate_registry.search_result_candidate_id"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
