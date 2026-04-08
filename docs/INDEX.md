@@ -1,7 +1,6 @@
 # Docs Index
 
 ## Strategy / governance
-
 - `MASTERPLAN.md`
 - `PROJECT_STATE.md`
 - `HANDOFF_MANIFEST.md`
@@ -11,7 +10,6 @@
 - `VALIDATION_PROTOCOL.md`
 
 ## Accepted A0 baseline
-
 - `PRODUCT_SCOPE_v0_1.md`
 - `DOMAIN_MODEL_v0_1.md`
 - `USER_STORIES_v0_1.md`
@@ -29,24 +27,24 @@
 - `POSTGRES_BASELINE_v0_1.md`
 
 ## Runtime implementation slices
-
 - `PROJECT_REGISTRY_VERTICAL_SLICE_v0_1.md`
 - `HANDBOOK_PERSISTENCE_v0_1.md`
 - `SOURCE_SLICE_v0_1.md`
 - `SEARCH_CAMPAIGN_REGISTRY_v0_1.md`
 - `REVIEW_QUEUE_BASELINE_v0_1.md`
+- `SEARCH_RUN_REGISTRY_v0_1.md`
+- `SEARCH_RESULT_CANDIDATE_BASELINE_v0_1.md`
+- `WORKFLOW_SUMMARY_SURFACE_v0_1.md`
+
+## Runbooks / release
+- `RUNBOOK_ALPHA_OPERATOR_v0_1.md`
+- `RELEASE_CHECKLIST_ALPHA_v0_1.md`
 
 ## Handoffs
-
 - `docs/_handoff/`
 
 ## Concepts
-
 - `docs/concepts/README.md`
 
 ## ADRs
-
 - `docs/adr/README.md`
-
-
-- SEARCH_RUN_REGISTRY_v0_1.md
