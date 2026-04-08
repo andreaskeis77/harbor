@@ -247,6 +247,54 @@ class SearchRunRecord(Base):
     )
 
 
+def default_search_result_candidate_id() -> str:
+    return str(uuid.uuid4())
+
+
+class SearchResultCandidateRecord(Base):
+    __tablename__ = "search_result_candidate_registry"
+
+    search_result_candidate_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_search_result_candidate_id,
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("project_registry.project_id"),
+        nullable=False,
+    )
+    search_campaign_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("search_campaign_registry.search_campaign_id"),
+        nullable=False,
+    )
+    search_run_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("search_run_registry.search_run_id"),
+        nullable=False,
+    )
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+    url: Mapped[str] = mapped_column(String(1000), nullable=False)
+    domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    snippet: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    disposition: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    note: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )
+
+
 class ReviewQueueItemRecord(Base):
     __tablename__ = "review_queue_item_registry"
 
