@@ -22,6 +22,7 @@ from harbor.operator_surface import (
     smoke_search_result_candidate_slice_payload,
     smoke_search_run_slice_payload,
     smoke_source_slice_payload,
+    smoke_workflow_summary_slice_payload,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -129,6 +130,11 @@ def command_smoke_promotion_duplicate_guard_slice() -> int:
     return 0
 
 
+def command_smoke_workflow_summary_slice() -> int:
+    print_json(smoke_workflow_summary_slice_payload())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Harbor task runner")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -149,6 +155,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("smoke-candidate-review-promotion-slice")
     subparsers.add_parser("smoke-review-queue-source-promotion-slice")
     subparsers.add_parser("smoke-promotion-duplicate-guard-slice")
+    subparsers.add_parser("smoke-workflow-summary-slice")
 
     return parser
 
@@ -176,6 +183,7 @@ def main() -> int:
             command_smoke_review_queue_source_promotion_slice
         ),
         "smoke-promotion-duplicate-guard-slice": (command_smoke_promotion_duplicate_guard_slice),
+        "smoke-workflow-summary-slice": command_smoke_workflow_summary_slice,
     }
     return command_map[args.command]()
 
