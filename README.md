@@ -2,79 +2,72 @@
 
 Harbor is a project-partitioned research and monitoring system.
 
-It is designed to support:
-
-- clearly separated research projects
-- versioned research handbooks and scope definitions
-- controlled source collection and evidence storage
-- review and resume workflows
-- refresh and later monitoring/agentic update flows
-- search campaign registry baseline
-- one canonical backend for website and Custom GPT
-
 ## Current phase
-
-T1.6B — Review queue baseline
+T1.12 — Docs + Runbook + Release Hygiene
 
 ## Repository posture
-
-Harbor is now beyond documentation-only bootstrap.
-
-The current repository contains:
-
+Harbor now contains:
 - accepted A0 product and architecture baseline
 - runtime bootstrap and local operator surface
 - persistence foundation and Postgres baseline
-- first real vertical product slice for project registration
-- second real vertical product slice for handbook persistence and version history
-- first global source + project-source attachment slice
+- project registry vertical slice
+- handbook persistence baseline
+- source and project-source slice
 - search campaign registry baseline
 - review queue baseline
+- search run registry baseline
+- search result candidate baseline
+- candidate-to-review promotion
+- review-queue-to-source promotion
+- duplicate guards for promotion flow
+- workflow summary and lineage surface
 
 ## Local repository root
+Canonical local path: `C:\projekte\Harbor`
 
-Canonical local path:
-
-`C:\projekte\Harbor`
+## Release target
+`v0.1.0-alpha` — manual operator flow
 
 ## Initial navigation
-
-Read these files in this order:
-
 1. `docs/MASTERPLAN.md`
 2. `docs/PROJECT_STATE.md`
 3. `docs/INDEX.md`
-4. `docs/REVIEW_QUEUE_BASELINE_v0_1.md`
-5. `docs/_handoff/HANDOFF_T1_6B_review_queue_baseline_2026-04-07.md`
+4. `docs/RUNBOOK_ALPHA_OPERATOR_v0_1.md`
+5. `docs/RELEASE_CHECKLIST_ALPHA_v0_1.md`
 
 ## Local commands
-
 ```powershell
 .\.venv\Scripts\Activate.ps1
-python .	ools	ask_runner.py show-settings
-python .	ools	ask_runner.py show-db-settings
-python .	ools	ask_runner.py quality-gates
-python .	ools	ask_runner.py smoke-project-slice
-python .	ools	ask_runner.py smoke-handbook-slice
+python .\tools\task_runner.py show-settings
+python .\tools\task_runner.py show-db-settings
+python .\tools\task_runner.py quality-gates
+python .\tools\task_runner.py smoke-project-slice
+python .\tools\task_runner.py smoke-handbook-slice
 python .\tools\task_runner.py smoke-source-slice
 python .\tools\task_runner.py smoke-search-campaign-slice
+python .\tools\task_runner.py smoke-search-run-slice
+python .\tools\task_runner.py smoke-search-result-candidate-slice
 python .\tools\task_runner.py smoke-review-queue-slice
+python .\tools\task_runner.py smoke-candidate-review-promotion-slice
+python .\tools\task_runner.py smoke-review-queue-source-promotion-slice
+python .\tools\task_runner.py smoke-promotion-duplicate-guard-slice
+python .\tools\task_runner.py smoke-workflow-summary-slice
 python .\tools\task_runner.py run-dev
 ```
 
 ## Current proof points
-
 - `/healthz`
 - `/runtime`
 - `/db/status`
-- `/api/v1/projects` (when a DB URL is configured)
-- `/api/v1/projects/{project_id}/handbook` (when a DB URL is configured)
-- `/api/v1/sources` (when a DB URL is configured)
-- `/api/v1/projects/{project_id}/sources` (when a DB URL is configured)
-- `/api/v1/projects/{project_id}/search-campaigns` (when a DB URL is configured)
-- `/api/v1/projects/{project_id}/review-queue-items` (when a DB URL is configured)
+- `/api/v1/projects`
+- `/api/v1/projects/{project_id}/handbook`
+- `/api/v1/sources`
+- `/api/v1/projects/{project_id}/sources`
+- `/api/v1/projects/{project_id}/search-campaigns`
+- `/api/v1/projects/{project_id}/search-campaigns/{search_campaign_id}/runs`
+- `/api/v1/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/result-candidates`
+- `/api/v1/projects/{project_id}/review-queue-items`
+- `/api/v1/projects/{project_id}/workflow-summary`
 
-
-## Latest validated baseline
-
-T1.7A — Search Run Registry Baseline
+## Latest validated functional baseline
+T1.11 — Workflow Summary and Lineage Surface

@@ -1,23 +1,38 @@
 # Harbor – Search Run Registry v0.1
 
-Status: T1.7A baseline
-
-This document defines the first registry baseline for `SearchRun`.
+Status: delivered baseline
 
 ## Purpose
+A search run represents one concrete execution attempt inside a search campaign.
 
-A search run represents one concrete execution instance of a search campaign.
+## Scope
+- create a search run
+- list search runs within a search campaign
+- read one search run
+- patch search run state fields
 
-## Scope in T1.7A
+## API
+- `POST /api/v1/projects/{project_id}/search-campaigns/{search_campaign_id}/runs`
+- `GET /api/v1/projects/{project_id}/search-campaigns/{search_campaign_id}/runs`
+- `GET /api/v1/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}`
+- `PATCH /api/v1/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}`
 
-- create a search run for a search campaign
-- list runs for a campaign
-- read one run
-- update run status
+## Stored fields
+- `search_run_id`
+- `project_id`
+- `search_campaign_id`
+- `title`
+- `run_kind`
+- `status`
+- `query_text_snapshot`
+- `note`
+- `started_at`
+- `finished_at`
+- `created_at`
+- `updated_at`
 
 ## Out of scope
-
-- external search execution
-- result ingestion
-- delta detection
-- automation and scheduling
+- actual search execution
+- adapter orchestration
+- scheduling
+- ranking logic
