@@ -18,6 +18,7 @@ from harbor.review_queue_registry import (
 )
 
 router = APIRouter(tags=["review_queue"])
+
 DbSession = Annotated[Session, Depends(get_db_session)]
 
 
@@ -31,6 +32,13 @@ def _translate_key_error(exc: KeyError) -> HTTPException:
         return HTTPException(status_code=404, detail="Project source not found.")
     if key == "'search_campaign_not_found'":
         return HTTPException(status_code=404, detail="Search campaign not found.")
+    if key == "'search_run_not_found'":
+        return HTTPException(status_code=404, detail="Search run not found.")
+    if key == "'search_result_candidate_not_found'":
+        return HTTPException(
+            status_code=404,
+            detail="Search result candidate not found.",
+        )
     return HTTPException(status_code=404, detail="Review queue item not found.")
 
 

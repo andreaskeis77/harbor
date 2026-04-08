@@ -6,6 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from harbor.persistence.session import get_db_session
+from harbor.review_queue_registry import (
+    CandidateReviewPromotionRequest,
+    ReviewQueueItemRead,
+    promote_search_result_candidate_to_review_queue,
+)
 from harbor.search_result_candidate_registry import (
     SearchResultCandidateCreate,
     SearchResultCandidateDispositionUpdate,
@@ -47,7 +52,11 @@ def create_search_result_candidate_endpoint(
 ) -> SearchResultCandidateRead:
     try:
         record = create_search_result_candidate(
-            session, project_id, search_campaign_id, search_run_id, payload
+            session,
+            project_id,
+            search_campaign_id,
+            search_run_id,
+            payload,
         )
     except KeyError as exc:
         raise _translate_key_error(exc) from exc
@@ -68,7 +77,10 @@ def list_search_result_candidates_endpoint(
         items = [
             SearchResultCandidateRead.from_record(record)
             for record in list_search_result_candidates(
-                session, project_id, search_campaign_id, search_run_id
+                session,
+                project_id,
+                search_campaign_id,
+                search_run_id,
             )
         ]
     except KeyError as exc:
@@ -123,3 +135,30 @@ def update_search_result_candidate_disposition_endpoint(
     except KeyError as exc:
         raise _translate_key_error(exc) from exc
     return SearchResultCandidateRead.from_record(record)
+
+
+@router.post(
+    "/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/result-candidates/{search_result_candidate_id}/promote-to-review",
+    response_model=ReviewQueueItemRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def promote_search_result_candidate_to_review_endpoint(
+    project_id: str,
+    search_campaign_id: str,
+    search_run_id: str,
+    search_result_candidate_id: str,
+    payload: CandidateReviewPromotionRequest,
+    session: DbSession,
+) -> ReviewQueueItemRead:
+    try:
+        record = promote_search_result_candidate_to_review_queue(
+            session,
+            project_id,
+            search_campaign_id,
+            search_run_id,
+            search_result_candidate_id,
+            payload,
+        )
+    except KeyError as exc:
+        raise _translate_key_error(exc) from exc
+    return ReviewQueueItemRead.from_record(record)
