@@ -3,7 +3,7 @@
 Harbor is a project-partitioned research and monitoring system.
 
 ## Current phase
-T1.12 — Docs + Runbook + Release Hygiene
+T2.0 — Operator Web Shell
 
 ## Repository posture
 Harbor now contains:
@@ -21,19 +21,25 @@ Harbor now contains:
 - review-queue-to-source promotion
 - duplicate guards for promotion flow
 - workflow summary and lineage surface
+- `v0.1.0-alpha` manual operator release cut
 
 ## Local repository root
 Canonical local path: `C:\projekte\Harbor`
 
-## Release target
+## Release baseline
 `v0.1.0-alpha` — manual operator flow
+
+## Current implementation focus
+T2.0 introduces the first thin web shell for the existing backend flow.
+The shell must stay read-heavy first and must call Harbor APIs only.
 
 ## Initial navigation
 1. `docs/MASTERPLAN.md`
 2. `docs/PROJECT_STATE.md`
 3. `docs/INDEX.md`
-4. `docs/RUNBOOK_ALPHA_OPERATOR_v0_1.md`
-5. `docs/RELEASE_CHECKLIST_ALPHA_v0_1.md`
+4. `docs/STRATEGY_ROADMAP_v0_1.md`
+5. `docs/RUNBOOK_ALPHA_OPERATOR_v0_1.md`
+6. `docs/RELEASE_CHECKLIST_ALPHA_v0_1.md`
 
 ## Local commands
 ```powershell
@@ -69,5 +75,5 @@ python .\tools\task_runner.py run-dev
 - `/api/v1/projects/{project_id}/review-queue-items`
 - `/api/v1/projects/{project_id}/workflow-summary`
 
-## Latest validated functional baseline
-T1.11 — Workflow Summary and Lineage Surface
+## Latest validated release baseline
+T1.13 — `v0.1.0-alpha` release cut

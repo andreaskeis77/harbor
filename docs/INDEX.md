@@ -1,5 +1,12 @@
 # Docs Index
 
+## Start here now
+- `MASTERPLAN.md`
+- `PROJECT_STATE.md`
+- `STRATEGY_ROADMAP_v0_1.md`
+- `RUNBOOK_ALPHA_OPERATOR_v0_1.md`
+- `RELEASE_CHECKLIST_ALPHA_v0_1.md`
+
 ## Strategy / governance
 - `MASTERPLAN.md`
 - `PROJECT_STATE.md`
