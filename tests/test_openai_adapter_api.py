@@ -182,19 +182,59 @@ class _FakeChatTurnResponses:
             assert instructions
             assert "Harbor project context:" in input
             assert "Prior chat turns:" not in input
-            assert "Operator message:\nHello Harbor." in input
+            assert "Current operator message:\nHello Harbor." in input
             return _FakeChatTurnResponse("resp_test_chat_turn_1", "CHAT ONE")
 
         assert "Prior chat turns:" in input
-        assert "- Operator: Hello Harbor." in input
-        assert "- Assistant: CHAT ONE" in input
-        assert "Operator message:\nGive me the next step." in input
+        assert "- total_available: 1" in input
+        assert "- included: 1" in input
+        assert "Turn 1:" in input
+        assert "Operator: Hello Harbor." in input
+        assert "Assistant: CHAT ONE" in input
+        assert "Current operator message:\nGive me the next step." in input
         return _FakeChatTurnResponse("resp_test_chat_turn_2", "CHAT TWO")
 
 
 class _FakeChatTurnClient:
     def __init__(self) -> None:
         self.responses = _FakeChatTurnResponses()
+
+
+def test_build_project_chat_turn_input_limits_and_compacts_prior_turns() -> None:
+    project_context = {
+        "project_id": "project-1",
+        "title": "Scuba Research",
+        "short_description": "Hotels with house reef",
+        "status": "draft",
+        "project_type": "standard",
+        "blueprint_status": "not_blueprint",
+    }
+    prior_turns = [
+        {
+            "request_input_text": f"Question turn {index} " + ("x" * 400),
+            "output_text": f"Answer turn {index} " + ("y" * 500),
+        }
+        for index in range(1, 9)
+    ]
+
+    rendered = openai_adapter_module.build_project_chat_turn_input(
+        project_context,
+        "Give me the next step.",
+        prior_turns=prior_turns,
+    )
+
+    assert "Harbor project context:" in rendered
+    assert "Prior chat turns:" in rendered
+    assert "- total_available: 8" in rendered
+    assert "- included: 6" in rendered
+    assert "- omitted: 2" in rendered
+    assert "- note: Earlier or longer turns were compacted." in rendered
+    assert "Question turn 1" not in rendered
+    assert "Question turn 2" not in rendered
+    assert "Question turn 3" in rendered
+    assert "Question turn 8" in rendered
+    assert "…[truncated]" in rendered
+    assert "Current operator message:\nGive me the next step." in rendered
 
 
 def test_openai_probe_live_call_with_fake_client(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -403,6 +443,9 @@ def test_openai_project_chat_turn_with_fake_client(
     assert second_payload["status"] == "completed"
     assert second_payload["turn"]["turn_index"] == 2
     assert second_payload["request"]["prior_turn_count"] == 1
+    assert second_payload["request"]["prior_turn_count_included"] == 1
+    assert second_payload["request"]["prior_turn_count_omitted"] == 0
+    assert second_payload["request"]["history_compacted"] is False
     assert second_payload["output_text"] == "CHAT TWO"
 
     sessions_response = project_client.get(
