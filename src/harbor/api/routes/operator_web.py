@@ -262,6 +262,7 @@ const apiBase = bootstrap.apiBase;
 let currentProject = null;
 let currentCampaigns = [];
 let currentRuns = [];
+let currentDryRunLogs = [];
 let projectsLoadToken = 0;
 let detailLoadToken = 0;
 
@@ -488,7 +489,9 @@ const renderOpenAIDryRunResult = (payload) => {
   let statusKind = "info";
 
   if (payload.status === "completed") {
-    statusText = "Dry run completed.";
+    statusText = payload.persisted
+      ? "Dry run completed and persisted to Harbor history."
+      : "Dry run completed.";
     statusKind = "success";
   } else if (payload.status === "not_configured") {
     statusText = "OpenAI is not configured.";
@@ -504,10 +507,46 @@ const renderOpenAIDryRunResult = (payload) => {
   setStatus("openai-dry-run-status", statusText, statusKind);
 };
 
+const renderOpenAIDryRunHistory = (items) => {
+  const body = byId("openai-dry-run-history-body");
+  if (!body) {
+    return;
+  }
+  if (!items.length) {
+    body.innerHTML = emptyRow(6, "No persisted dry runs yet.");
+    return;
+  }
+  body.innerHTML = items
+    .map(
+      (item) => `
+        <tr>
+          <td>${formatDateTime(item.created_at)}</td>
+          <td>${badge(item.status)}</td>
+          <td>${safeText(item.model)}</td>
+          <td>${item.response_id ? inlineCode(item.response_id) : textFallback}</td>
+          <td>${safeText(item.request_input_text)}</td>
+          <td>${safeText(item.output_text || item.error_message)}</td>
+        </tr>
+      `,
+    )
+    .join("");
+};
+
+const loadProjectDryRunHistory = async (projectId) => {
+  const encodedProjectId = encodeURIComponent(projectId);
+  const payload = await fetchJson(
+    `${apiBase}/openai/projects/${encodedProjectId}/dry-run-logs`,
+  );
+  currentDryRunLogs = payload.items;
+  renderOpenAIDryRunHistory(payload.items);
+  return payload.items;
+};
+
 const buildOpenAIDryRunPayload = (form) => {
   const payload = {
     input_text: safeTrim(form.elements.namedItem("input_text").value),
     instructions: optionalText(form.elements.namedItem("instructions").value),
+    persist: Boolean(form.elements.namedItem("persist").checked),
   };
   if (!payload.input_text) {
     throw new Error("Operator request is required.");
@@ -539,6 +578,9 @@ const handleProjectDetailOpenAISubmit = async (form) => {
     const payload = buildOpenAIDryRunPayload(form);
     const result = await postJson(`${apiBase}/openai/projects/${projectId}/dry-run`, payload);
     renderOpenAIDryRunResult(result);
+    if (result.persisted) {
+      await loadProjectDryRunHistory(bootstrap.projectId);
+    }
   } catch (error) {
     setTextContent("openai-dry-run-response-status", "error");
     setTextContent("openai-dry-run-response-id", null);
@@ -562,8 +604,10 @@ const setProjectDetailLoadingState = () => {
   setTableBodyMessage("review-queue-table-body", 7, "Loading...");
   setTableBodyMessage("project-sources-table-body", 6, "Loading...");
   setTableBodyMessage("lineage-table-body", 6, "Loading...");
+  setTableBodyMessage("openai-dry-run-history-body", 6, "Loading...");
   currentCampaigns = [];
   currentRuns = [];
+  currentDryRunLogs = [];
   refreshCreateFormState("loading");
   resetOpenAIDryRunPanel("Waiting for project detail to load.", "info");
 };
@@ -576,8 +620,10 @@ const setProjectDetailErrorState = () => {
   setTableBodyMessage("review-queue-table-body", 7, "Load failed.");
   setTableBodyMessage("project-sources-table-body", 6, "Load failed.");
   setTableBodyMessage("lineage-table-body", 6, "Load failed.");
+  setTableBodyMessage("openai-dry-run-history-body", 6, "Load failed.");
   currentCampaigns = [];
   currentRuns = [];
+  currentDryRunLogs = [];
   refreshCreateFormState("error");
   resetOpenAIDryRunPanel("Project detail load failed.", "error");
 };
@@ -1167,6 +1213,9 @@ const loadProjectDetailPage = async () => {
     const campaignsPromise = fetchJson(`${projectBase}/search-campaigns`);
     const reviewQueuePromise = fetchJson(`${projectBase}/review-queue-items`);
     const projectSourcesPromise = fetchJson(`${projectBase}/sources`);
+    const dryRunLogsPromise = fetchJson(
+      `${apiBase}/openai/projects/${encodeURIComponent(projectId)}/dry-run-logs`,
+    );
 
     const [
       project,
@@ -1174,12 +1223,14 @@ const loadProjectDetailPage = async () => {
       campaignsPayload,
       reviewQueuePayload,
       projectSourcesPayload,
+      dryRunLogsPayload,
     ] = await Promise.all([
       projectPromise,
       summaryPromise,
       campaignsPromise,
       reviewQueuePromise,
       projectSourcesPromise,
+      dryRunLogsPromise,
     ]);
 
     if (loadToken !== detailLoadToken) {
@@ -1188,6 +1239,7 @@ const loadProjectDetailPage = async () => {
 
     currentProject = project;
     currentCampaigns = campaignsPayload.items;
+    currentDryRunLogs = dryRunLogsPayload.items;
 
     renderProjectHeader(project);
     renderSummary(summary);
@@ -1195,6 +1247,7 @@ const loadProjectDetailPage = async () => {
     renderReviewQueue(reviewQueuePayload.items);
     renderProjectSources(projectSourcesPayload.items);
     renderLineage(summary.lineage_items);
+    renderOpenAIDryRunHistory(dryRunLogsPayload.items);
 
     const runs = [];
     const candidates = [];
@@ -1608,8 +1661,8 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
   <section class="section-card">
     <h2>OpenAI Dry Run</h2>
     <p class="action-note">
-      Send an explicit operator request through the Harbor OpenAI adapter without
-      Harbor-side persistence.
+      Send an explicit operator request through the Harbor OpenAI adapter and
+      optionally persist the result in Harbor history.
     </p>
     <form
       class="form-panel"
@@ -1634,6 +1687,17 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
           id="openai-dry-run-instructions"
           name="instructions"
         ></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="openai-dry-run-persist">
+          <input
+            id="openai-dry-run-persist"
+            name="persist"
+            type="checkbox"
+            checked
+          />
+          Persist this dry run in Harbor history
+        </label>
       </div>
       <div class="form-actions">
         <button
@@ -1686,6 +1750,25 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
         class="response-pre"
         id="openai-dry-run-output-text"
       >&mdash;</pre>
+    </div>
+    <div class="table-wrap" data-openai-history="project-dry-run">
+      <table>
+        <thead>
+          <tr>
+            <th>Created</th>
+            <th>Status</th>
+            <th>Model</th>
+            <th>Response ID</th>
+            <th>Request</th>
+            <th>Response</th>
+          </tr>
+        </thead>
+        <tbody id="openai-dry-run-history-body">
+          <tr>
+            <td colspan="6" class="empty">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </section>
 

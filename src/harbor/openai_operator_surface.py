@@ -167,9 +167,15 @@ def smoke_openai_project_dry_run_slice_payload() -> dict[str, object]:
                     json={
                         "instructions": "Return a compact answer.",
                         "input_text": "Draft a two sentence research plan.",
+                        "persist": True,
                     },
                 )
                 dry_run.raise_for_status()
+
+                dry_run_logs = client.get(
+                    f"{settings.api_v1_prefix}/openai/projects/{project['project_id']}/dry-run-logs"
+                )
+                dry_run_logs.raise_for_status()
 
             cached_engine = get_engine(settings)
         finally:
@@ -189,6 +195,7 @@ def smoke_openai_project_dry_run_slice_payload() -> dict[str, object]:
         return {
             "project": project,
             "dry_run": dry_run.json(),
+            "dry_run_logs": dry_run_logs.json(),
         }
     finally:
         for _ in range(5):
