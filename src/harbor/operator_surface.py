@@ -1155,15 +1155,12 @@ def smoke_workflow_summary_slice_payload() -> dict[str, object]:
     return payload
 
 
-
 def smoke_chat_surface_slice_payload() -> dict[str, object]:
     fd, db_path = tempfile.mkstemp(prefix="harbor_chat_surface_", suffix=".db")
     os.close(fd)
     db_file = Path(db_path)
 
-    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = (
-        f"sqlite+pysqlite:///{db_file.as_posix()}"
-    )
+    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
     clear_settings_cache()
     settings = get_settings()
 
@@ -1190,11 +1187,13 @@ def smoke_chat_surface_slice_payload() -> dict[str, object]:
             payload = {
                 "chat_page_has_shell": 'data-chat-shell="chat"' in chat_page.text,
                 "chat_page_has_bootstrap": 'id="harbor-chat-bootstrap"' in chat_page.text,
-                "chat_page_has_form": 'data-chat-form="dry-run-chat"' in chat_page.text,
-                "chat_page_has_history": (
-                    'data-chat-history="dry-run-chat"' in chat_page.text
-                ),
+                "chat_page_has_form": 'data-chat-form="persisted-chat"' in chat_page.text,
+                "chat_page_has_history": ('data-chat-history="persisted-chat"' in chat_page.text),
                 "chat_page_has_project_select": 'id="chat-project-id"' in chat_page.text,
+                "chat_page_has_session_select": 'id="chat-session-id"' in chat_page.text,
+                "chat_page_has_new_session_button": (
+                    'data-chat-action="new-session"' in chat_page.text
+                ),
                 "chat_page_has_message_input": 'id="chat-input-text"' in chat_page.text,
                 "project": project.json(),
             }
@@ -1209,6 +1208,7 @@ def smoke_chat_surface_slice_payload() -> dict[str, object]:
                 pass
 
     return payload
+
 
 def smoke_operator_web_shell_slice_payload() -> dict[str, object]:
     fd, db_path = tempfile.mkstemp(prefix="harbor_operator_web_shell_", suffix=".db")

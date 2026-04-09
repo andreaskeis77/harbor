@@ -3,6 +3,8 @@ from __future__ import annotations
 from harbor.persistence.base import Base
 from harbor.persistence.models import (
     HandbookVersionRecord,
+    OpenAIProjectChatSessionRecord,
+    OpenAIProjectChatTurnRecord,
     OpenAIProjectDryRunLogRecord,
     ProjectRecord,
     ProjectSourceRecord,
@@ -16,6 +18,8 @@ from harbor.persistence.models import (
 __all__ = [
     "Base",
     "HandbookVersionRecord",
+    "OpenAIProjectChatSessionRecord",
+    "OpenAIProjectChatTurnRecord",
     "OpenAIProjectDryRunLogRecord",
     "ProjectRecord",
     "ProjectSourceRecord",

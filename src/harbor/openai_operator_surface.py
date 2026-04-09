@@ -88,8 +88,8 @@ def smoke_openai_adapter_slice_payload() -> dict[str, object]:
     original_build_client = openai_adapter_module.build_openai_client
 
     openai_adapter_module.openai_sdk_available = lambda: True
-    openai_adapter_module.build_openai_client = (
-        lambda settings, client_factory=None: _SmokeOpenAIClient()
+    openai_adapter_module.build_openai_client = lambda settings, client_factory=None: (
+        _SmokeOpenAIClient()
     )
 
     try:
@@ -126,9 +126,7 @@ def smoke_openai_project_dry_run_slice_payload() -> dict[str, object]:
     cached_engine = None
 
     try:
-        os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = (
-            f"sqlite+pysqlite:///{db_file.as_posix()}"
-        )
+        os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
         os.environ["HARBOR_OPENAI_API_KEY"] = "smoke-openai-key"
         os.environ["HARBOR_OPENAI_MODEL"] = "gpt-5"
         clear_settings_cache()
@@ -144,8 +142,8 @@ def smoke_openai_project_dry_run_slice_payload() -> dict[str, object]:
         original_build_client = openai_adapter_module.build_openai_client
 
         openai_adapter_module.openai_sdk_available = lambda: True
-        openai_adapter_module.build_openai_client = (
-            lambda settings, client_factory=None: _SmokeOpenAIClient()
+        openai_adapter_module.build_openai_client = lambda settings, client_factory=None: (
+            _SmokeOpenAIClient()
         )
 
         try:
@@ -196,6 +194,104 @@ def smoke_openai_project_dry_run_slice_payload() -> dict[str, object]:
             "project": project,
             "dry_run": dry_run.json(),
             "dry_run_logs": dry_run_logs.json(),
+        }
+    finally:
+        for _ in range(5):
+            try:
+                shutil.rmtree(tmp_dir)
+                break
+            except PermissionError:
+                time.sleep(0.1)
+
+
+def smoke_openai_chat_session_slice_payload() -> dict[str, object]:
+    tmp_dir = Path(tempfile.mkdtemp(prefix="harbor_openai_chat_session_"))
+    db_file = tmp_dir / "openai_chat_session_smoke.db"
+    cached_engine = None
+
+    try:
+        os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
+        os.environ["HARBOR_OPENAI_API_KEY"] = "smoke-openai-key"
+        os.environ["HARBOR_OPENAI_MODEL"] = "gpt-5"
+        clear_settings_cache()
+        settings = HarborSettings()
+        engine = build_engine(settings)
+        assert engine is not None
+        Base.metadata.create_all(bind=engine)
+
+        from harbor import openai_adapter as openai_adapter_module
+        from harbor.persistence.session import get_engine, get_engine_for_url
+
+        original_sdk_available = openai_adapter_module.openai_sdk_available
+        original_build_client = openai_adapter_module.build_openai_client
+
+        openai_adapter_module.openai_sdk_available = lambda: True
+        openai_adapter_module.build_openai_client = lambda settings, client_factory=None: (
+            _SmokeOpenAIClient()
+        )
+
+        try:
+            app = create_app(settings=settings)
+            with TestClient(app) as client:
+                create_project = client.post(
+                    f"{settings.api_v1_prefix}/projects",
+                    json={
+                        "title": "Smoke OpenAI Chat Session Project",
+                        "short_description": "Operator chat session smoke project",
+                        "project_type": "standard",
+                    },
+                )
+                create_project.raise_for_status()
+                project = create_project.json()
+
+                first_turn = client.post(
+                    f"{settings.api_v1_prefix}/openai/projects/{project['project_id']}/chat-turns",
+                    json={"input_text": "Hello Harbor."},
+                )
+                first_turn.raise_for_status()
+
+                session_id = first_turn.json()["session"]["openai_project_chat_session_id"]
+
+                second_turn = client.post(
+                    f"{settings.api_v1_prefix}/openai/projects/{project['project_id']}/chat-turns",
+                    json={
+                        "chat_session_id": session_id,
+                        "input_text": "Give me the next step.",
+                    },
+                )
+                second_turn.raise_for_status()
+
+                sessions = client.get(
+                    f"{settings.api_v1_prefix}/openai/projects/{project['project_id']}/chat-sessions"
+                )
+                sessions.raise_for_status()
+
+                turns = client.get(
+                    f"{settings.api_v1_prefix}/openai/projects/{project['project_id']}/chat-sessions/{session_id}/turns"
+                )
+                turns.raise_for_status()
+
+            cached_engine = get_engine(settings)
+        finally:
+            openai_adapter_module.openai_sdk_available = original_sdk_available
+            openai_adapter_module.build_openai_client = original_build_client
+
+            if cached_engine is not None:
+                cached_engine.dispose()
+            engine.dispose()
+            get_engine_for_url.cache_clear()
+
+            os.environ.pop("HARBOR_SQLALCHEMY_DATABASE_URL", None)
+            os.environ.pop("HARBOR_OPENAI_API_KEY", None)
+            os.environ.pop("HARBOR_OPENAI_MODEL", None)
+            clear_settings_cache()
+
+        return {
+            "project": project,
+            "first_turn": first_turn.json(),
+            "second_turn": second_turn.json(),
+            "sessions": sessions.json(),
+            "turns": turns.json(),
         }
     finally:
         for _ in range(5):

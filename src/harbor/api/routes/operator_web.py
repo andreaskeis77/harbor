@@ -1509,8 +1509,10 @@ const preferredProjectId = new URLSearchParams(window.location.search).get(
   "project_id",
 );
 let chatProjects = [];
+let chatSessions = [];
 let chatHistory = [];
 let chatBusy = false;
+let currentSessionId = null;
 
 const byId = (id) => document.getElementById(id);
 
@@ -1583,6 +1585,17 @@ const chatProjectLabel = (projectId) => {
   return project.title;
 };
 
+const formatDateTime = (value) => {
+  if (!value) {
+    return "";
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return String(value);
+  }
+  return parsed.toLocaleString();
+};
+
 const setChatControlsDisabled = (disabled) => {
   const form = byId("chat-message-form");
   if (form) {
@@ -1590,9 +1603,37 @@ const setChatControlsDisabled = (disabled) => {
       element.disabled = disabled;
     }
   }
+  for (const element of document.querySelectorAll("button[data-chat-action]")) {
+    element.disabled = disabled;
+  }
+};
+
+const syncChatControls = () => {
+  const hasProjects = chatProjects.length > 0;
+  const projectSelect = byId("chat-project-id");
+  const sessionSelect = byId("chat-session-id");
+  const input = byId("chat-input-text");
+  const sendButton = byId("chat-send-button");
+  const newSessionButton = byId("chat-new-session-button");
   const reloadButton = byId("chat-reload-projects-button");
+
+  if (projectSelect) {
+    projectSelect.disabled = !hasProjects || chatBusy;
+  }
+  if (sessionSelect) {
+    sessionSelect.disabled = !hasProjects || chatBusy;
+  }
+  if (input) {
+    input.disabled = !hasProjects || chatBusy;
+  }
+  if (sendButton) {
+    sendButton.disabled = !hasProjects || chatBusy;
+  }
+  if (newSessionButton) {
+    newSessionButton.disabled = !hasProjects || chatBusy;
+  }
   if (reloadButton) {
-    reloadButton.disabled = disabled;
+    reloadButton.disabled = chatBusy;
   }
 };
 
@@ -1629,61 +1670,137 @@ const renderProjectOptions = () => {
   select.value = chatProjects[0].project_id;
 };
 
+const renderSessionOptions = (preferredSessionId = null) => {
+  const select = byId("chat-session-id");
+  if (!select) {
+    return;
+  }
+  select.innerHTML = "";
+
+  const newOption = document.createElement("option");
+  newOption.value = "";
+  newOption.textContent = "Start new session";
+  select.appendChild(newOption);
+
+  for (const session of chatSessions) {
+    const option = document.createElement("option");
+    option.value = session.openai_project_chat_session_id;
+    option.textContent = `${session.title} (${session.turn_count} turn(s))`;
+    select.appendChild(option);
+  }
+
+  const preferred = chatSessions.find(
+    (session) => session.openai_project_chat_session_id === preferredSessionId,
+  );
+  if (preferred) {
+    select.value = preferred.openai_project_chat_session_id;
+    currentSessionId = preferred.openai_project_chat_session_id;
+    return;
+  }
+  select.value = "";
+  currentSessionId = null;
+};
+
 const renderChatHistory = () => {
   const target = byId("chat-history");
   if (!target) {
     return;
   }
   if (!chatHistory.length) {
-    target.innerHTML = '<div class="empty">No messages yet.</div>';
+    target.innerHTML = '<div class="empty">No persisted turns yet.</div>';
     return;
   }
 
-  target.innerHTML = chatHistory
-    .map((item) => {
-      const roleLabel = item.role === "assistant"
-        ? "Assistant"
-        : item.role === "error"
-          ? "Error"
-          : "Operator";
-      const roleClass = item.role === "assistant"
-        ? "assistant"
-        : item.role === "error"
-          ? "error"
-          : "user";
-      const metaParts = [];
-      if (item.projectId) {
-        metaParts.push(`Project: ${chatProjectLabel(item.projectId)}`);
-      }
-      if (item.provider) {
-        metaParts.push(`Provider: ${item.provider}`);
-      }
-      if (item.model) {
-        metaParts.push(`Model: ${item.model}`);
-      }
-      if (item.status) {
-        metaParts.push(`Status: ${item.status}`);
-      }
-      if (item.responseId) {
-        metaParts.push(`Response: ${item.responseId}`);
-      }
+  const fragments = [];
+  for (const turn of chatHistory) {
+    const turnLabel = `Turn ${turn.turn_index}`;
+    const userMeta = [
+      `Project: ${chatProjectLabel(turn.project_id)}`,
+      turnLabel,
+      formatDateTime(turn.created_at),
+    ].filter(Boolean);
+    fragments.push(`
+      <article class="chat-message user">
+        <div class="chat-message-header">
+          <div class="chat-role">Operator</div>
+          <div class="chat-meta">${safeText(userMeta.join(" · "))}</div>
+        </div>
+        <pre class="response-pre chat-message-text">${safeText(turn.request_input_text)}</pre>
+      </article>
+    `);
 
-      return `
-        <article class="chat-message ${roleClass}">
-          <div class="chat-message-header">
-            <div class="chat-role">${safeText(roleLabel)}</div>
-            <div class="chat-meta">${safeText(metaParts.join(" · "))}</div>
-          </div>
-          <pre class="response-pre chat-message-text">${safeText(item.text)}</pre>
-        </article>
-      `;
-    })
-    .join("");
+    const assistantText = turn.output_text || turn.error_message || "No output.";
+    const assistantRole = turn.status === "completed" ? "Assistant" : "Error";
+    const assistantClass = turn.status === "completed" ? "assistant" : "error";
+    const assistantMeta = [
+      turnLabel,
+      turn.provider ? `Provider: ${turn.provider}` : "",
+      turn.model ? `Model: ${turn.model}` : "",
+      turn.status ? `Status: ${turn.status}` : "",
+      turn.response_id ? `Response: ${turn.response_id}` : "",
+    ].filter(Boolean);
+    fragments.push(`
+      <article class="chat-message ${assistantClass}">
+        <div class="chat-message-header">
+          <div class="chat-role">${safeText(assistantRole)}</div>
+          <div class="chat-meta">${safeText(assistantMeta.join(" · "))}</div>
+        </div>
+        <pre class="response-pre chat-message-text">${safeText(assistantText)}</pre>
+      </article>
+    `);
+  }
+
+  target.innerHTML = fragments.join("");
 };
 
-const appendChatHistory = (item) => {
-  chatHistory.push(item);
+const clearChatHistory = (text) => {
+  chatHistory = [];
+  const target = byId("chat-history");
+  if (!target) {
+    return;
+  }
+  target.innerHTML = `<div class="empty">${safeText(text)}</div>`;
+};
+
+const selectedProjectId = () => String(byId("chat-project-id")?.value || "").trim();
+
+const loadChatTurns = async (projectId, chatSessionId) => {
+  if (!chatSessionId) {
+    clearChatHistory("No persisted turns yet. Start a new session.");
+    return;
+  }
+
+  const payload = await fetchJson(
+    `${apiBase}/openai/projects/${encodeURIComponent(projectId)}` +
+      `/chat-sessions/${encodeURIComponent(chatSessionId)}/turns`,
+  );
+  chatHistory = Array.isArray(payload.items) ? payload.items : [];
   renderChatHistory();
+};
+
+const loadChatSessions = async (projectId, preferredSessionId = null) => {
+  chatSessions = [];
+  renderSessionOptions();
+  clearChatHistory("Loading session history...");
+  setChatStatus("Loading persisted chat sessions...", "info");
+
+  const payload = await fetchJson(
+    `${apiBase}/openai/projects/${encodeURIComponent(projectId)}/chat-sessions`,
+  );
+  chatSessions = Array.isArray(payload.items) ? payload.items : [];
+  renderSessionOptions(preferredSessionId);
+
+  if (currentSessionId) {
+    await loadChatTurns(projectId, currentSessionId);
+    setChatStatus("Loaded persisted chat session history.", "success");
+    return;
+  }
+
+  clearChatHistory("No persisted turns yet. Start a new session.");
+  setChatStatus(
+    "Ready. Start a new chat session or continue a persisted one.",
+    "success",
+  );
 };
 
 const loadChatProjects = async () => {
@@ -1695,36 +1812,32 @@ const loadChatProjects = async () => {
     renderProjectOptions();
 
     if (!chatProjects.length) {
+      chatSessions = [];
+      renderSessionOptions();
+      clearChatHistory("No projects available.");
       setChatStatus(
         "No Harbor projects available. Create one first in the operator shell.",
         "error",
       );
-      renderChatHistory();
       return;
     }
 
-    setChatStatus(
-      `Loaded ${chatProjects.length} Harbor project(s).`,
-      "success",
-    );
+    await loadChatSessions(selectedProjectId(), currentSessionId);
   } catch (error) {
     setChatStatus(error.message, "error");
+    clearChatHistory("Load failed.");
   } finally {
-    const hasProjects = chatProjects.length > 0;
     setChatControlsDisabled(false);
-    const sendButton = byId("chat-send-button");
-    if (sendButton) {
-      sendButton.disabled = !hasProjects || chatBusy;
-    }
-    const select = byId("chat-project-id");
-    if (select) {
-      select.disabled = !hasProjects || chatBusy;
-    }
-    const input = byId("chat-input-text");
-    if (input) {
-      input.disabled = !hasProjects || chatBusy;
-    }
+    syncChatControls();
   }
+};
+
+const startNewChatSession = () => {
+  currentSessionId = null;
+  renderSessionOptions();
+  clearChatHistory("New session not yet persisted. Send a message to start it.");
+  setChatStatus("New chat session armed.", "info");
+  syncChatControls();
 };
 
 const submitChatMessage = async (event) => {
@@ -1733,7 +1846,7 @@ const submitChatMessage = async (event) => {
     return;
   }
 
-  const projectId = String(byId("chat-project-id")?.value || "").trim();
+  const projectId = selectedProjectId();
   const inputText = String(byId("chat-input-text")?.value || "").trim();
 
   if (!projectId) {
@@ -1745,47 +1858,28 @@ const submitChatMessage = async (event) => {
     return;
   }
 
-  appendChatHistory({
-    role: "user",
-    text: inputText,
-    projectId,
-  });
-
   chatBusy = true;
-  setChatControlsDisabled(true);
-  setChatStatus("Calling Harbor OpenAI dry-run surface...", "info");
+  syncChatControls();
+  setChatStatus("Persisting chat turn through Harbor...", "info");
 
   try {
     const payload = await postJson(
-      `${apiBase}/openai/projects/${encodeURIComponent(projectId)}/dry-run`,
+      `${apiBase}/openai/projects/${encodeURIComponent(projectId)}/chat-turns`,
       {
         input_text: inputText,
-        persist: false,
+        chat_session_id: currentSessionId,
       },
     );
 
-    appendChatHistory({
-      role: "assistant",
-      text: payload.output_text || payload.error_message || "No output.",
-      projectId,
-      provider: payload.provider,
-      model: payload.model,
-      status: payload.status,
-      responseId: payload.response_id,
-    });
+    currentSessionId = payload.session.openai_project_chat_session_id;
+    await loadChatSessions(projectId, currentSessionId);
     byId("chat-input-text").value = "";
-    setChatStatus("Dry-run response added to chat history.", "success");
+    setChatStatus("Chat turn persisted to Harbor session history.", "success");
   } catch (error) {
-    appendChatHistory({
-      role: "error",
-      text: error.message,
-      projectId,
-      status: "error",
-    });
     setChatStatus(error.message, "error");
   } finally {
     chatBusy = false;
-    loadChatProjects();
+    syncChatControls();
   }
 };
 
@@ -1797,6 +1891,30 @@ document.addEventListener("click", async (event) => {
   if (button.dataset.chatAction === "reload-projects") {
     await loadChatProjects();
   }
+  if (button.dataset.chatAction === "new-session") {
+    startNewChatSession();
+  }
+});
+
+document.addEventListener("change", async (event) => {
+  const projectSelect = event.target.closest("#chat-project-id");
+  if (projectSelect) {
+    currentSessionId = null;
+    await loadChatSessions(selectedProjectId());
+    return;
+  }
+
+  const sessionSelect = event.target.closest("#chat-session-id");
+  if (sessionSelect) {
+    currentSessionId = String(sessionSelect.value || "").trim() || null;
+    if (currentSessionId) {
+      await loadChatTurns(selectedProjectId(), currentSessionId);
+      setChatStatus("Loaded persisted chat session history.", "success");
+      return;
+    }
+    clearChatHistory("New session not yet persisted. Send a message to start it.");
+    setChatStatus("New chat session armed.", "info");
+  }
 });
 
 document.addEventListener("submit", async (event) => {
@@ -1804,15 +1922,14 @@ document.addEventListener("submit", async (event) => {
   if (!form) {
     return;
   }
-  if (form.dataset.chatForm === "dry-run-chat") {
+  if (form.dataset.chatForm === "persisted-chat") {
     await submitChatMessage(event);
   }
 });
 
-renderChatHistory();
+clearChatHistory("Loading Harbor projects...");
 loadChatProjects();
 """
-
 
 
 def _bootstrap_payload(page: str, project_id: str | None = None) -> str:
@@ -2449,9 +2566,10 @@ def _chat_page() -> HTMLResponse:
 <div class="page" id="chat-shell" data-chat-shell="chat">
   <header class="page-header">
     <div>
-      <h1>Harbor Chat Surface Baseline</h1>
+      <h1>Harbor Chat Surface</h1>
       <p class="page-subtitle">
-        Thin chat-style surface over the existing Harbor OpenAI dry-run route.
+        Thin chat-style surface over the Harbor OpenAI adapter with persisted
+        session history.
       </p>
       <p class="status info" id="chat-status">Loading Harbor projects.</p>
     </div>
@@ -2473,13 +2591,13 @@ def _chat_page() -> HTMLResponse:
   <section class="section-card">
     <h2>Message</h2>
     <p class="action-note">
-      Select a Harbor project, send one message, and inspect the returned dry-run
-      response in a simple transient history list.
+      Select a Harbor project, continue a persisted chat session or start a new
+      one, then send a message through the Harbor OpenAI adapter.
     </p>
     <form
       class="form-panel"
       id="chat-message-form"
-      data-chat-form="dry-run-chat"
+      data-chat-form="persisted-chat"
     >
       <div class="form-field">
         <label class="form-label" for="chat-project-id">Project</label>
@@ -2488,13 +2606,38 @@ def _chat_page() -> HTMLResponse:
         </select>
       </div>
       <div class="form-field">
+        <label class="form-label" for="chat-session-id">Session</label>
+        <select
+          id="chat-session-id"
+          name="chat_session_id"
+          data-chat-session-select="persisted"
+          disabled
+        >
+          <option value="">Start new session</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button
+          type="button"
+          class="action-button secondary"
+          id="chat-new-session-button"
+          data-chat-action="new-session"
+          disabled
+        >
+          New session
+        </button>
+        <span class="form-hint">
+          Sessions and turns are persisted in Harbor.
+        </span>
+      </div>
+      <div class="form-field">
         <label class="form-label" for="chat-input-text">Message</label>
         <textarea
           id="chat-input-text"
           name="input_text"
           required
           disabled
-          placeholder="Ask Harbor to draft a compact project-specific response."
+          placeholder="Ask Harbor for a compact project-specific response."
         ></textarea>
       </div>
       <div class="form-actions">
@@ -2507,16 +2650,16 @@ def _chat_page() -> HTMLResponse:
           Send message
         </button>
         <span class="form-hint">
-          Uses the existing OpenAI project dry-run API. No persistence.
+          Uses the persisted Harbor chat-turn surface. No automation.
         </span>
       </div>
     </form>
   </section>
 
   <section class="section-card">
-    <h2>Simple History</h2>
-    <div id="chat-history" class="chat-history" data-chat-history="dry-run-chat">
-      <div class="empty">No messages yet.</div>
+    <h2>Persisted Session History</h2>
+    <div id="chat-history" class="chat-history" data-chat-history="persisted-chat">
+      <div class="empty">No persisted turns yet.</div>
     </div>
   </section>
 </div>
@@ -2526,8 +2669,6 @@ def _chat_page() -> HTMLResponse:
         body=body,
         bootstrap_json=_bootstrap_payload("chat"),
     )
-
-
 
 
 @router.get("/chat", include_in_schema=False)
