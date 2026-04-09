@@ -1153,3 +1153,119 @@ def smoke_workflow_summary_slice_payload() -> dict[str, object]:
                 pass
 
     return payload
+
+
+def smoke_operator_web_shell_slice_payload() -> dict[str, object]:
+    fd, db_path = tempfile.mkstemp(prefix="harbor_operator_web_shell_", suffix=".db")
+    os.close(fd)
+    db_file = Path(db_path)
+
+    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
+    clear_settings_cache()
+    settings = get_settings()
+
+    engine = build_engine(settings)
+    assert engine is not None
+    Base.metadata.create_all(bind=engine)
+
+    app = create_app(settings=settings)
+    with TestClient(app) as client:
+        project = client.post(
+            f"{settings.api_v1_prefix}/projects",
+            json={
+                "title": "Smoke Operator Web Shell Project",
+                "short_description": "Smoke-created operator web shell project",
+                "project_type": "standard",
+            },
+        )
+        project.raise_for_status()
+        project_id = project.json()["project_id"]
+
+        campaign = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns",
+            json={
+                "title": "Initial discovery",
+                "query_text": "house reef dive resort",
+                "campaign_kind": "manual",
+                "status": "planned",
+                "note": "seed campaign",
+            },
+        )
+        campaign.raise_for_status()
+        search_campaign_id = campaign.json()["search_campaign_id"]
+
+        search_run = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs",
+            json={
+                "title": "Run 1",
+                "run_kind": "manual",
+                "status": "planned",
+                "query_text_snapshot": "house reef dive resort",
+                "note": "first run",
+            },
+        )
+        search_run.raise_for_status()
+        search_run_id = search_run.json()["search_run_id"]
+
+        candidate = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/result-candidates",
+            json={
+                "title": "Example Dive Resort A",
+                "url": "https://example.com/dive-resort-a",
+                "domain": "example.com",
+                "snippet": "Direct house reef and beginner-friendly diving.",
+                "rank": 1,
+                "disposition": "pending",
+                "note": "first candidate",
+            },
+        )
+        candidate.raise_for_status()
+        candidate_id = candidate.json()["search_result_candidate_id"]
+
+        review_item = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/result-candidates/{candidate_id}/promote-to-review",
+            json={"note": "send to review queue"},
+        )
+        review_item.raise_for_status()
+
+        promoted_source = client.post(
+            f"{settings.api_v1_prefix}/projects/{project_id}/review-queue-items/{review_item.json()['review_queue_item_id']}/promote-to-source",
+            json={"note": "accepted into project sources"},
+        )
+        promoted_source.raise_for_status()
+
+        operator_root = client.get("/operator", follow_redirects=False)
+        projects_page = client.get("/operator/projects")
+        detail_page = client.get(f"/operator/projects/{project_id}")
+
+        try:
+            payload = {
+                "operator_root_status": operator_root.status_code,
+                "operator_root_location": operator_root.headers.get("location"),
+                "projects_page_has_shell": 'data-operator-shell="projects"' in projects_page.text,
+                "projects_page_has_bootstrap": (
+                    'id="harbor-operator-bootstrap"' in projects_page.text
+                ),
+                "detail_page_has_shell": 'data-operator-shell="project-detail"' in detail_page.text,
+                "detail_page_has_project_id": project_id in detail_page.text,
+                "detail_page_has_summary_mount": (
+                    'data-summary-mount="workflow-summary"' in detail_page.text
+                ),
+                "project": project.json(),
+                "campaign": campaign.json(),
+                "search_run": search_run.json(),
+                "candidate": candidate.json(),
+                "review_item": review_item.json(),
+                "promoted_source": promoted_source.json(),
+            }
+        finally:
+            engine.dispose()
+            os.environ.pop("HARBOR_SQLALCHEMY_DATABASE_URL", None)
+            clear_settings_cache()
+            try:
+                if db_file.exists():
+                    db_file.unlink()
+            except PermissionError:
+                pass
+
+    return payload

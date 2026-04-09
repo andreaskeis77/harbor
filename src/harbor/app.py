@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from harbor.api.routes.db import router as db_router
 from harbor.api.routes.handbook import router as handbook_router
 from harbor.api.routes.health import router as health_router
+from harbor.api.routes.operator_web import router as operator_web_router
 from harbor.api.routes.projects import router as projects_router
 from harbor.api.routes.review_queue import router as review_queue_router
 from harbor.api.routes.search_campaigns import router as search_campaigns_router
@@ -21,6 +22,7 @@ def create_app(settings: HarborSettings | None = None) -> FastAPI:
     app = FastAPI(title=settings.app_name, version=settings.version)
 
     app.include_router(health_router)
+    app.include_router(operator_web_router)
     app.include_router(db_router)
     app.include_router(projects_router, prefix=settings.api_v1_prefix)
     app.include_router(handbook_router, prefix=settings.api_v1_prefix)
