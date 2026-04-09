@@ -301,6 +301,18 @@ td {
   display: grid;
   gap: 8px;
 }
+.chat-session-summary {
+  margin-top: 0;
+}
+.chat-session-meta {
+  display: grid;
+  gap: 8px;
+}
+.chat-session-meta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 """
 
 
@@ -1690,6 +1702,106 @@ const renderProjectOptions = () => {
   select.value = chatProjects[0].project_id;
 };
 
+const sessionTitle = (session) => {
+  const title = String(session?.title || "").trim();
+  return title || "Untitled session";
+};
+
+const sessionStatus = (session) => {
+  const status = String(session?.last_status || "").trim();
+  return status || "pending";
+};
+
+const renderSessionSummary = () => {
+  const summary = byId("chat-session-summary");
+  const detail = byId("chat-session-meta");
+  if (!summary || !detail) {
+    return;
+  }
+
+  if (!currentSessionId) {
+    summary.innerHTML = `
+      <div class="response-card">
+        <div class="response-label">Session</div>
+        <div class="response-value">New session</div>
+      </div>
+      <div class="response-card">
+        <div class="response-label">Status</div>
+        <div class="response-value">Not persisted</div>
+      </div>
+      <div class="response-card">
+        <div class="response-label">Turns</div>
+        <div class="response-value">0</div>
+      </div>
+      <div class="response-card">
+        <div class="response-label">Updated</div>
+        <div class="response-value">&mdash;</div>
+      </div>
+    `;
+    detail.innerHTML = [
+      '<div class="empty">',
+      'New session not yet persisted. Send a message to create it.',
+      '</div>',
+    ].join("");
+    return;
+  }
+
+  const session = chatSessions.find(
+    (item) => item.openai_project_chat_session_id === currentSessionId,
+  );
+  if (!session) {
+    summary.innerHTML = `
+      <div class="response-card">
+        <div class="response-label">Session</div>
+        <div class="response-value">Unavailable</div>
+      </div>
+    `;
+    detail.innerHTML = '<div class="empty">Persisted session could not be resolved.</div>';
+    return;
+  }
+
+  const updatedAt = formatDateTime(session.updated_at) || "—";
+  const createdAt = formatDateTime(session.created_at) || "—";
+  const title = sessionTitle(session);
+  const status = sessionStatus(session);
+  const turnCount = session.turn_count ?? 0;
+  const lastModel = session.last_model || "—";
+  const lastInput = session.last_input_text || "—";
+
+  summary.innerHTML = `
+    <div class="response-card">
+      <div class="response-label">Session</div>
+      <div class="response-value">${safeText(title)}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Status</div>
+      <div class="response-value">${safeText(status)}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Turns</div>
+      <div class="response-value">${safeText(turnCount)}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Updated</div>
+      <div class="response-value">${safeText(updatedAt)}</div>
+    </div>
+  `;
+  detail.innerHTML = `
+    <div class="chat-session-meta-row">
+      <span class="response-label">Created</span>
+      <span class="response-value">${safeText(createdAt)}</span>
+    </div>
+    <div class="chat-session-meta-row">
+      <span class="response-label">Last model</span>
+      <span class="response-value">${safeText(lastModel)}</span>
+    </div>
+    <div class="chat-session-meta-row">
+      <span class="response-label">Last operator message</span>
+      <span class="response-value">${safeText(lastInput)}</span>
+    </div>
+  `;
+};
+
 const renderTurnInspectorOptions = (preferredTurnId = null) => {
   const select = byId("chat-turn-id");
   if (!select) {
@@ -1751,6 +1863,7 @@ const renderChatTurnInspector = () => {
   );
   if (!turn) {
     clearChatTurnInspector("No persisted turn selected.");
+    renderSessionSummary();
     return;
   }
 
@@ -1808,7 +1921,11 @@ const renderSessionOptions = (preferredSessionId = null) => {
   for (const session of chatSessions) {
     const option = document.createElement("option");
     option.value = session.openai_project_chat_session_id;
-    option.textContent = `${session.title} (${session.turn_count} turn(s))`;
+    option.textContent = [
+      sessionTitle(session),
+      `${session.turn_count} turn(s)`,
+      sessionStatus(session),
+    ].join(" · ");
     select.appendChild(option);
   }
 
@@ -1818,10 +1935,12 @@ const renderSessionOptions = (preferredSessionId = null) => {
   if (preferred) {
     select.value = preferred.openai_project_chat_session_id;
     currentSessionId = preferred.openai_project_chat_session_id;
+    renderSessionSummary();
     return;
   }
   select.value = "";
   currentSessionId = null;
+  renderSessionSummary();
 };
 
 const renderChatHistory = () => {
@@ -1885,6 +2004,7 @@ const clearChatHistory = (text) => {
   }
   target.innerHTML = `<div class="empty">${safeText(text)}</div>`;
   clearChatTurnInspector("No persisted turn selected.");
+  renderSessionSummary();
 };
 
 const selectedProjectId = () => String(byId("chat-project-id")?.value || "").trim();
@@ -1925,6 +2045,7 @@ const loadChatSessions = async (projectId, preferredSessionId = null) => {
   }
 
   clearChatHistory("No persisted turns yet. Start a new session.");
+  renderSessionSummary();
   setChatStatus(
     "Ready. Start a new chat session or continue a persisted one.",
     "success",
@@ -1951,6 +2072,7 @@ const loadChatProjects = async () => {
     }
 
     await loadChatSessions(selectedProjectId(), currentSessionId);
+    renderSessionSummary();
   } catch (error) {
     setChatStatus(error.message, "error");
     clearChatHistory("Load failed.");
@@ -1965,6 +2087,7 @@ const startNewChatSession = () => {
   currentTurnId = null;
   renderSessionOptions();
   clearChatHistory("New session not yet persisted. Send a message to start it.");
+  renderSessionSummary();
   setChatStatus("New chat session armed.", "info");
   syncChatControls();
 };
@@ -2039,10 +2162,12 @@ document.addEventListener("change", async (event) => {
     currentTurnId = null;
     if (currentSessionId) {
       await loadChatTurns(selectedProjectId(), currentSessionId);
+      renderSessionSummary();
       setChatStatus("Loaded persisted chat session history.", "success");
       return;
     }
     clearChatHistory("New session not yet persisted. Send a message to start it.");
+    renderSessionSummary();
     setChatStatus("New chat session armed.", "info");
     return;
   }
@@ -2791,6 +2916,31 @@ def _chat_page() -> HTMLResponse:
         </span>
       </div>
     </form>
+  </section>
+
+  <section class="section-card">
+    <h2>Selected Session</h2>
+    <p class="action-note">
+      Inspect the current persisted session state or the new-session state before
+      sending the next message.
+    </p>
+    <div
+      class="response-grid chat-session-summary"
+      id="chat-session-summary"
+      data-chat-session-summary="persisted-chat"
+    >
+      <div class="response-card">
+        <div class="response-label">Session</div>
+        <div class="response-value">New session</div>
+      </div>
+    </div>
+    <div
+      id="chat-session-meta"
+      class="chat-session-meta"
+      data-chat-session-meta="persisted-chat"
+    >
+      <div class="empty">New session not yet persisted.</div>
+    </div>
   </section>
 
   <section class="section-card">
