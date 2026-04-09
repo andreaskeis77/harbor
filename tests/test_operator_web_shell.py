@@ -78,3 +78,28 @@ def test_operator_project_detail_contains_action_markers(client: TestClient) -> 
     assert 'data-operator-action="promote-to-source"' in response.text
     assert "/promote-to-review" in response.text
     assert "/promote-to-source" in response.text
+
+
+def test_operator_projects_page_contains_create_project_form_markers(
+    client: TestClient,
+) -> None:
+    response = client.get("/operator/projects")
+    assert response.status_code == 200
+    assert 'data-create-form="create-project"' in response.text
+    assert 'data-create-status="projects-create"' in response.text
+    assert 'id="create-project-title"' in response.text
+
+
+def test_operator_project_detail_contains_manual_create_form_markers(
+    client: TestClient,
+) -> None:
+    project = create_project(client)
+
+    response = client.get(f"/operator/projects/{project['project_id']}")
+    assert response.status_code == 200
+    assert 'data-create-form="create-search-campaign"' in response.text
+    assert 'data-create-form="create-search-run"' in response.text
+    assert 'data-create-form="create-result-candidate"' in response.text
+    assert 'data-create-status="project-create-actions"' in response.text
+    assert 'data-create-target="campaign-select"' in response.text
+    assert 'data-create-target="run-select"' in response.text
