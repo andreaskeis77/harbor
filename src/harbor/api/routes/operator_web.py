@@ -250,6 +250,43 @@ td {
   white-space: pre-wrap;
   word-break: break-word;
 }
+.chat-history {
+  display: grid;
+  gap: 12px;
+}
+.chat-message {
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 14px;
+  background: #0f172a;
+}
+.chat-message.user {
+  border-color: #2563eb;
+}
+.chat-message.assistant {
+  border-color: #10b981;
+}
+.chat-message.error {
+  border-color: #ef4444;
+}
+.chat-message-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.chat-role {
+  font-weight: 700;
+}
+.chat-meta {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+.chat-message-text {
+  margin: 0;
+}
 """
 
 
@@ -1463,6 +1500,320 @@ if (bootstrap.page === "project-detail") {
 }
 """
 
+CHAT_SCRIPT = """
+const bootstrap = JSON.parse(
+  document.getElementById("harbor-chat-bootstrap").textContent,
+);
+const apiBase = bootstrap.apiBase;
+const preferredProjectId = new URLSearchParams(window.location.search).get(
+  "project_id",
+);
+let chatProjects = [];
+let chatHistory = [];
+let chatBusy = false;
+
+const byId = (id) => document.getElementById(id);
+
+const escapeHtml = (value) =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+const safeText = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return "&mdash;";
+  }
+  return escapeHtml(value);
+};
+
+const setChatStatus = (text, kind = "info") => {
+  const target = byId("chat-status");
+  if (!target) {
+    return;
+  }
+  target.textContent = text;
+  target.classList.remove("info", "success", "error");
+  target.classList.add(kind);
+};
+
+const parseErrorDetail = async (response) => {
+  let detail = response.statusText || "Request failed.";
+  try {
+    const payload = await response.json();
+    detail = payload.detail || JSON.stringify(payload);
+  } catch (error) {
+    detail = response.statusText || "Request failed.";
+  }
+  return `${response.status} ${detail}`;
+};
+
+const fetchJson = async (url) => {
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+};
+
+const postJson = async (url, payload) => {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+};
+
+const chatProjectLabel = (projectId) => {
+  const project = chatProjects.find((item) => item.project_id === projectId);
+  if (!project) {
+    return projectId || "Unknown project";
+  }
+  return project.title;
+};
+
+const setChatControlsDisabled = (disabled) => {
+  const form = byId("chat-message-form");
+  if (form) {
+    for (const element of form.querySelectorAll("button, input, select, textarea")) {
+      element.disabled = disabled;
+    }
+  }
+  const reloadButton = byId("chat-reload-projects-button");
+  if (reloadButton) {
+    reloadButton.disabled = disabled;
+  }
+};
+
+const renderProjectOptions = () => {
+  const select = byId("chat-project-id");
+  if (!select) {
+    return;
+  }
+  select.innerHTML = "";
+
+  if (!chatProjects.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No projects available";
+    select.appendChild(option);
+    select.value = "";
+    return;
+  }
+
+  for (const project of chatProjects) {
+    const option = document.createElement("option");
+    option.value = project.project_id;
+    option.textContent = `${project.title} (${project.project_id})`;
+    select.appendChild(option);
+  }
+
+  const preferred = chatProjects.find(
+    (project) => project.project_id === preferredProjectId,
+  );
+  if (preferred) {
+    select.value = preferred.project_id;
+    return;
+  }
+  select.value = chatProjects[0].project_id;
+};
+
+const renderChatHistory = () => {
+  const target = byId("chat-history");
+  if (!target) {
+    return;
+  }
+  if (!chatHistory.length) {
+    target.innerHTML = '<div class="empty">No messages yet.</div>';
+    return;
+  }
+
+  target.innerHTML = chatHistory
+    .map((item) => {
+      const roleLabel = item.role === "assistant"
+        ? "Assistant"
+        : item.role === "error"
+          ? "Error"
+          : "Operator";
+      const roleClass = item.role === "assistant"
+        ? "assistant"
+        : item.role === "error"
+          ? "error"
+          : "user";
+      const metaParts = [];
+      if (item.projectId) {
+        metaParts.push(`Project: ${chatProjectLabel(item.projectId)}`);
+      }
+      if (item.provider) {
+        metaParts.push(`Provider: ${item.provider}`);
+      }
+      if (item.model) {
+        metaParts.push(`Model: ${item.model}`);
+      }
+      if (item.status) {
+        metaParts.push(`Status: ${item.status}`);
+      }
+      if (item.responseId) {
+        metaParts.push(`Response: ${item.responseId}`);
+      }
+
+      return `
+        <article class="chat-message ${roleClass}">
+          <div class="chat-message-header">
+            <div class="chat-role">${safeText(roleLabel)}</div>
+            <div class="chat-meta">${safeText(metaParts.join(" · "))}</div>
+          </div>
+          <pre class="response-pre chat-message-text">${safeText(item.text)}</pre>
+        </article>
+      `;
+    })
+    .join("");
+};
+
+const appendChatHistory = (item) => {
+  chatHistory.push(item);
+  renderChatHistory();
+};
+
+const loadChatProjects = async () => {
+  setChatControlsDisabled(true);
+  setChatStatus("Loading Harbor projects...", "info");
+  try {
+    const payload = await fetchJson(`${apiBase}/projects`);
+    chatProjects = Array.isArray(payload.items) ? payload.items : [];
+    renderProjectOptions();
+
+    if (!chatProjects.length) {
+      setChatStatus(
+        "No Harbor projects available. Create one first in the operator shell.",
+        "error",
+      );
+      renderChatHistory();
+      return;
+    }
+
+    setChatStatus(
+      `Loaded ${chatProjects.length} Harbor project(s).`,
+      "success",
+    );
+  } catch (error) {
+    setChatStatus(error.message, "error");
+  } finally {
+    const hasProjects = chatProjects.length > 0;
+    setChatControlsDisabled(false);
+    const sendButton = byId("chat-send-button");
+    if (sendButton) {
+      sendButton.disabled = !hasProjects || chatBusy;
+    }
+    const select = byId("chat-project-id");
+    if (select) {
+      select.disabled = !hasProjects || chatBusy;
+    }
+    const input = byId("chat-input-text");
+    if (input) {
+      input.disabled = !hasProjects || chatBusy;
+    }
+  }
+};
+
+const submitChatMessage = async (event) => {
+  event.preventDefault();
+  if (chatBusy) {
+    return;
+  }
+
+  const projectId = String(byId("chat-project-id")?.value || "").trim();
+  const inputText = String(byId("chat-input-text")?.value || "").trim();
+
+  if (!projectId) {
+    setChatStatus("Select a project first.", "error");
+    return;
+  }
+  if (!inputText) {
+    setChatStatus("Enter a message first.", "error");
+    return;
+  }
+
+  appendChatHistory({
+    role: "user",
+    text: inputText,
+    projectId,
+  });
+
+  chatBusy = true;
+  setChatControlsDisabled(true);
+  setChatStatus("Calling Harbor OpenAI dry-run surface...", "info");
+
+  try {
+    const payload = await postJson(
+      `${apiBase}/openai/projects/${encodeURIComponent(projectId)}/dry-run`,
+      {
+        input_text: inputText,
+        persist: false,
+      },
+    );
+
+    appendChatHistory({
+      role: "assistant",
+      text: payload.output_text || payload.error_message || "No output.",
+      projectId,
+      provider: payload.provider,
+      model: payload.model,
+      status: payload.status,
+      responseId: payload.response_id,
+    });
+    byId("chat-input-text").value = "";
+    setChatStatus("Dry-run response added to chat history.", "success");
+  } catch (error) {
+    appendChatHistory({
+      role: "error",
+      text: error.message,
+      projectId,
+      status: "error",
+    });
+    setChatStatus(error.message, "error");
+  } finally {
+    chatBusy = false;
+    loadChatProjects();
+  }
+};
+
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-chat-action]");
+  if (!button) {
+    return;
+  }
+  if (button.dataset.chatAction === "reload-projects") {
+    await loadChatProjects();
+  }
+});
+
+document.addEventListener("submit", async (event) => {
+  const form = event.target.closest("form[data-chat-form]");
+  if (!form) {
+    return;
+  }
+  if (form.dataset.chatForm === "dry-run-chat") {
+    await submitChatMessage(event);
+  }
+});
+
+renderChatHistory();
+loadChatProjects();
+"""
+
+
 
 def _bootstrap_payload(page: str, project_id: str | None = None) -> str:
     settings = get_settings()
@@ -1497,6 +1848,28 @@ def _render_document(*, title: str, body: str, bootstrap_json: str) -> HTMLRespo
     return HTMLResponse(content=html)
 
 
+def _render_chat_document(*, title: str, body: str, bootstrap_json: str) -> HTMLResponse:
+    html = f"""
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <style>{BASE_CSS}</style>
+  </head>
+  <body>
+    {body}
+    <script id="harbor-chat-bootstrap" type="application/json">
+      {bootstrap_json}
+    </script>
+    <script>{CHAT_SCRIPT}</script>
+  </body>
+</html>
+"""
+    return HTMLResponse(content=html)
+
+
 def _projects_page() -> HTMLResponse:
     body = """
 <div class="page" id="operator-shell" data-operator-shell="projects">
@@ -1517,6 +1890,7 @@ def _projects_page() -> HTMLResponse:
       >
         Reload projects
       </button>
+      <a href="/chat">Chat</a>
       <a href="/healthz">Health</a>
       <a href="/runtime">Runtime</a>
     </div>
@@ -2068,6 +2442,97 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
         body=body,
         bootstrap_json=_bootstrap_payload("project-detail", project_id=project_id),
     )
+
+
+def _chat_page() -> HTMLResponse:
+    body = """
+<div class="page" id="chat-shell" data-chat-shell="chat">
+  <header class="page-header">
+    <div>
+      <h1>Harbor Chat Surface Baseline</h1>
+      <p class="page-subtitle">
+        Thin chat-style surface over the existing Harbor OpenAI dry-run route.
+      </p>
+      <p class="status info" id="chat-status">Loading Harbor projects.</p>
+    </div>
+    <div class="actions">
+      <button
+        type="button"
+        class="action-button secondary"
+        id="chat-reload-projects-button"
+        data-chat-action="reload-projects"
+      >
+        Reload projects
+      </button>
+      <a href="/operator/projects">Operator</a>
+      <a href="/healthz">Health</a>
+      <a href="/runtime">Runtime</a>
+    </div>
+  </header>
+
+  <section class="section-card">
+    <h2>Message</h2>
+    <p class="action-note">
+      Select a Harbor project, send one message, and inspect the returned dry-run
+      response in a simple transient history list.
+    </p>
+    <form
+      class="form-panel"
+      id="chat-message-form"
+      data-chat-form="dry-run-chat"
+    >
+      <div class="form-field">
+        <label class="form-label" for="chat-project-id">Project</label>
+        <select id="chat-project-id" name="project_id" required disabled>
+          <option value="">Loading projects...</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="chat-input-text">Message</label>
+        <textarea
+          id="chat-input-text"
+          name="input_text"
+          required
+          disabled
+          placeholder="Ask Harbor to draft a compact project-specific response."
+        ></textarea>
+      </div>
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="action-button"
+          id="chat-send-button"
+          disabled
+        >
+          Send message
+        </button>
+        <span class="form-hint">
+          Uses the existing OpenAI project dry-run API. No persistence.
+        </span>
+      </div>
+    </form>
+  </section>
+
+  <section class="section-card">
+    <h2>Simple History</h2>
+    <div id="chat-history" class="chat-history" data-chat-history="dry-run-chat">
+      <div class="empty">No messages yet.</div>
+    </div>
+  </section>
+</div>
+"""
+    return _render_chat_document(
+        title="Harbor Chat Surface",
+        body=body,
+        bootstrap_json=_bootstrap_payload("chat"),
+    )
+
+
+
+
+@router.get("/chat", include_in_schema=False)
+def chat_page() -> HTMLResponse:
+    return _chat_page()
 
 
 @router.get("/operator", include_in_schema=False)
