@@ -131,6 +131,31 @@ td {
   align-items: center;
   flex-wrap: wrap;
 }
+.action-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #cbd5e1;
+}
+.action-button {
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+  background: #1d4ed8;
+  color: #eff6ff;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.action-button:hover {
+  background: #2563eb;
+}
+.action-button[disabled] {
+  opacity: 0.65;
+  cursor: progress;
+}
+.action-note {
+  margin: 0;
+  color: #cbd5e1;
+}
 """
 
 
@@ -185,19 +210,38 @@ const setStatus = (id, text, isError = false) => {
   target.classList.toggle("error", isError);
 };
 
+const parseErrorDetail = async (response) => {
+  let detail = response.statusText || "Request failed.";
+  try {
+    const payload = await response.json();
+    detail = payload.detail || JSON.stringify(payload);
+  } catch (error) {
+    detail = response.statusText || "Request failed.";
+  }
+  return `${response.status} ${detail}`;
+};
+
 const fetchJson = async (url) => {
   const response = await fetch(url, {
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    let detail = response.statusText;
-    try {
-      const payload = await response.json();
-      detail = payload.detail || JSON.stringify(payload);
-    } catch (error) {
-      detail = response.statusText || "Request failed.";
-    }
-    throw new Error(`${response.status} ${detail}`);
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+};
+
+const postJson = async (url, payload) => {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
   }
   return response.json();
 };
@@ -343,13 +387,33 @@ const renderRuns = (items) => {
     .join("");
 };
 
+const renderCandidateAction = (item) => {
+  if (item.disposition !== "pending") {
+    return `<span class="empty">Not available</span>`;
+  }
+  return `
+    <button
+      type="button"
+      class="action-button"
+      data-action="promote-candidate"
+      data-search-campaign-id="${escapeHtml(item.search_campaign_id)}"
+      data-search-run-id="${escapeHtml(item.search_run_id)}"
+      data-search-result-candidate-id="${
+        escapeHtml(item.search_result_candidate_id)
+      }"
+    >
+      Promote to review
+    </button>
+  `;
+};
+
 const renderCandidates = (items) => {
   const body = byId("candidates-table-body");
   if (!body) {
     return;
   }
   if (!items.length) {
-    body.innerHTML = emptyRow(6);
+    body.innerHTML = emptyRow(7);
     return;
   }
   body.innerHTML = items
@@ -366,10 +430,34 @@ const renderCandidates = (items) => {
           <td>${safeText(item.rank)}</td>
           <td>${formatDateTime(item.updated_at)}</td>
           <td>${safeText(item.snippet)}</td>
+          <td>${renderCandidateAction(item)}</td>
         </tr>
       `,
     )
     .join("");
+};
+
+const renderReviewQueueAction = (item) => {
+  const isPromotable =
+    item.queue_kind === "candidate_review" &&
+    item.status !== "completed" &&
+    !item.source_id &&
+    !item.project_source_id;
+
+  if (!isPromotable) {
+    return `<span class="empty">Not available</span>`;
+  }
+
+  return `
+    <button
+      type="button"
+      class="action-button"
+      data-action="promote-review-item"
+      data-review-queue-item-id="${escapeHtml(item.review_queue_item_id)}"
+    >
+      Promote to source
+    </button>
+  `;
 };
 
 const renderReviewQueue = (items) => {
@@ -378,7 +466,7 @@ const renderReviewQueue = (items) => {
     return;
   }
   if (!items.length) {
-    body.innerHTML = emptyRow(6);
+    body.innerHTML = emptyRow(7);
     return;
   }
   body.innerHTML = items
@@ -391,6 +479,7 @@ const renderReviewQueue = (items) => {
           <td>${safeText(item.queue_kind)}</td>
           <td>${inlineCode(item.search_result_candidate_id)}</td>
           <td>${formatDateTime(item.updated_at)}</td>
+          <td>${renderReviewQueueAction(item)}</td>
         </tr>
       `,
     )
@@ -437,7 +526,9 @@ const renderLineage = (items) => {
         <tr>
           <td>${safeText(item.candidate_title)}</td>
           <td>${badge(item.candidate_disposition)}</td>
-          <td>${item.review_queue_status ? badge(item.review_queue_status) : textFallback}</td>
+          <td>
+            ${item.review_queue_status ? badge(item.review_queue_status) : textFallback}
+          </td>
           <td>
             ${
               item.project_source_review_status
@@ -504,8 +595,9 @@ const loadProjectDetailPage = async () => {
     const candidates = [];
 
     for (const campaign of campaignsPayload.items) {
-      const campaignBase =
-        `${projectBase}/search-campaigns/${encodeURIComponent(campaign.search_campaign_id)}`;
+      const campaignBase = `${projectBase}/search-campaigns/${
+        encodeURIComponent(campaign.search_campaign_id)
+      }`;
       const runsPayload = await fetchJson(`${campaignBase}/runs`);
       for (const run of runsPayload.items) {
         runs.push(run);
@@ -524,6 +616,59 @@ const loadProjectDetailPage = async () => {
     setStatus("detail-status", error.message, true);
   }
 };
+
+const runOperatorAction = async (button, callback, successMessage) => {
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "Working...";
+  setStatus("action-status", "Executing operator action...");
+  try {
+    await callback();
+    await loadProjectDetailPage();
+    setStatus("action-status", successMessage);
+  } catch (error) {
+    setStatus("action-status", error.message, true);
+  } finally {
+    if (button.isConnected) {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  }
+};
+
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button || !bootstrap.projectId) {
+    return;
+  }
+
+  const projectBase = `${apiBase}/projects/${encodeURIComponent(bootstrap.projectId)}`;
+
+  if (button.dataset.action === "promote-candidate") {
+    const campaignId = encodeURIComponent(button.dataset.searchCampaignId);
+    const runId = encodeURIComponent(button.dataset.searchRunId);
+    const candidateId = encodeURIComponent(button.dataset.searchResultCandidateId);
+    const url = `${projectBase}/search-campaigns/${campaignId}/runs/${runId}` +
+      `/result-candidates/${candidateId}/promote-to-review`;
+    await runOperatorAction(
+      button,
+      () => postJson(url, { note: "Promoted from operator web shell." }),
+      "Candidate promoted to review queue.",
+    );
+    return;
+  }
+
+  if (button.dataset.action === "promote-review-item") {
+    const reviewQueueItemId = encodeURIComponent(button.dataset.reviewQueueItemId);
+    const url = `${projectBase}/review-queue-items/${reviewQueueItemId}` +
+      "/promote-to-source";
+    await runOperatorAction(
+      button,
+      () => postJson(url, { note: "Accepted from operator web shell." }),
+      "Review queue item promoted to source.",
+    );
+  }
+});
 
 if (bootstrap.page === "projects") {
   loadProjectsPage();
@@ -626,7 +771,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     <div>
       <h1 id="project-title">Project Detail</h1>
       <p class="page-subtitle">
-        Read-only operator surface for workflow summary and lineage.
+        Read-heavy operator surface with targeted workflow actions.
       </p>
       <p class="status" id="detail-status">Waiting to load project detail.</p>
     </div>
@@ -655,6 +800,24 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     >
       <div class="empty">Loading workflow summary...</div>
     </div>
+  </section>
+
+  <section class="section-card">
+    <h2>Operator Actions</h2>
+    <p class="action-note">
+      Actions stay thin and call the existing Harbor APIs only.
+    </p>
+    <ul class="action-list">
+      <li data-operator-action="promote-to-review">
+        Candidate -> Review Queue
+      </li>
+      <li data-operator-action="promote-to-source">
+        Review Queue -> Source / ProjectSource
+      </li>
+    </ul>
+    <p class="status" id="action-status" data-action-status="operator-actions">
+      No action executed yet.
+    </p>
   </section>
 
   <section class="section-card">
@@ -715,11 +878,12 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
             <th>Rank</th>
             <th>Updated</th>
             <th>Snippet</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="candidates-table-body">
           <tr>
-            <td colspan="6" class="empty">Loading...</td>
+            <td colspan="7" class="empty">Loading...</td>
           </tr>
         </tbody>
       </table>
@@ -738,11 +902,12 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
             <th>Kind</th>
             <th>Candidate ID</th>
             <th>Updated</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="review-queue-table-body">
           <tr>
-            <td colspan="6" class="empty">Loading...</td>
+            <td colspan="7" class="empty">Loading...</td>
           </tr>
         </tbody>
       </table>

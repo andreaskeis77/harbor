@@ -66,3 +66,15 @@ def test_operator_project_detail_contains_markers(client: TestClient) -> None:
     assert 'data-operator-shell="project-detail"' in response.text
     assert project["project_id"] in response.text
     assert 'data-summary-mount="workflow-summary"' in response.text
+
+
+def test_operator_project_detail_contains_action_markers(client: TestClient) -> None:
+    project = create_project(client)
+
+    response = client.get(f"/operator/projects/{project['project_id']}")
+    assert response.status_code == 200
+    assert 'data-action-status="operator-actions"' in response.text
+    assert 'data-operator-action="promote-to-review"' in response.text
+    assert 'data-operator-action="promote-to-source"' in response.text
+    assert "/promote-to-review" in response.text
+    assert "/promote-to-source" in response.text
