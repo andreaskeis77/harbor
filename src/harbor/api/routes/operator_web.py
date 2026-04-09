@@ -220,6 +220,36 @@ td {
   color: #94a3b8;
   font-size: 0.85rem;
 }
+.response-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 16px;
+}
+.response-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 14px;
+}
+.response-label {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+.response-value {
+  margin-top: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  word-break: break-word;
+}
+.response-pre {
+  margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e5e7eb;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 """
 
 
@@ -319,6 +349,21 @@ const postJson = async (url, payload) => {
 
 const safeTrim = (value) => String(value ?? "").trim();
 
+const displayText = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+  return String(value);
+};
+
+const setTextContent = (id, value) => {
+  const target = byId(id);
+  if (!target) {
+    return;
+  }
+  target.textContent = displayText(value);
+};
+
 const optionalText = (value) => {
   const trimmed = safeTrim(value);
   return trimmed || null;
@@ -404,13 +449,108 @@ const setProjectsPageDisabled = (disabled) => {
 };
 
 const setProjectInteractionDisabled = (disabled) => {
-  for (const form of document.querySelectorAll('form[data-create-form]')) {
+  const forms = document.querySelectorAll(
+    'form[data-create-form], form[data-openai-form]',
+  );
+  for (const form of forms) {
     setControlsDisabled(form, disabled);
   }
   setButtonsDisabled('button[data-action]', disabled);
   const reloadButton = byId("project-detail-reload-button");
   if (reloadButton) {
     reloadButton.disabled = disabled;
+  }
+};
+
+const resetOpenAIDryRunPanel = (statusText = "No dry run executed yet.", kind = "info") => {
+  setTextContent("openai-dry-run-provider", null);
+  setTextContent("openai-dry-run-model", null);
+  setTextContent("openai-dry-run-response-status", null);
+  setTextContent("openai-dry-run-response-id", null);
+  setTextContent("openai-dry-run-output-text", null);
+  setStatus("openai-dry-run-status", statusText, kind);
+};
+
+const renderOpenAIDryRunResult = (payload) => {
+  setTextContent("openai-dry-run-provider", payload.provider);
+  setTextContent("openai-dry-run-model", payload.model);
+  setTextContent(
+    "openai-dry-run-response-status",
+    payload.response_status || payload.status,
+  );
+  setTextContent("openai-dry-run-response-id", payload.response_id);
+  setTextContent(
+    "openai-dry-run-output-text",
+    payload.output_text || payload.error_message,
+  );
+
+  let statusText = `Dry run status: ${displayText(payload.status)}.`;
+  let statusKind = "info";
+
+  if (payload.status === "completed") {
+    statusText = "Dry run completed.";
+    statusKind = "success";
+  } else if (payload.status === "not_configured") {
+    statusText = "OpenAI is not configured.";
+    statusKind = "error";
+  } else if (payload.status === "sdk_unavailable") {
+    statusText = "OpenAI SDK is unavailable.";
+    statusKind = "error";
+  } else if (payload.status === "error") {
+    statusText = payload.error_message || "Dry run failed.";
+    statusKind = "error";
+  }
+
+  setStatus("openai-dry-run-status", statusText, statusKind);
+};
+
+const buildOpenAIDryRunPayload = (form) => {
+  const payload = {
+    input_text: safeTrim(form.elements.namedItem("input_text").value),
+    instructions: optionalText(form.elements.namedItem("instructions").value),
+  };
+  if (!payload.input_text) {
+    throw new Error("Operator request is required.");
+  }
+  return payload;
+};
+
+const handleProjectDetailOpenAISubmit = async (form) => {
+  if (form.dataset.busy === "true") {
+    return;
+  }
+  form.dataset.busy = "true";
+
+  const submitButton = form.querySelector('button[type="submit"]');
+  const originalLabel = submitButton ? submitButton.textContent : "";
+
+  if (submitButton) {
+    submitButton.textContent = "Working...";
+  }
+
+  setProjectInteractionDisabled(true);
+  setStatus("openai-dry-run-status", "Executing OpenAI dry run...", "info");
+  setTextContent("openai-dry-run-response-status", "pending");
+  setTextContent("openai-dry-run-response-id", null);
+  setTextContent("openai-dry-run-output-text", "Waiting for response...");
+
+  try {
+    const projectId = encodeURIComponent(bootstrap.projectId);
+    const payload = buildOpenAIDryRunPayload(form);
+    const result = await postJson(`${apiBase}/openai/projects/${projectId}/dry-run`, payload);
+    renderOpenAIDryRunResult(result);
+  } catch (error) {
+    setTextContent("openai-dry-run-response-status", "error");
+    setTextContent("openai-dry-run-response-id", null);
+    setTextContent("openai-dry-run-output-text", error.message);
+    setStatus("openai-dry-run-status", error.message, "error");
+  } finally {
+    form.dataset.busy = "false";
+    if (submitButton && submitButton.isConnected) {
+      submitButton.textContent = originalLabel;
+    }
+    setProjectInteractionDisabled(false);
+    refreshCreateFormState(currentProject ? "ready" : "error");
   }
 };
 
@@ -425,6 +565,7 @@ const setProjectDetailLoadingState = () => {
   currentCampaigns = [];
   currentRuns = [];
   refreshCreateFormState("loading");
+  resetOpenAIDryRunPanel("Waiting for project detail to load.", "info");
 };
 
 const setProjectDetailErrorState = () => {
@@ -438,6 +579,7 @@ const setProjectDetailErrorState = () => {
   currentCampaigns = [];
   currentRuns = [];
   refreshCreateFormState("error");
+  resetOpenAIDryRunPanel("Project detail load failed.", "error");
 };
 
 const refreshCreateFormState = (mode = "ready") => {
@@ -1080,6 +1222,7 @@ const loadProjectDetailPage = async () => {
 
     currentRuns = runs;
     refreshCreateFormState();
+    resetOpenAIDryRunPanel();
     renderRuns(runs);
     renderCandidates(candidates);
     setStatus("detail-status", `Loaded project ${project.title}.`, "success");
@@ -1189,19 +1332,25 @@ const runOperatorAction = async (button, callback, successMessage) => {
 };
 
 document.addEventListener("submit", async (event) => {
-  const form = event.target.closest("form[data-create-form]");
-  if (!form) {
+  const createForm = event.target.closest("form[data-create-form]");
+  const openaiForm = event.target.closest("form[data-openai-form]");
+  if (!createForm && !openaiForm) {
     return;
   }
 
   event.preventDefault();
 
-  if (bootstrap.page === "projects") {
-    await handleProjectsCreateSubmit(form);
+  if (bootstrap.page === "project-detail" && openaiForm) {
+    await handleProjectDetailOpenAISubmit(openaiForm);
     return;
   }
-  if (bootstrap.page === "project-detail") {
-    await handleProjectDetailCreateSubmit(form);
+
+  if (bootstrap.page === "projects" && createForm) {
+    await handleProjectsCreateSubmit(createForm);
+    return;
+  }
+  if (bootstrap.page === "project-detail" && createForm) {
+    await handleProjectDetailCreateSubmit(createForm);
   }
 });
 
@@ -1454,6 +1603,90 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     <p class="status info" id="action-status" data-action-status="operator-actions">
       No action executed yet.
     </p>
+  </section>
+
+  <section class="section-card">
+    <h2>OpenAI Dry Run</h2>
+    <p class="action-note">
+      Send an explicit operator request through the Harbor OpenAI adapter without
+      Harbor-side persistence.
+    </p>
+    <form
+      class="form-panel"
+      id="openai-project-dry-run-form"
+      data-openai-form="project-dry-run"
+    >
+      <div class="form-field">
+        <label class="form-label" for="openai-dry-run-input-text">
+          Operator request
+        </label>
+        <textarea
+          id="openai-dry-run-input-text"
+          name="input_text"
+          required
+        ></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="openai-dry-run-instructions">
+          Instructions (optional)
+        </label>
+        <textarea
+          id="openai-dry-run-instructions"
+          name="instructions"
+        ></textarea>
+      </div>
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="action-button"
+          id="openai-dry-run-submit"
+        >
+          Run dry-run
+        </button>
+        <span class="form-hint">
+          Uses current project context plus your explicit request.
+        </span>
+      </div>
+    </form>
+    <p
+      class="status info"
+      id="openai-dry-run-status"
+      data-openai-status="project-dry-run"
+    >
+      No dry run executed yet.
+    </p>
+    <div
+      class="grid response-grid"
+      data-openai-response="project-dry-run"
+    >
+      <div class="response-card">
+        <div class="response-label">Provider</div>
+        <div class="response-value" id="openai-dry-run-provider">&mdash;</div>
+      </div>
+      <div class="response-card">
+        <div class="response-label">Model</div>
+        <div class="response-value" id="openai-dry-run-model">&mdash;</div>
+      </div>
+      <div class="response-card">
+        <div class="response-label">Status</div>
+        <div class="response-value" id="openai-dry-run-response-status">
+          &mdash;
+        </div>
+      </div>
+      <div class="response-card">
+        <div class="response-label">Response ID</div>
+        <div class="response-value" id="openai-dry-run-response-id">
+          &mdash;
+        </div>
+      </div>
+    </div>
+    <div class="form-panel">
+      <h3>Response Text</h3>
+      <pre
+        class="response-pre"
+        id="openai-dry-run-output-text"
+      >&mdash;</pre>
+    </div>
   </section>
 
   <section class="section-card">
