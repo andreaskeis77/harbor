@@ -35,6 +35,11 @@ class HarborSettings(BaseSettings):
     postgres_echo: bool = Field(default=False)
     postgres_pool_pre_ping: bool = Field(default=True)
 
+    openai_api_key: str | None = Field(default=None)
+    openai_model: str = Field(default="gpt-5")
+    openai_base_url: str | None = Field(default=None)
+    openai_timeout_seconds: float = Field(default=30.0)
+
     @computed_field  # type: ignore[misc]
     @property
     def postgres_configured(self) -> bool:
@@ -47,6 +52,11 @@ class HarborSettings(BaseSettings):
                 and self.postgres_password
             )
         )
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def openai_configured(self) -> bool:
+        return bool(self.openai_api_key)
 
     @computed_field  # type: ignore[misc]
     @property
@@ -99,6 +109,8 @@ class HarborSettings(BaseSettings):
             "log_root": self.log_root,
             "report_root": self.report_root,
             "postgres_configured": self.postgres_configured,
+            "openai_configured": self.openai_configured,
+            "openai_model": self.openai_model,
         }
 
     def db_runtime_dict(self) -> dict[str, object]:
@@ -111,6 +123,16 @@ class HarborSettings(BaseSettings):
             "postgres_echo": self.postgres_echo,
             "postgres_pool_pre_ping": self.postgres_pool_pre_ping,
             "sqlalchemy_database_url_redacted": self.sqlalchemy_database_url_redacted,
+        }
+
+    def openai_runtime_dict(self) -> dict[str, object]:
+        return {
+            "provider": "openai",
+            "configured": self.openai_configured,
+            "api_key_present": bool(self.openai_api_key),
+            "model": self.openai_model,
+            "base_url": self.openai_base_url,
+            "timeout_seconds": self.openai_timeout_seconds,
         }
 
 
