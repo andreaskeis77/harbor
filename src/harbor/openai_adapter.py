@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from importlib.util import find_spec
 from typing import Any, Callable
@@ -18,6 +19,13 @@ DEFAULT_PROJECT_CHAT_TURN_INSTRUCTIONS = (
     "You are Harbor chat assistant for a research operator. Use the supplied project context "
     "and any provided prior chat turns. Keep the answer compact and do not invent missing facts."
 )
+
+
+MAX_PROJECT_CONTEXT_VALUE_CHARS = 240
+MAX_CHAT_HISTORY_TURNS = 6
+MAX_CHAT_HISTORY_OPERATOR_CHARS = 240
+MAX_CHAT_HISTORY_ASSISTANT_CHARS = 320
+TRUNCATION_SUFFIX = " …[truncated]"
 
 
 class OpenAIProbeError(RuntimeError):
@@ -77,11 +85,67 @@ def _response_output_text(response: object) -> str | None:
     return None
 
 
+def _collapse_whitespace(value: object) -> str:
+    text = re.sub(r"\s+", " ", str(value)).strip()
+    return text
+
+
+def _truncate_text(value: object, *, max_chars: int) -> tuple[str, bool]:
+    text = _collapse_whitespace(value)
+    if len(text) <= max_chars:
+        return text, False
+
+    if max_chars <= len(TRUNCATION_SUFFIX):
+        return text[:max_chars], True
+
+    clipped = text[: max_chars - len(TRUNCATION_SUFFIX)].rstrip()
+    return f"{clipped}{TRUNCATION_SUFFIX}", True
+
+
 def _context_value(project_context: Mapping[str, object], key: str) -> str:
     value = project_context.get(key)
     if value is None or value == "":
         return "(none)"
-    return str(value)
+    compact, _ = _truncate_text(value, max_chars=MAX_PROJECT_CONTEXT_VALUE_CHARS)
+    return compact
+
+
+def _prepare_prior_chat_turns(
+    prior_turns: list[Mapping[str, object]] | None,
+) -> tuple[list[dict[str, object]], dict[str, object]]:
+    turns = list(prior_turns or [])
+    total_count = len(turns)
+    included_turns = turns[-MAX_CHAT_HISTORY_TURNS:] if turns else []
+    omitted_count = total_count - len(included_turns)
+    history_compacted = omitted_count > 0
+
+    prepared: list[dict[str, object]] = []
+    start_index = omitted_count + 1
+    for offset, turn in enumerate(included_turns):
+        operator_text, operator_truncated = _truncate_text(
+            turn.get("request_input_text") or "(none)",
+            max_chars=MAX_CHAT_HISTORY_OPERATOR_CHARS,
+        )
+        assistant_source = turn.get("output_text") or turn.get("error_message") or "(no response)"
+        assistant_text, assistant_truncated = _truncate_text(
+            assistant_source,
+            max_chars=MAX_CHAT_HISTORY_ASSISTANT_CHARS,
+        )
+        history_compacted = history_compacted or operator_truncated or assistant_truncated
+        prepared.append(
+            {
+                "turn_index": start_index + offset,
+                "operator_text": operator_text,
+                "assistant_text": assistant_text,
+            }
+        )
+
+    return prepared, {
+        "prior_turn_count": total_count,
+        "prior_turn_count_included": len(prepared),
+        "prior_turn_count_omitted": omitted_count,
+        "history_compacted": history_compacted,
+    }
 
 
 def build_project_dry_run_input(
@@ -110,6 +174,7 @@ def build_project_chat_turn_input(
     *,
     prior_turns: list[Mapping[str, object]] | None = None,
 ) -> str:
+    prepared_turns, history_meta = _prepare_prior_chat_turns(prior_turns)
     lines = [
         "Harbor project context:",
         f"- project_id: {_context_value(project_context, 'project_id')}",
@@ -121,19 +186,29 @@ def build_project_chat_turn_input(
         "",
     ]
 
-    turns = prior_turns or []
-    if turns:
-        lines.extend(["Prior chat turns:"])
-        for turn in turns:
-            assistant_text = turn.get("output_text") or turn.get("error_message")
-            lines.append(f"- Operator: {_context_value(turn, 'request_input_text')}")
-            if assistant_text is not None:
-                lines.append(f"- Assistant: {assistant_text}")
-            else:
-                lines.append("- Assistant: (no response)")
+    if prepared_turns:
+        lines.extend(
+            [
+                "Prior chat turns:",
+                f"- total_available: {history_meta['prior_turn_count']}",
+                f"- included: {history_meta['prior_turn_count_included']}",
+                f"- omitted: {history_meta['prior_turn_count_omitted']}",
+            ]
+        )
+        if history_meta["history_compacted"]:
+            lines.append("- note: Earlier or longer turns were compacted.")
         lines.append("")
+        for turn in prepared_turns:
+            lines.extend(
+                [
+                    f"Turn {turn['turn_index']}:",
+                    f"Operator: {turn['operator_text']}",
+                    f"Assistant: {turn['assistant_text']}",
+                    "",
+                ]
+            )
 
-    lines.extend(["Operator message:", input_text])
+    lines.extend(["Current operator message:", input_text.strip()])
     return "\n".join(lines)
 
 
@@ -149,6 +224,7 @@ def openai_project_chat_turn_payload(
     settings = settings or get_settings()
     effective_instructions = instructions or DEFAULT_PROJECT_CHAT_TURN_INSTRUCTIONS
     instructions_source = "custom" if instructions else "default"
+    _, history_meta = _prepare_prior_chat_turns(prior_turns)
     rendered_input_text = build_project_chat_turn_input(
         project_context,
         input_text,
@@ -164,7 +240,7 @@ def openai_project_chat_turn_payload(
             "input_text": input_text,
             "rendered_input_text": rendered_input_text,
             "store": False,
-            "prior_turn_count": len(prior_turns or []),
+            **history_meta,
         },
         "response_id": None,
         "response_status": None,
