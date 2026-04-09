@@ -287,6 +287,20 @@ td {
 .chat-message-text {
   margin: 0;
 }
+.chat-turn-selector {
+  max-width: 360px;
+}
+.chat-turn-summary {
+  margin-top: 0;
+}
+.chat-inspector {
+  display: grid;
+  gap: 12px;
+}
+.chat-turn-detail {
+  display: grid;
+  gap: 8px;
+}
 """
 
 
@@ -1513,6 +1527,7 @@ let chatSessions = [];
 let chatHistory = [];
 let chatBusy = false;
 let currentSessionId = null;
+let currentTurnId = null;
 
 const byId = (id) => document.getElementById(id);
 
@@ -1610,8 +1625,10 @@ const setChatControlsDisabled = (disabled) => {
 
 const syncChatControls = () => {
   const hasProjects = chatProjects.length > 0;
+  const hasHistory = chatHistory.length > 0;
   const projectSelect = byId("chat-project-id");
   const sessionSelect = byId("chat-session-id");
+  const turnSelect = byId("chat-turn-id");
   const input = byId("chat-input-text");
   const sendButton = byId("chat-send-button");
   const newSessionButton = byId("chat-new-session-button");
@@ -1622,6 +1639,9 @@ const syncChatControls = () => {
   }
   if (sessionSelect) {
     sessionSelect.disabled = !hasProjects || chatBusy;
+  }
+  if (turnSelect) {
+    turnSelect.disabled = !hasHistory || chatBusy;
   }
   if (input) {
     input.disabled = !hasProjects || chatBusy;
@@ -1670,6 +1690,109 @@ const renderProjectOptions = () => {
   select.value = chatProjects[0].project_id;
 };
 
+const renderTurnInspectorOptions = (preferredTurnId = null) => {
+  const select = byId("chat-turn-id");
+  if (!select) {
+    return;
+  }
+  select.innerHTML = "";
+
+  if (!chatHistory.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No persisted turns";
+    select.appendChild(option);
+    select.value = "";
+    currentTurnId = null;
+    return;
+  }
+
+  for (const turn of chatHistory) {
+    const option = document.createElement("option");
+    option.value = turn.openai_project_chat_turn_id;
+    option.textContent = `Turn ${turn.turn_index} · ${formatDateTime(turn.created_at)}`;
+    select.appendChild(option);
+  }
+
+  const preferred = chatHistory.find(
+    (turn) => turn.openai_project_chat_turn_id === preferredTurnId,
+  );
+  const selectedTurn = preferred || chatHistory[chatHistory.length - 1];
+  select.value = selectedTurn.openai_project_chat_turn_id;
+  currentTurnId = selectedTurn.openai_project_chat_turn_id;
+};
+
+const clearChatTurnInspector = (text) => {
+  const summary = byId("chat-turn-summary");
+  const detail = byId("chat-turn-inspector");
+  renderTurnInspectorOptions();
+  if (summary) {
+    summary.innerHTML = `
+      <div class="response-card">
+        <div class="response-label">Selected turn</div>
+        <div class="response-value">&mdash;</div>
+      </div>
+    `;
+  }
+  if (detail) {
+    detail.innerHTML = `<div class="empty">${safeText(text)}</div>`;
+  }
+};
+
+const renderChatTurnInspector = () => {
+  const summary = byId("chat-turn-summary");
+  const detail = byId("chat-turn-inspector");
+  if (!summary || !detail) {
+    return;
+  }
+
+  const turn = chatHistory.find(
+    (item) => item.openai_project_chat_turn_id === currentTurnId,
+  );
+  if (!turn) {
+    clearChatTurnInspector("No persisted turn selected.");
+    return;
+  }
+
+  const assistantText = turn.output_text || turn.error_message || "No output.";
+  summary.innerHTML = `
+    <div class="response-card">
+      <div class="response-label">Selected turn</div>
+      <div class="response-value">${safeText(turn.turn_index)}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Status</div>
+      <div class="response-value">${safeText(turn.status)}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Model</div>
+      <div class="response-value">${safeText(turn.model)}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Response ID</div>
+      <div class="response-value">${safeText(turn.response_id)}</div>
+    </div>
+  `;
+  detail.innerHTML = `
+    <div class="chat-turn-detail">
+      <div class="response-label">Created</div>
+      <div class="response-value">${safeText(formatDateTime(turn.created_at))}</div>
+    </div>
+    <div class="chat-turn-detail">
+      <div class="response-label">Rendered Harbor input</div>
+      <pre class="response-pre">${safeText(turn.rendered_input_text)}</pre>
+    </div>
+    <div class="chat-turn-detail">
+      <div class="response-label">Persisted operator message</div>
+      <pre class="response-pre">${safeText(turn.request_input_text)}</pre>
+    </div>
+    <div class="chat-turn-detail">
+      <div class="response-label">Persisted assistant output</div>
+      <pre class="response-pre">${safeText(assistantText)}</pre>
+    </div>
+  `;
+};
+
 const renderSessionOptions = (preferredSessionId = null) => {
   const select = byId("chat-session-id");
   if (!select) {
@@ -1708,6 +1831,7 @@ const renderChatHistory = () => {
   }
   if (!chatHistory.length) {
     target.innerHTML = '<div class="empty">No persisted turns yet.</div>';
+    clearChatTurnInspector("No persisted turn selected.");
     return;
   }
 
@@ -1760,6 +1884,7 @@ const clearChatHistory = (text) => {
     return;
   }
   target.innerHTML = `<div class="empty">${safeText(text)}</div>`;
+  clearChatTurnInspector("No persisted turn selected.");
 };
 
 const selectedProjectId = () => String(byId("chat-project-id")?.value || "").trim();
@@ -1775,11 +1900,14 @@ const loadChatTurns = async (projectId, chatSessionId) => {
       `/chat-sessions/${encodeURIComponent(chatSessionId)}/turns`,
   );
   chatHistory = Array.isArray(payload.items) ? payload.items : [];
+  renderTurnInspectorOptions(currentTurnId);
   renderChatHistory();
+  renderChatTurnInspector();
 };
 
 const loadChatSessions = async (projectId, preferredSessionId = null) => {
   chatSessions = [];
+  currentTurnId = null;
   renderSessionOptions();
   clearChatHistory("Loading session history...");
   setChatStatus("Loading persisted chat sessions...", "info");
@@ -1834,6 +1962,7 @@ const loadChatProjects = async () => {
 
 const startNewChatSession = () => {
   currentSessionId = null;
+  currentTurnId = null;
   renderSessionOptions();
   clearChatHistory("New session not yet persisted. Send a message to start it.");
   setChatStatus("New chat session armed.", "info");
@@ -1907,6 +2036,7 @@ document.addEventListener("change", async (event) => {
   const sessionSelect = event.target.closest("#chat-session-id");
   if (sessionSelect) {
     currentSessionId = String(sessionSelect.value || "").trim() || null;
+    currentTurnId = null;
     if (currentSessionId) {
       await loadChatTurns(selectedProjectId(), currentSessionId);
       setChatStatus("Loaded persisted chat session history.", "success");
@@ -1914,6 +2044,13 @@ document.addEventListener("change", async (event) => {
     }
     clearChatHistory("New session not yet persisted. Send a message to start it.");
     setChatStatus("New chat session armed.", "info");
+    return;
+  }
+
+  const turnSelect = event.target.closest("#chat-turn-id");
+  if (turnSelect) {
+    currentTurnId = String(turnSelect.value || "").trim() || null;
+    renderChatTurnInspector();
   }
 });
 
@@ -2660,6 +2797,42 @@ def _chat_page() -> HTMLResponse:
     <h2>Persisted Session History</h2>
     <div id="chat-history" class="chat-history" data-chat-history="persisted-chat">
       <div class="empty">No persisted turns yet.</div>
+    </div>
+  </section>
+
+  <section class="section-card">
+    <h2>Selected Turn Context</h2>
+    <p class="action-note">
+      Inspect the exact Harbor-rendered input and persisted output for a selected
+      turn.
+    </p>
+    <div class="form-field chat-turn-selector">
+      <label class="form-label" for="chat-turn-id">Persisted turn</label>
+      <select
+        id="chat-turn-id"
+        name="chat_turn_id"
+        data-chat-turn-select="persisted"
+        disabled
+      >
+        <option value="">No persisted turns</option>
+      </select>
+    </div>
+    <div
+      class="response-grid chat-turn-summary"
+      id="chat-turn-summary"
+      data-chat-turn-summary="persisted-chat"
+    >
+      <div class="response-card">
+        <div class="response-label">Selected turn</div>
+        <div class="response-value">&mdash;</div>
+      </div>
+    </div>
+    <div
+      id="chat-turn-inspector"
+      class="chat-inspector"
+      data-chat-turn-inspector="persisted-chat"
+    >
+      <div class="empty">No persisted turn selected.</div>
     </div>
   </section>
 </div>
