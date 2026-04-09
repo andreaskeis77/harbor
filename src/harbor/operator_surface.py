@@ -1251,6 +1251,12 @@ def smoke_operator_web_shell_slice_payload() -> dict[str, object]:
                 "detail_page_has_summary_mount": (
                     'data-summary-mount="workflow-summary"' in detail_page.text
                 ),
+                "detail_page_has_openai_form": (
+                    'data-openai-form="project-dry-run"' in detail_page.text
+                ),
+                "detail_page_has_openai_response": (
+                    'data-openai-response="project-dry-run"' in detail_page.text
+                ),
                 "project": project.json(),
                 "campaign": campaign.json(),
                 "search_run": search_run.json(),
