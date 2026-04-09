@@ -1,7 +1,7 @@
 # Project State
 
 ## Current phase
-T1.12 — Docs + Runbook + Release Hygiene
+T2.0 — Operator Web Shell
 
 ## Confirmed completed
 - A0 baseline accepted
@@ -19,6 +19,8 @@ T1.12 — Docs + Runbook + Release Hygiene
 - T1.9 review-queue-to-source promotion
 - T1.10 duplicate guards for promotion flow
 - T1.11 workflow summary and lineage surface
+- T1.12 docs + runbook + release hygiene
+- T1.13 `v0.1.0-alpha` release cut
 
 ## Current runtime posture
 Harbor now has:
@@ -38,8 +40,24 @@ Harbor now has:
 - review-queue-to-source promotion path
 - duplicate-guard behavior for promotion flow
 - project workflow summary and lineage API
+- first manual end-to-end operator flow release
 
-## Confirmed proof for T1.11
+## Current functional release scope
+Manual operator flow:
+- Project
+- Search Campaign
+- Search Run
+- Search Result Candidate
+- Review Queue
+- Source / ProjectSource
+
+Additionally present:
+- duplicate guards
+- workflow summary
+- lineage surface
+- alpha runbook and release checklist
+
+## Confirmed release proof baseline
 - `python -m alembic upgrade head`
 - `python .\tools\task_runner.py smoke-project-slice`
 - `python .\tools\task_runner.py smoke-handbook-slice`
@@ -54,15 +72,24 @@ Harbor now has:
 - `python .\tools\task_runner.py smoke-workflow-summary-slice`
 - `python .\tools\task_runner.py quality-gates`
 
-## Release target
-`v0.1.0-alpha` — manual operator release
+## Active next implementation slice
+T2.0A — Operator Web Shell read surface
 
-## Intentionally not yet in release scope
+Scope:
+- project list
+- project detail page
+- workflow summary
+- read surfaces for campaigns, runs, candidates, review queue, project sources
+
+Architecture rule:
+- web shell calls Harbor APIs only
+- no DB-bypass logic in the web shell
+- no new persistence logic in T2.0A
+
+## Intentionally not yet in scope
+- operator actions UI
+- OpenAI integration
+- chat surface
 - real web search execution
-- deduplication merge logic
 - scheduling / recurring refresh
 - agentic workflows
-- UI beyond API/operator surface
-
-## Recommended next step
-T1.13 — v0.1.0-alpha release cut
