@@ -156,6 +156,57 @@ td {
   margin: 0;
   color: #cbd5e1;
 }
+.form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.form-panel {
+  display: grid;
+  gap: 12px;
+}
+.form-panel h3 {
+  margin: 0;
+}
+.form-field {
+  display: grid;
+  gap: 6px;
+}
+.form-label {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #e5e7eb;
+}
+.form-field textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+.form-field input:disabled,
+.form-field select:disabled,
+.form-field textarea:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.form-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.form-hint {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
 """
 
 
@@ -165,6 +216,9 @@ const bootstrap = JSON.parse(
   document.getElementById("harbor-operator-bootstrap").textContent,
 );
 const apiBase = bootstrap.apiBase;
+let currentProject = null;
+let currentCampaigns = [];
+let currentRuns = [];
 
 const byId = (id) => document.getElementById(id);
 
@@ -246,6 +300,130 @@ const postJson = async (url, payload) => {
   return response.json();
 };
 
+const safeTrim = (value) => String(value ?? "").trim();
+
+const optionalText = (value) => {
+  const trimmed = safeTrim(value);
+  return trimmed || null;
+};
+
+const optionalInt = (value) => {
+  const trimmed = safeTrim(value);
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number.parseInt(trimmed, 10);
+  if (Number.isNaN(parsed)) {
+    throw new Error("Rank must be a whole number.");
+  }
+  return parsed;
+};
+
+const setSelectOptions = (element, options, emptyLabel) => {
+  if (!element) {
+    return;
+  }
+  element.innerHTML = "";
+  if (!options.length) {
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = emptyLabel;
+    element.appendChild(emptyOption);
+    element.value = "";
+    return;
+  }
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Select...";
+  element.appendChild(placeholder);
+
+  for (const optionData of options) {
+    const option = document.createElement("option");
+    option.value = optionData.value;
+    option.textContent = optionData.label;
+    element.appendChild(option);
+  }
+  element.value = "";
+};
+
+const refreshCreateFormState = () => {
+  const campaignSelect = byId("create-run-campaign-id");
+  const runSubmit = byId("create-run-submit");
+  const runHint = byId("create-run-hint");
+
+  const campaignOptions = currentCampaigns.map((item) => ({
+    value: item.search_campaign_id,
+    label: item.title,
+  }));
+  setSelectOptions(campaignSelect, campaignOptions, "No campaigns available.");
+
+  const hasCampaigns = currentCampaigns.length > 0;
+  if (campaignSelect) {
+    campaignSelect.disabled = !hasCampaigns;
+  }
+  if (runSubmit) {
+    runSubmit.disabled = !hasCampaigns;
+  }
+  if (runHint) {
+    runHint.textContent = hasCampaigns
+      ? "Create a manual run in an existing campaign."
+      : "Create a search campaign first.";
+  }
+
+  const campaignTitleById = new Map(
+    currentCampaigns.map((item) => [item.search_campaign_id, item.title]),
+  );
+  const runOptions = currentRuns.map((item) => ({
+    value: item.search_run_id,
+    label: `${item.title} — ${campaignTitleById.get(item.search_campaign_id) || "Run"}`,
+  }));
+
+  const runSelect = byId("create-candidate-run-id");
+  const candidateSubmit = byId("create-candidate-submit");
+  const candidateHint = byId("create-candidate-hint");
+  setSelectOptions(runSelect, runOptions, "No runs available.");
+
+  const hasRuns = currentRuns.length > 0;
+  if (runSelect) {
+    runSelect.disabled = !hasRuns;
+  }
+  if (candidateSubmit) {
+    candidateSubmit.disabled = !hasRuns;
+  }
+  if (candidateHint) {
+    candidateHint.textContent = hasRuns
+      ? "Add a manual search candidate to an existing run."
+      : "Create a search run first.";
+  }
+};
+
+const runFormAction = async (form, statusId, callback, successMessage, afterSuccess) => {
+  const submitButton = form.querySelector('button[type="submit"]');
+  const originalLabel = submitButton ? submitButton.textContent : "";
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Working...";
+  }
+  setStatus(statusId, "Executing create action...");
+
+  try {
+    const result = await callback();
+    if (afterSuccess) {
+      await afterSuccess(result);
+    }
+    setStatus(statusId, successMessage);
+  } catch (error) {
+    setStatus(statusId, error.message, true);
+  } finally {
+    if (submitButton && submitButton.isConnected) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalLabel;
+    }
+  }
+};
+
 const renderProjectsTable = (projects) => {
   const body = byId("projects-table-body");
   if (!body) {
@@ -306,6 +484,92 @@ const renderProjectHeader = (project) => {
       <span>${safeText(project.short_description)}</span>
     </div>
   `;
+};
+
+
+const buildProjectPayload = (form) => {
+  const payload = {
+    title: safeTrim(form.elements.namedItem("title").value),
+    short_description: optionalText(
+      form.elements.namedItem("short_description").value,
+    ),
+    project_type: "standard",
+  };
+  if (!payload.title) {
+    throw new Error("Project title is required.");
+  }
+  return payload;
+};
+
+const buildCampaignPayload = (form) => {
+  const payload = {
+    title: safeTrim(form.elements.namedItem("title").value),
+    query_text: optionalText(form.elements.namedItem("query_text").value),
+    campaign_kind: "manual",
+    status: "planned",
+    note: optionalText(form.elements.namedItem("note").value),
+  };
+  if (!payload.title) {
+    throw new Error("Campaign title is required.");
+  }
+  return payload;
+};
+
+const buildRunPayload = (form) => {
+  const searchCampaignId = safeTrim(
+    form.elements.namedItem("search_campaign_id").value,
+  );
+  if (!searchCampaignId) {
+    throw new Error("Select a search campaign first.");
+  }
+  const payload = {
+    searchCampaignId,
+    body: {
+      title: safeTrim(form.elements.namedItem("title").value),
+      run_kind: "manual",
+      status: "planned",
+      query_text_snapshot: optionalText(
+        form.elements.namedItem("query_text_snapshot").value,
+      ),
+      note: optionalText(form.elements.namedItem("note").value),
+    },
+  };
+  if (!payload.body.title) {
+    throw new Error("Run title is required.");
+  }
+  return payload;
+};
+
+const buildCandidatePayload = (form) => {
+  const searchRunId = safeTrim(form.elements.namedItem("search_run_id").value);
+  if (!searchRunId) {
+    throw new Error("Select a search run first.");
+  }
+  const selectedRun = currentRuns.find((item) => item.search_run_id === searchRunId);
+  if (!selectedRun) {
+    throw new Error("Selected search run was not found.");
+  }
+
+  const payload = {
+    searchCampaignId: selectedRun.search_campaign_id,
+    searchRunId,
+    body: {
+      title: safeTrim(form.elements.namedItem("title").value),
+      url: safeTrim(form.elements.namedItem("url").value),
+      domain: optionalText(form.elements.namedItem("domain").value),
+      snippet: optionalText(form.elements.namedItem("snippet").value),
+      rank: optionalInt(form.elements.namedItem("rank").value),
+      disposition: "pending",
+      note: optionalText(form.elements.namedItem("note").value),
+    },
+  };
+  if (!payload.body.title) {
+    throw new Error("Candidate title is required.");
+  }
+  if (!payload.body.url) {
+    throw new Error("Candidate URL is required.");
+  }
+  return payload;
 };
 
 const renderSummary = (summary) => {
@@ -563,6 +827,20 @@ const loadProjectsPage = async () => {
   }
 };
 
+const handleProjectsCreateSubmit = async (form) => {
+  await runFormAction(
+    form,
+    "projects-create-status",
+    () => postJson(`${apiBase}/projects`, buildProjectPayload(form)),
+    "Project created.",
+    async (project) => {
+      window.location.assign(
+        `/operator/projects/${encodeURIComponent(project.project_id)}`,
+      );
+    },
+  );
+};
+
 const loadProjectDetailPage = async () => {
   const projectId = bootstrap.projectId;
   const projectBase = `${apiBase}/projects/${encodeURIComponent(projectId)}`;
@@ -583,6 +861,9 @@ const loadProjectDetailPage = async () => {
         reviewQueuePromise,
         projectSourcesPromise,
       ]);
+
+    currentProject = project;
+    currentCampaigns = campaignsPayload.items;
 
     renderProjectHeader(project);
     renderSummary(summary);
@@ -609,11 +890,68 @@ const loadProjectDetailPage = async () => {
       }
     }
 
+    currentRuns = runs;
+    refreshCreateFormState();
+
     renderRuns(runs);
     renderCandidates(candidates);
     setStatus("detail-status", `Loaded project ${project.title}.`);
   } catch (error) {
     setStatus("detail-status", error.message, true);
+  }
+};
+
+const handleProjectDetailCreateSubmit = async (form) => {
+  const projectId = encodeURIComponent(bootstrap.projectId);
+  const projectBase = `${apiBase}/projects/${projectId}`;
+
+  if (form.dataset.createForm === "create-search-campaign") {
+    await runFormAction(
+      form,
+      "create-status",
+      () => postJson(`${projectBase}/search-campaigns`, buildCampaignPayload(form)),
+      "Search campaign created.",
+      async () => {
+        form.reset();
+        await loadProjectDetailPage();
+      },
+    );
+    return;
+  }
+
+  if (form.dataset.createForm === "create-search-run") {
+    const payload = buildRunPayload(form);
+    const campaignId = encodeURIComponent(payload.searchCampaignId);
+    const url = `${projectBase}/search-campaigns/${campaignId}/runs`;
+    await runFormAction(
+      form,
+      "create-status",
+      () => postJson(url, payload.body),
+      "Search run created.",
+      async () => {
+        form.reset();
+        await loadProjectDetailPage();
+      },
+    );
+    return;
+  }
+
+  if (form.dataset.createForm === "create-result-candidate") {
+    const payload = buildCandidatePayload(form);
+    const campaignId = encodeURIComponent(payload.searchCampaignId);
+    const runId = encodeURIComponent(payload.searchRunId);
+    const url = `${projectBase}/search-campaigns/${campaignId}/runs/${runId}` +
+      "/result-candidates";
+    await runFormAction(
+      form,
+      "create-status",
+      () => postJson(url, payload.body),
+      "Result candidate created.",
+      async () => {
+        form.reset();
+        await loadProjectDetailPage();
+      },
+    );
   }
 };
 
@@ -635,6 +973,23 @@ const runOperatorAction = async (button, callback, successMessage) => {
     }
   }
 };
+
+document.addEventListener("submit", async (event) => {
+  const form = event.target.closest("form[data-create-form]");
+  if (!form) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (bootstrap.page === "projects") {
+    await handleProjectsCreateSubmit(form);
+    return;
+  }
+  if (bootstrap.page === "project-detail") {
+    await handleProjectDetailCreateSubmit(form);
+  }
+});
 
 document.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action]");
@@ -730,6 +1085,45 @@ def _projects_page() -> HTMLResponse:
   </header>
 
   <section class="section-card">
+    <h2>Create Project</h2>
+    <p class="action-note">
+      Create a new Harbor project and continue directly in the operator shell.
+    </p>
+    <form id="create-project-form" data-create-form="create-project">
+      <div class="form-grid">
+        <div class="form-panel">
+          <div class="form-field">
+            <label class="form-label" for="create-project-title">Title</label>
+            <input id="create-project-title" name="title" type="text" required />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="create-project-short-description">
+              Short description
+            </label>
+            <textarea
+              id="create-project-short-description"
+              name="short_description"
+            ></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="action-button">Create project</button>
+            <span class="form-hint">
+              Defaults: status draft, type standard.
+            </span>
+          </div>
+        </div>
+      </div>
+      <p
+        class="status"
+        id="projects-create-status"
+        data-create-status="projects-create"
+      >
+        No create action executed yet.
+      </p>
+    </form>
+  </section>
+
+  <section class="section-card">
     <h2>Projects</h2>
     <p>
       Open a project to inspect workflow summary, runs, candidates,
@@ -817,6 +1211,164 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </ul>
     <p class="status" id="action-status" data-action-status="operator-actions">
       No action executed yet.
+    </p>
+  </section>
+
+  <section class="section-card">
+    <h2>Manual Create Actions</h2>
+    <p class="action-note">
+      Create the next workflow objects directly from the operator shell.
+    </p>
+    <div class="form-grid">
+      <form
+        class="form-panel"
+        id="create-search-campaign-form"
+        data-create-form="create-search-campaign"
+      >
+        <h3>Create Search Campaign</h3>
+        <div class="form-field">
+          <label class="form-label" for="create-search-campaign-title">
+            Title
+          </label>
+          <input
+            id="create-search-campaign-title"
+            name="title"
+            type="text"
+            required
+          />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-search-campaign-query-text">
+            Query text
+          </label>
+          <textarea
+            id="create-search-campaign-query-text"
+            name="query_text"
+          ></textarea>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-search-campaign-note">Note</label>
+          <input id="create-search-campaign-note" name="note" type="text" />
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="action-button">Create campaign</button>
+          <span class="form-hint">Defaults: manual, planned.</span>
+        </div>
+      </form>
+
+      <form
+        class="form-panel"
+        id="create-search-run-form"
+        data-create-form="create-search-run"
+      >
+        <h3>Create Search Run</h3>
+        <div class="form-field">
+          <label class="form-label" for="create-run-campaign-id">Campaign</label>
+          <select
+            id="create-run-campaign-id"
+            name="search_campaign_id"
+            data-create-target="campaign-select"
+            required
+            disabled
+          >
+            <option value="">Loading campaigns...</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-search-run-title">Title</label>
+          <input id="create-search-run-title" name="title" type="text" required />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-search-run-query-snapshot">
+            Query snapshot
+          </label>
+          <textarea
+            id="create-search-run-query-snapshot"
+            name="query_text_snapshot"
+          ></textarea>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-search-run-note">Note</label>
+          <input id="create-search-run-note" name="note" type="text" />
+        </div>
+        <div class="form-actions">
+          <button
+            type="submit"
+            class="action-button"
+            id="create-run-submit"
+            disabled
+          >
+            Create run
+          </button>
+          <span class="form-hint" id="create-run-hint">
+            Loading campaigns...
+          </span>
+        </div>
+      </form>
+
+      <form
+        class="form-panel"
+        id="create-result-candidate-form"
+        data-create-form="create-result-candidate"
+      >
+        <h3>Create Result Candidate</h3>
+        <div class="form-field">
+          <label class="form-label" for="create-candidate-run-id">Run</label>
+          <select
+            id="create-candidate-run-id"
+            name="search_run_id"
+            data-create-target="run-select"
+            required
+            disabled
+          >
+            <option value="">Loading runs...</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-candidate-title">Title</label>
+          <input id="create-candidate-title" name="title" type="text" required />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-candidate-url">URL</label>
+          <input id="create-candidate-url" name="url" type="url" required />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-candidate-domain">Domain</label>
+          <input id="create-candidate-domain" name="domain" type="text" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-candidate-rank">Rank</label>
+          <input id="create-candidate-rank" name="rank" type="number" min="1" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-candidate-snippet">Snippet</label>
+          <textarea id="create-candidate-snippet" name="snippet"></textarea>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="create-candidate-note">Note</label>
+          <input id="create-candidate-note" name="note" type="text" />
+        </div>
+        <div class="form-actions">
+          <button
+            type="submit"
+            class="action-button"
+            id="create-candidate-submit"
+            disabled
+          >
+            Create candidate
+          </button>
+          <span class="form-hint" id="create-candidate-hint">
+            Loading runs...
+          </span>
+        </div>
+      </form>
+    </div>
+    <p
+      class="status"
+      id="create-status"
+      data-create-status="project-create-actions"
+    >
+      No create action executed yet.
     </p>
   </section>
 
