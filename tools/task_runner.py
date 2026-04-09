@@ -14,6 +14,7 @@ from harbor.operator_surface import (
     smoke_candidate_review_promotion_slice_payload,
     smoke_handbook_slice_payload,
     smoke_local_payload,
+    smoke_operator_web_shell_slice_payload,
     smoke_project_slice_payload,
     smoke_promotion_duplicate_guard_slice_payload,
     smoke_review_queue_slice_payload,
@@ -135,6 +136,11 @@ def command_smoke_workflow_summary_slice() -> int:
     return 0
 
 
+def command_smoke_operator_web_shell_slice() -> int:
+    print_json(smoke_operator_web_shell_slice_payload())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Harbor task runner")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -156,6 +162,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("smoke-review-queue-source-promotion-slice")
     subparsers.add_parser("smoke-promotion-duplicate-guard-slice")
     subparsers.add_parser("smoke-workflow-summary-slice")
+    subparsers.add_parser("smoke-operator-web-shell-slice")
 
     return parser
 
@@ -184,6 +191,7 @@ def main() -> int:
         ),
         "smoke-promotion-duplicate-guard-slice": (command_smoke_promotion_duplicate_guard_slice),
         "smoke-workflow-summary-slice": command_smoke_workflow_summary_slice,
+        "smoke-operator-web-shell-slice": command_smoke_operator_web_shell_slice,
     }
     return command_map[args.command]()
 
