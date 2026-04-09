@@ -1540,6 +1540,7 @@ let chatHistory = [];
 let chatBusy = false;
 let currentSessionId = null;
 let currentTurnId = null;
+let lastFailedChatRequest = null;
 
 const byId = (id) => document.getElementById(id);
 
@@ -1645,6 +1646,7 @@ const syncChatControls = () => {
   const sendButton = byId("chat-send-button");
   const newSessionButton = byId("chat-new-session-button");
   const reloadButton = byId("chat-reload-projects-button");
+  const retryButton = byId("chat-retry-last-failed-button");
 
   if (projectSelect) {
     projectSelect.disabled = !hasProjects || chatBusy;
@@ -1666,6 +1668,9 @@ const syncChatControls = () => {
   }
   if (reloadButton) {
     reloadButton.disabled = chatBusy;
+  }
+  if (retryButton) {
+    retryButton.disabled = !lastFailedChatRequest || chatBusy;
   }
 };
 
@@ -1710,6 +1715,90 @@ const sessionTitle = (session) => {
 const sessionStatus = (session) => {
   const status = String(session?.last_status || "").trim();
   return status || "pending";
+};
+
+const clearFailedChatRequest = () => {
+  lastFailedChatRequest = null;
+  renderChatRetryPanel();
+};
+
+const rememberFailedChatRequest = ({
+  projectId,
+  chatSessionId,
+  inputText,
+  errorMessage,
+}) => {
+  lastFailedChatRequest = {
+    projectId,
+    chatSessionId: chatSessionId || null,
+    inputText,
+    errorMessage,
+    failedAt: new Date().toISOString(),
+  };
+  renderChatRetryPanel();
+};
+
+const renderChatRetryPanel = () => {
+  const panel = byId("chat-retry-panel");
+  const hint = byId("chat-retry-hint");
+  const retryButton = byId("chat-retry-last-failed-button");
+  if (!panel || !hint || !retryButton) {
+    return;
+  }
+
+  if (!lastFailedChatRequest) {
+    hint.textContent = "No failed message awaiting retry.";
+    retryButton.disabled = true;
+    panel.innerHTML = '<div class="empty">No failed message awaiting retry.</div>';
+    return;
+  }
+
+  const failedAt = formatDateTime(lastFailedChatRequest.failedAt) || "—";
+  const failedProjectLabel = chatProjectLabel(lastFailedChatRequest.projectId);
+  const sessionLabel = lastFailedChatRequest.chatSessionId
+    ? (chatSessions.find(
+        (session) =>
+          session.openai_project_chat_session_id === lastFailedChatRequest.chatSessionId,
+      )
+      ? sessionTitle(
+          chatSessions.find(
+            (session) =>
+              session.openai_project_chat_session_id ===
+              lastFailedChatRequest.chatSessionId,
+          ),
+        )
+      : lastFailedChatRequest.chatSessionId)
+    : "New session";
+
+  hint.textContent = (
+    "Last failed message is preserved in the composer. " +
+    "Retry or edit and send manually."
+  );
+  retryButton.disabled = chatBusy;
+  panel.innerHTML = `
+    <div class="response-grid">
+      <div class="response-card">
+        <div class="response-label">Project</div>
+        <div class="response-value">${safeText(failedProjectLabel)}</div>
+      </div>
+      <div class="response-card">
+        <div class="response-label">Session</div>
+        <div class="response-value">${safeText(sessionLabel)}</div>
+      </div>
+      <div class="response-card">
+        <div class="response-label">Failed at</div>
+        <div class="response-value">${safeText(failedAt)}</div>
+      </div>
+    </div>
+    <div class="chat-turn-detail">
+      <div class="response-label">Failure detail</div>
+      <pre class="response-pre">${safeText(lastFailedChatRequest.errorMessage)}</pre>
+    </div>
+    <div class="chat-turn-detail">
+      <div class="response-label">Retry message</div>
+      <pre class="response-pre">${safeText(lastFailedChatRequest.inputText)}</pre>
+    </div>
+  `;
 };
 
 const renderSessionSummary = () => {
@@ -1998,6 +2087,7 @@ const renderChatHistory = () => {
 
 const clearChatHistory = (text) => {
   chatHistory = [];
+  currentTurnId = null;
   const target = byId("chat-history");
   if (!target) {
     return;
@@ -2008,6 +2098,59 @@ const clearChatHistory = (text) => {
 };
 
 const selectedProjectId = () => String(byId("chat-project-id")?.value || "").trim();
+
+const persistChatTurn = async ({ projectId, inputText, chatSessionId }) => {
+  return postJson(
+    `${apiBase}/openai/projects/${encodeURIComponent(projectId)}/chat-turns`,
+    {
+      input_text: inputText,
+      chat_session_id: chatSessionId,
+    },
+  );
+};
+
+const retryFailedChatMessage = async () => {
+  if (chatBusy || !lastFailedChatRequest) {
+    return;
+  }
+
+  const failedRequest = { ...lastFailedChatRequest };
+  const input = byId("chat-input-text");
+  if (input) {
+    input.value = failedRequest.inputText;
+  }
+
+  chatBusy = true;
+  syncChatControls();
+  setChatStatus("Retrying failed Harbor chat turn...", "info");
+
+  try {
+    const payload = await persistChatTurn({
+      projectId: failedRequest.projectId,
+      inputText: failedRequest.inputText,
+      chatSessionId: failedRequest.chatSessionId,
+    });
+
+    currentSessionId = payload.session.openai_project_chat_session_id;
+    await loadChatSessions(failedRequest.projectId, currentSessionId);
+    if (input) {
+      input.value = "";
+    }
+    clearFailedChatRequest();
+    setChatStatus("Failed chat turn retried successfully.", "success");
+  } catch (error) {
+    rememberFailedChatRequest({
+      projectId: failedRequest.projectId,
+      chatSessionId: failedRequest.chatSessionId,
+      inputText: failedRequest.inputText,
+      errorMessage: error.message,
+    });
+    setChatStatus(`Retry failed: ${error.message}`, "error");
+  } finally {
+    chatBusy = false;
+    syncChatControls();
+  }
+};
 
 const loadChatTurns = async (projectId, chatSessionId) => {
   if (!chatSessionId) {
@@ -2062,6 +2205,7 @@ const loadChatProjects = async () => {
 
     if (!chatProjects.length) {
       chatSessions = [];
+      clearFailedChatRequest();
       renderSessionOptions();
       clearChatHistory("No projects available.");
       setChatStatus(
@@ -2072,8 +2216,14 @@ const loadChatProjects = async () => {
     }
 
     await loadChatSessions(selectedProjectId(), currentSessionId);
+    if (lastFailedChatRequest && selectedProjectId() !== lastFailedChatRequest.projectId) {
+      clearFailedChatRequest();
+    } else {
+      renderChatRetryPanel();
+    }
     renderSessionSummary();
   } catch (error) {
+    clearFailedChatRequest();
     setChatStatus(error.message, "error");
     clearChatHistory("Load failed.");
   } finally {
@@ -2085,6 +2235,7 @@ const loadChatProjects = async () => {
 const startNewChatSession = () => {
   currentSessionId = null;
   currentTurnId = null;
+  clearFailedChatRequest();
   renderSessionOptions();
   clearChatHistory("New session not yet persisted. Send a message to start it.");
   renderSessionSummary();
@@ -2115,20 +2266,28 @@ const submitChatMessage = async (event) => {
   setChatStatus("Persisting chat turn through Harbor...", "info");
 
   try {
-    const payload = await postJson(
-      `${apiBase}/openai/projects/${encodeURIComponent(projectId)}/chat-turns`,
-      {
-        input_text: inputText,
-        chat_session_id: currentSessionId,
-      },
-    );
+    const payload = await persistChatTurn({
+      projectId,
+      inputText,
+      chatSessionId: currentSessionId,
+    });
 
     currentSessionId = payload.session.openai_project_chat_session_id;
     await loadChatSessions(projectId, currentSessionId);
     byId("chat-input-text").value = "";
+    clearFailedChatRequest();
     setChatStatus("Chat turn persisted to Harbor session history.", "success");
   } catch (error) {
-    setChatStatus(error.message, "error");
+    rememberFailedChatRequest({
+      projectId,
+      chatSessionId: currentSessionId,
+      inputText,
+      errorMessage: error.message,
+    });
+    setChatStatus(
+      `Chat turn failed: ${error.message}. Message preserved for retry.`,
+      "error",
+    );
   } finally {
     chatBusy = false;
     syncChatControls();
@@ -2146,12 +2305,16 @@ document.addEventListener("click", async (event) => {
   if (button.dataset.chatAction === "new-session") {
     startNewChatSession();
   }
+  if (button.dataset.chatAction === "retry-last-failed") {
+    await retryFailedChatMessage();
+  }
 });
 
 document.addEventListener("change", async (event) => {
   const projectSelect = event.target.closest("#chat-project-id");
   if (projectSelect) {
     currentSessionId = null;
+    clearFailedChatRequest();
     await loadChatSessions(selectedProjectId());
     return;
   }
@@ -2160,6 +2323,7 @@ document.addEventListener("change", async (event) => {
   if (sessionSelect) {
     currentSessionId = String(sessionSelect.value || "").trim() || null;
     currentTurnId = null;
+    clearFailedChatRequest();
     if (currentSessionId) {
       await loadChatTurns(selectedProjectId(), currentSessionId);
       renderSessionSummary();
@@ -2190,6 +2354,7 @@ document.addEventListener("submit", async (event) => {
 });
 
 clearChatHistory("Loading Harbor projects...");
+renderChatRetryPanel();
 loadChatProjects();
 """
 
@@ -2911,11 +3076,27 @@ def _chat_page() -> HTMLResponse:
         >
           Send message
         </button>
-        <span class="form-hint">
-          Uses the persisted Harbor chat-turn surface. No automation.
+        <button
+          type="button"
+          class="action-button secondary"
+          id="chat-retry-last-failed-button"
+          data-chat-action="retry-last-failed"
+          disabled
+        >
+          Retry last failed message
+        </button>
+        <span class="form-hint" id="chat-retry-hint">
+          No failed message awaiting retry.
         </span>
       </div>
     </form>
+    <div
+      id="chat-retry-panel"
+      class="chat-inspector"
+      data-chat-retry-panel="persisted-chat"
+    >
+      <div class="empty">No failed message awaiting retry.</div>
+    </div>
   </section>
 
   <section class="section-card">

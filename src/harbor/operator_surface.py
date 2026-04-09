@@ -1201,6 +1201,12 @@ def smoke_chat_surface_slice_payload() -> dict[str, object]:
                 "chat_page_has_turn_inspector": (
                     'data-chat-turn-inspector="persisted-chat"' in chat_page.text
                 ),
+                "chat_page_has_retry_panel": (
+                    'data-chat-retry-panel="persisted-chat"' in chat_page.text
+                ),
+                "chat_page_has_retry_button": (
+                    'data-chat-action="retry-last-failed"' in chat_page.text
+                ),
                 "chat_page_has_new_session_button": (
                     'data-chat-action="new-session"' in chat_page.text
                 ),
