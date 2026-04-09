@@ -349,3 +349,39 @@ class ReviewQueueItemRecord(Base):
         default=utcnow,
         onupdate=utcnow,
     )
+
+
+def default_openai_project_dry_run_log_id() -> str:
+    return str(uuid.uuid4())
+
+
+class OpenAIProjectDryRunLogRecord(Base):
+    __tablename__ = "openai_project_dry_run_log_registry"
+
+    openai_project_dry_run_log_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_openai_project_dry_run_log_id,
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("project_registry.project_id"),
+        nullable=False,
+    )
+    provider: Mapped[str] = mapped_column(String(32), nullable=False, default="openai")
+    model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    response_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    response_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_input_text: Mapped[str] = mapped_column(Text(), nullable=False)
+    request_instructions: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    request_instructions_source: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    rendered_input_text: Mapped[str] = mapped_column(Text(), nullable=False)
+    output_text: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    error_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )

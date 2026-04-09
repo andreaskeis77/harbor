@@ -196,12 +196,23 @@ def test_openai_project_dry_run_project_not_found(project_client: TestClient) ->
     assert response.json()["detail"] == "Project not found."
 
 
+def test_openai_project_dry_run_logs_project_not_found(
+    project_client: TestClient,
+) -> None:
+    response = project_client.get("/api/v1/openai/projects/not-found/dry-run-logs")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Project not found."
+
+
 def test_openai_project_dry_run_not_configured(project_client: TestClient) -> None:
     project = _create_project(project_client)
 
     response = project_client.post(
         f"/api/v1/openai/projects/{project['project_id']}/dry-run",
-        json={"input_text": "Summarize the project focus."},
+        json={
+            "input_text": "Summarize the project focus.",
+            "persist": True,
+        },
     )
     assert response.status_code == 200
     payload = response.json()
@@ -210,6 +221,16 @@ def test_openai_project_dry_run_not_configured(project_client: TestClient) -> No
     assert payload["request"]["instructions_source"] == "default"
     assert payload["request"]["store"] is False
     assert "Harbor project context:" in payload["request"]["rendered_input_text"]
+    assert payload["persisted"] is True
+    assert payload["log"]["status"] == "not_configured"
+
+    logs_response = project_client.get(
+        f"/api/v1/openai/projects/{project['project_id']}/dry-run-logs"
+    )
+    assert logs_response.status_code == 200
+    logs_payload = logs_response.json()
+    assert len(logs_payload["items"]) == 1
+    assert logs_payload["items"][0]["request_input_text"] == "Summarize the project focus."
 
 
 def test_openai_project_dry_run_with_fake_client(
@@ -233,6 +254,7 @@ def test_openai_project_dry_run_with_fake_client(
         json={
             "instructions": "Return a compact research note.",
             "input_text": "Summarize the project focus.",
+            "persist": True,
         },
     )
 
@@ -243,6 +265,16 @@ def test_openai_project_dry_run_with_fake_client(
     assert payload["request"]["instructions_source"] == "custom"
     assert payload["response_id"] == "resp_test_project_dry_run"
     assert payload["output_text"] == "PROJECT OK"
+    assert payload["persisted"] is True
+    assert payload["log"]["response_id"] == "resp_test_project_dry_run"
+
+    logs_response = project_client.get(
+        f"/api/v1/openai/projects/{project['project_id']}/dry-run-logs"
+    )
+    assert logs_response.status_code == 200
+    logs_payload = logs_response.json()
+    assert len(logs_payload["items"]) == 1
+    assert logs_payload["items"][0]["status"] == "completed"
 
     monkeypatch.delenv("HARBOR_OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("HARBOR_OPENAI_MODEL", raising=False)

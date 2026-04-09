@@ -1257,6 +1257,9 @@ def smoke_operator_web_shell_slice_payload() -> dict[str, object]:
                 "detail_page_has_openai_response": (
                     'data-openai-response="project-dry-run"' in detail_page.text
                 ),
+                "detail_page_has_openai_history": (
+                    'data-openai-history="project-dry-run"' in detail_page.text
+                ),
                 "project": project.json(),
                 "campaign": campaign.json(),
                 "search_run": search_run.json(),

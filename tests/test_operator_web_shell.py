@@ -133,6 +133,8 @@ def test_operator_project_detail_contains_openai_dry_run_markers(
     assert 'data-openai-form="project-dry-run"' in response.text
     assert 'data-openai-status="project-dry-run"' in response.text
     assert 'data-openai-response="project-dry-run"' in response.text
+    assert 'data-openai-history="project-dry-run"' in response.text
     assert 'id="openai-dry-run-input-text"' in response.text
     assert 'id="openai-dry-run-instructions"' in response.text
+    assert 'id="openai-dry-run-persist"' in response.text
     assert 'id="openai-dry-run-output-text"' in response.text
