@@ -155,6 +155,48 @@ class _FakeProjectDryRunClient:
         self.responses = _FakeProjectDryRunResponses()
 
 
+class _FakeChatTurnResponse:
+    def __init__(self, response_id: str, output_text: str) -> None:
+        self.id = response_id
+        self.status = "completed"
+        self.output_text = output_text
+
+
+class _FakeChatTurnResponses:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def create(
+        self,
+        *,
+        model: str,
+        instructions: str,
+        input: str,
+        store: bool,
+    ) -> _FakeChatTurnResponse:
+        assert model == "gpt-5"
+        assert store is False
+        self.calls += 1
+
+        if self.calls == 1:
+            assert instructions
+            assert "Harbor project context:" in input
+            assert "Prior chat turns:" not in input
+            assert "Operator message:\nHello Harbor." in input
+            return _FakeChatTurnResponse("resp_test_chat_turn_1", "CHAT ONE")
+
+        assert "Prior chat turns:" in input
+        assert "- Operator: Hello Harbor." in input
+        assert "- Assistant: CHAT ONE" in input
+        assert "Operator message:\nGive me the next step." in input
+        return _FakeChatTurnResponse("resp_test_chat_turn_2", "CHAT TWO")
+
+
+class _FakeChatTurnClient:
+    def __init__(self) -> None:
+        self.responses = _FakeChatTurnResponses()
+
+
 def test_openai_probe_live_call_with_fake_client(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("HARBOR_OPENAI_API_KEY", "test-openai-key")
     monkeypatch.setenv("HARBOR_OPENAI_MODEL", "gpt-5")
@@ -275,6 +317,115 @@ def test_openai_project_dry_run_with_fake_client(
     logs_payload = logs_response.json()
     assert len(logs_payload["items"]) == 1
     assert logs_payload["items"][0]["status"] == "completed"
+
+    monkeypatch.delenv("HARBOR_OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("HARBOR_OPENAI_MODEL", raising=False)
+    clear_settings_cache()
+
+
+def test_openai_project_chat_sessions_project_not_found(
+    project_client: TestClient,
+) -> None:
+    response = project_client.get("/api/v1/openai/projects/not-found/chat-sessions")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Project not found."
+
+
+def test_openai_project_chat_turn_not_configured(
+    project_client: TestClient,
+) -> None:
+    project = _create_project(project_client)
+
+    response = project_client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-turns",
+        json={"input_text": "Hello Harbor."},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "not_configured"
+    assert payload["session"]["project_id"] == project["project_id"]
+    assert payload["turn"]["request_input_text"] == "Hello Harbor."
+
+    sessions_response = project_client.get(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-sessions"
+    )
+    assert sessions_response.status_code == 200
+    sessions_payload = sessions_response.json()
+    assert len(sessions_payload["items"]) == 1
+
+    session_id = sessions_payload["items"][0]["openai_project_chat_session_id"]
+    turns_response = project_client.get(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-sessions/{session_id}/turns"
+    )
+    assert turns_response.status_code == 200
+    turns_payload = turns_response.json()
+    assert len(turns_payload["items"]) == 1
+    assert turns_payload["items"][0]["status"] == "not_configured"
+
+
+def test_openai_project_chat_turn_with_fake_client(
+    project_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = _create_project(project_client)
+    monkeypatch.setenv("HARBOR_OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setenv("HARBOR_OPENAI_MODEL", "gpt-5")
+    clear_settings_cache()
+
+    monkeypatch.setattr(openai_adapter_module, "openai_sdk_available", lambda: True)
+    fake_client = _FakeChatTurnClient()
+    monkeypatch.setattr(
+        openai_adapter_module,
+        "build_openai_client",
+        lambda settings, client_factory=None: fake_client,
+    )
+
+    first_response = project_client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-turns",
+        json={"input_text": "Hello Harbor."},
+    )
+    assert first_response.status_code == 200
+    first_payload = first_response.json()
+    assert first_payload["status"] == "completed"
+    assert first_payload["turn"]["turn_index"] == 1
+    assert first_payload["output_text"] == "CHAT ONE"
+
+    session_id = first_payload["session"]["openai_project_chat_session_id"]
+    second_response = project_client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-turns",
+        json={
+            "chat_session_id": session_id,
+            "input_text": "Give me the next step.",
+        },
+    )
+    assert second_response.status_code == 200
+    second_payload = second_response.json()
+    assert second_payload["status"] == "completed"
+    assert second_payload["turn"]["turn_index"] == 2
+    assert second_payload["request"]["prior_turn_count"] == 1
+    assert second_payload["output_text"] == "CHAT TWO"
+
+    sessions_response = project_client.get(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-sessions"
+    )
+    assert sessions_response.status_code == 200
+    sessions_payload = sessions_response.json()
+    assert len(sessions_payload["items"]) == 1
+    assert sessions_payload["items"][0]["turn_count"] == 2
+
+    turns_response = project_client.get(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-sessions/{session_id}/turns"
+    )
+    assert turns_response.status_code == 200
+    turns_payload = turns_response.json()
+    assert len(turns_payload["items"]) == 2
+    assert turns_payload["items"][1]["response_id"] == "resp_test_chat_turn_2"
+
+    missing_session_response = project_client.get(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-sessions/not-found/turns"
+    )
+    assert missing_session_response.status_code == 404
+    assert missing_session_response.json()["detail"] == "Chat session not found."
 
     monkeypatch.delenv("HARBOR_OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("HARBOR_OPENAI_MODEL", raising=False)

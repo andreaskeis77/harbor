@@ -14,6 +14,11 @@ DEFAULT_PROJECT_DRY_RUN_INSTRUCTIONS = (
     "say so briefly."
 )
 
+DEFAULT_PROJECT_CHAT_TURN_INSTRUCTIONS = (
+    "You are Harbor chat assistant for a research operator. Use the supplied project context "
+    "and any provided prior chat turns. Keep the answer compact and do not invent missing facts."
+)
+
 
 class OpenAIProbeError(RuntimeError):
     pass
@@ -97,6 +102,103 @@ def build_project_dry_run_input(
             input_text,
         ]
     )
+
+
+def build_project_chat_turn_input(
+    project_context: Mapping[str, object],
+    input_text: str,
+    *,
+    prior_turns: list[Mapping[str, object]] | None = None,
+) -> str:
+    lines = [
+        "Harbor project context:",
+        f"- project_id: {_context_value(project_context, 'project_id')}",
+        f"- title: {_context_value(project_context, 'title')}",
+        f"- short_description: {_context_value(project_context, 'short_description')}",
+        f"- status: {_context_value(project_context, 'status')}",
+        f"- project_type: {_context_value(project_context, 'project_type')}",
+        f"- blueprint_status: {_context_value(project_context, 'blueprint_status')}",
+        "",
+    ]
+
+    turns = prior_turns or []
+    if turns:
+        lines.extend(["Prior chat turns:"])
+        for turn in turns:
+            assistant_text = turn.get("output_text") or turn.get("error_message")
+            lines.append(f"- Operator: {_context_value(turn, 'request_input_text')}")
+            if assistant_text is not None:
+                lines.append(f"- Assistant: {assistant_text}")
+            else:
+                lines.append("- Assistant: (no response)")
+        lines.append("")
+
+    lines.extend(["Operator message:", input_text])
+    return "\n".join(lines)
+
+
+def openai_project_chat_turn_payload(
+    settings: HarborSettings | None = None,
+    *,
+    project_context: Mapping[str, object],
+    input_text: str,
+    prior_turns: list[Mapping[str, object]] | None = None,
+    instructions: str | None = None,
+    client_factory: ClientFactory | None = None,
+) -> dict[str, object]:
+    settings = settings or get_settings()
+    effective_instructions = instructions or DEFAULT_PROJECT_CHAT_TURN_INSTRUCTIONS
+    instructions_source = "custom" if instructions else "default"
+    rendered_input_text = build_project_chat_turn_input(
+        project_context,
+        input_text,
+        prior_turns=prior_turns,
+    )
+    payload: dict[str, object] = {
+        **openai_runtime_payload(settings),
+        "status": "pending",
+        "project": dict(project_context),
+        "request": {
+            "instructions": effective_instructions,
+            "instructions_source": instructions_source,
+            "input_text": input_text,
+            "rendered_input_text": rendered_input_text,
+            "store": False,
+            "prior_turn_count": len(prior_turns or []),
+        },
+        "response_id": None,
+        "response_status": None,
+        "output_text": None,
+        "error_type": None,
+        "error_message": None,
+    }
+
+    if not settings.openai_configured:
+        payload["status"] = "not_configured"
+        return payload
+
+    if not openai_sdk_available() and client_factory is None:
+        payload["status"] = "sdk_unavailable"
+        return payload
+
+    try:
+        client = build_openai_client(settings=settings, client_factory=client_factory)
+        response = client.responses.create(
+            model=settings.openai_model,
+            instructions=effective_instructions,
+            input=rendered_input_text,
+            store=False,
+        )
+        payload["status"] = "completed"
+        payload["response_id"] = _response_attr(response, "id")
+        payload["response_status"] = _response_attr(response, "status")
+        payload["output_text"] = _response_output_text(response)
+        return payload
+    except Exception as exc:  # pragma: no cover - defensive envelope for chat turns
+        payload["status"] = "error"
+        payload["error_type"] = exc.__class__.__name__
+        payload["error_message"] = str(exc)
+        return payload
 
 
 def openai_probe_payload(

@@ -351,6 +351,84 @@ class ReviewQueueItemRecord(Base):
     )
 
 
+def default_openai_project_chat_session_id() -> str:
+    return str(uuid.uuid4())
+
+
+def default_openai_project_chat_turn_id() -> str:
+    return str(uuid.uuid4())
+
+
+class OpenAIProjectChatSessionRecord(Base):
+    __tablename__ = "openai_project_chat_session_registry"
+
+    openai_project_chat_session_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_openai_project_chat_session_id,
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("project_registry.project_id"),
+        nullable=False,
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )
+
+
+class OpenAIProjectChatTurnRecord(Base):
+    __tablename__ = "openai_project_chat_turn_registry"
+    __table_args__ = (
+        UniqueConstraint(
+            "openai_project_chat_session_id",
+            "turn_index",
+            name="uq_openai_project_chat_turn_registry_session_turn",
+        ),
+    )
+
+    openai_project_chat_turn_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_openai_project_chat_turn_id,
+    )
+    openai_project_chat_session_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("openai_project_chat_session_registry.openai_project_chat_session_id"),
+        nullable=False,
+    )
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("project_registry.project_id"),
+        nullable=False,
+    )
+    turn_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False, default="openai")
+    model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    response_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    response_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_input_text: Mapped[str] = mapped_column(Text(), nullable=False)
+    rendered_input_text: Mapped[str] = mapped_column(Text(), nullable=False)
+    output_text: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    error_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+
+
 def default_openai_project_dry_run_log_id() -> str:
     return str(uuid.uuid4())
 

@@ -10,6 +10,7 @@ from harbor.openai_operator_surface import (
     probe_openai_payload,
     show_openai_settings_payload,
     smoke_openai_adapter_slice_payload,
+    smoke_openai_chat_session_slice_payload,
     smoke_openai_project_dry_run_slice_payload,
 )
 from harbor.operator_surface import (
@@ -168,6 +169,11 @@ def command_smoke_chat_surface_slice() -> int:
     return 0
 
 
+def command_smoke_openai_chat_session_slice() -> int:
+    print_json(smoke_openai_chat_session_slice_payload())
+    return 0
+
+
 def command_smoke_openai_adapter_slice() -> int:
     print_json(smoke_openai_adapter_slice_payload())
     return 0
@@ -204,6 +210,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("smoke-workflow-summary-slice")
     subparsers.add_parser("smoke-operator-web-shell-slice")
     subparsers.add_parser("smoke-chat-surface-slice")
+    subparsers.add_parser("smoke-openai-chat-session-slice")
     subparsers.add_parser("smoke-openai-adapter-slice")
     subparsers.add_parser("smoke-openai-project-dry-run-slice")
 
@@ -239,6 +246,7 @@ def main() -> int:
         "smoke-workflow-summary-slice": command_smoke_workflow_summary_slice,
         "smoke-operator-web-shell-slice": command_smoke_operator_web_shell_slice,
         "smoke-chat-surface-slice": command_smoke_chat_surface_slice,
+        "smoke-openai-chat-session-slice": command_smoke_openai_chat_session_slice,
         "smoke-openai-adapter-slice": command_smoke_openai_adapter_slice,
         "smoke-openai-project-dry-run-slice": command_smoke_openai_project_dry_run_slice,
     }
