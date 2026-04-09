@@ -1191,6 +1191,12 @@ def smoke_chat_surface_slice_payload() -> dict[str, object]:
                 "chat_page_has_history": ('data-chat-history="persisted-chat"' in chat_page.text),
                 "chat_page_has_project_select": 'id="chat-project-id"' in chat_page.text,
                 "chat_page_has_session_select": 'id="chat-session-id"' in chat_page.text,
+                "chat_page_has_session_summary": (
+                    'data-chat-session-summary="persisted-chat"' in chat_page.text
+                ),
+                "chat_page_has_session_meta": (
+                    'data-chat-session-meta="persisted-chat"' in chat_page.text
+                ),
                 "chat_page_has_turn_select": 'id="chat-turn-id"' in chat_page.text,
                 "chat_page_has_turn_inspector": (
                     'data-chat-turn-inspector="persisted-chat"' in chat_page.text

@@ -149,6 +149,8 @@ def test_chat_page_contains_shell_and_markers(client: TestClient) -> None:
     assert 'data-chat-history="persisted-chat"' in response.text
     assert 'id="chat-project-id"' in response.text
     assert 'id="chat-session-id"' in response.text
+    assert 'data-chat-session-summary="persisted-chat"' in response.text
+    assert 'data-chat-session-meta="persisted-chat"' in response.text
     assert 'id="chat-turn-id"' in response.text
     assert 'data-chat-turn-inspector="persisted-chat"' in response.text
     assert 'data-chat-action="new-session"' in response.text
