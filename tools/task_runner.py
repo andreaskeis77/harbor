@@ -6,6 +6,11 @@ import sys
 from pathlib import Path
 
 from harbor.config import get_settings
+from harbor.openai_operator_surface import (
+    probe_openai_payload,
+    show_openai_settings_payload,
+    smoke_openai_adapter_slice_payload,
+)
 from harbor.operator_surface import (
     database_status_for_operator,
     print_json,
@@ -67,6 +72,21 @@ def command_show_db_settings() -> int:
 
 def command_db_status() -> int:
     print_json(database_status_for_operator())
+    return 0
+
+
+def command_show_openai_settings() -> int:
+    print_json(show_openai_settings_payload())
+    return 0
+
+
+def command_probe_openai() -> int:
+    print_json(probe_openai_payload(live_call=False))
+    return 0
+
+
+def command_probe_openai_live() -> int:
+    print_json(probe_openai_payload(live_call=True))
     return 0
 
 
@@ -141,6 +161,11 @@ def command_smoke_operator_web_shell_slice() -> int:
     return 0
 
 
+def command_smoke_openai_adapter_slice() -> int:
+    print_json(smoke_openai_adapter_slice_payload())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Harbor task runner")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -150,6 +175,9 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("show-settings")
     subparsers.add_parser("show-db-settings")
     subparsers.add_parser("db-status")
+    subparsers.add_parser("show-openai-settings")
+    subparsers.add_parser("probe-openai")
+    subparsers.add_parser("probe-openai-live")
     subparsers.add_parser("smoke-local")
     subparsers.add_parser("smoke-project-slice")
     subparsers.add_parser("smoke-handbook-slice")
@@ -163,6 +191,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("smoke-promotion-duplicate-guard-slice")
     subparsers.add_parser("smoke-workflow-summary-slice")
     subparsers.add_parser("smoke-operator-web-shell-slice")
+    subparsers.add_parser("smoke-openai-adapter-slice")
 
     return parser
 
@@ -177,6 +206,9 @@ def main() -> int:
         "show-settings": command_show_settings,
         "show-db-settings": command_show_db_settings,
         "db-status": command_db_status,
+        "show-openai-settings": command_show_openai_settings,
+        "probe-openai": command_probe_openai,
+        "probe-openai-live": command_probe_openai_live,
         "smoke-local": command_smoke_local,
         "smoke-project-slice": command_smoke_project_slice,
         "smoke-handbook-slice": command_smoke_handbook_slice,
@@ -192,6 +224,7 @@ def main() -> int:
         "smoke-promotion-duplicate-guard-slice": (command_smoke_promotion_duplicate_guard_slice),
         "smoke-workflow-summary-slice": command_smoke_workflow_summary_slice,
         "smoke-operator-web-shell-slice": command_smoke_operator_web_shell_slice,
+        "smoke-openai-adapter-slice": command_smoke_openai_adapter_slice,
     }
     return command_map[args.command]()
 
