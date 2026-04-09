@@ -10,6 +10,7 @@ from harbor.openai_operator_surface import (
     probe_openai_payload,
     show_openai_settings_payload,
     smoke_openai_adapter_slice_payload,
+    smoke_openai_project_dry_run_slice_payload,
 )
 from harbor.operator_surface import (
     database_status_for_operator,
@@ -166,6 +167,11 @@ def command_smoke_openai_adapter_slice() -> int:
     return 0
 
 
+def command_smoke_openai_project_dry_run_slice() -> int:
+    print_json(smoke_openai_project_dry_run_slice_payload())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Harbor task runner")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -192,6 +198,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("smoke-workflow-summary-slice")
     subparsers.add_parser("smoke-operator-web-shell-slice")
     subparsers.add_parser("smoke-openai-adapter-slice")
+    subparsers.add_parser("smoke-openai-project-dry-run-slice")
 
     return parser
 
@@ -221,10 +228,11 @@ def main() -> int:
         "smoke-review-queue-source-promotion-slice": (
             command_smoke_review_queue_source_promotion_slice
         ),
-        "smoke-promotion-duplicate-guard-slice": (command_smoke_promotion_duplicate_guard_slice),
+        "smoke-promotion-duplicate-guard-slice": command_smoke_promotion_duplicate_guard_slice,
         "smoke-workflow-summary-slice": command_smoke_workflow_summary_slice,
         "smoke-operator-web-shell-slice": command_smoke_operator_web_shell_slice,
         "smoke-openai-adapter-slice": command_smoke_openai_adapter_slice,
+        "smoke-openai-project-dry-run-slice": command_smoke_openai_project_dry_run_slice,
     }
     return command_map[args.command]()
 
