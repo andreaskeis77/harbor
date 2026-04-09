@@ -14,7 +14,9 @@ from harbor.persistence.session import build_engine
 @pytest.fixture()
 def client(tmp_path):
     db_file = tmp_path / "operator_web_shell_test.db"
-    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = f"sqlite+pysqlite:///{db_file.as_posix()}"
+    os.environ["HARBOR_SQLALCHEMY_DATABASE_URL"] = (
+        f"sqlite+pysqlite:///{db_file.as_posix()}"
+    )
     clear_settings_cache()
 
     settings = HarborSettings()
@@ -58,6 +60,13 @@ def test_operator_projects_page_contains_shell_and_bootstrap(client: TestClient)
     assert '"apiBase": "/api/v1"' in response.text
 
 
+def test_operator_projects_page_contains_reload_marker(client: TestClient) -> None:
+    response = client.get("/operator/projects")
+    assert response.status_code == 200
+    assert 'id="projects-reload-button"' in response.text
+    assert 'data-action="reload-projects"' in response.text
+
+
 def test_operator_project_detail_contains_markers(client: TestClient) -> None:
     project = create_project(client)
 
@@ -66,6 +75,15 @@ def test_operator_project_detail_contains_markers(client: TestClient) -> None:
     assert 'data-operator-shell="project-detail"' in response.text
     assert project["project_id"] in response.text
     assert 'data-summary-mount="workflow-summary"' in response.text
+
+
+def test_operator_project_detail_contains_reload_marker(client: TestClient) -> None:
+    project = create_project(client)
+
+    response = client.get(f"/operator/projects/{project['project_id']}")
+    assert response.status_code == 200
+    assert 'id="project-detail-reload-button"' in response.text
+    assert 'data-action="reload-project-detail"' in response.text
 
 
 def test_operator_project_detail_contains_action_markers(client: TestClient) -> None:

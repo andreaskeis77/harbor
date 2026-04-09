@@ -50,7 +50,12 @@ code.page-code {
 }
 .status {
   margin: 12px 0 0;
+}
+.status.info {
   color: #bfdbfe;
+}
+.status.success {
+  color: #86efac;
 }
 .status.error {
   color: #fca5a5;
@@ -148,6 +153,14 @@ td {
 .action-button:hover {
   background: #2563eb;
 }
+.action-button.secondary {
+  background: #1e293b;
+  border-color: #475569;
+  color: #e5e7eb;
+}
+.action-button.secondary:hover {
+  background: #334155;
+}
 .action-button[disabled] {
   opacity: 0.65;
   cursor: progress;
@@ -219,6 +232,8 @@ const apiBase = bootstrap.apiBase;
 let currentProject = null;
 let currentCampaigns = [];
 let currentRuns = [];
+let projectsLoadToken = 0;
+let detailLoadToken = 0;
 
 const byId = (id) => document.getElementById(id);
 
@@ -255,13 +270,15 @@ const emptyRow = (colspan, text = "No items.") => (
   `<tr><td colspan="${colspan}" class="empty">${safeText(text)}</td></tr>`
 );
 
-const setStatus = (id, text, isError = false) => {
+const setStatus = (id, text, kind = "info") => {
   const target = byId(id);
   if (!target) {
     return;
   }
   target.textContent = text;
-  target.classList.toggle("error", isError);
+  target.classList.remove("info", "success", "error");
+  target.classList.add(kind);
+  target.dataset.statusKind = kind;
 };
 
 const parseErrorDetail = async (response) => {
@@ -347,10 +364,125 @@ const setSelectOptions = (element, options, emptyLabel) => {
   element.value = "";
 };
 
-const refreshCreateFormState = () => {
+const setControlsDisabled = (root, disabled) => {
+  if (!root) {
+    return;
+  }
+  for (const element of root.querySelectorAll("button, input, select, textarea")) {
+    element.disabled = disabled;
+  }
+};
+
+const setButtonsDisabled = (selector, disabled) => {
+  for (const element of document.querySelectorAll(selector)) {
+    element.disabled = disabled;
+  }
+};
+
+const setTableBodyMessage = (id, colspan, text) => {
+  const body = byId(id);
+  if (!body) {
+    return;
+  }
+  body.innerHTML = emptyRow(colspan, text);
+};
+
+const renderSummaryMessage = (text) => {
+  const target = byId("workflow-summary-grid");
+  if (!target) {
+    return;
+  }
+  target.innerHTML = `<div class="empty">${safeText(text)}</div>`;
+};
+
+const setProjectsPageDisabled = (disabled) => {
+  setControlsDisabled(byId("create-project-form"), disabled);
+  const reloadButton = byId("projects-reload-button");
+  if (reloadButton) {
+    reloadButton.disabled = disabled;
+  }
+};
+
+const setProjectInteractionDisabled = (disabled) => {
+  for (const form of document.querySelectorAll('form[data-create-form]')) {
+    setControlsDisabled(form, disabled);
+  }
+  setButtonsDisabled('button[data-action]', disabled);
+  const reloadButton = byId("project-detail-reload-button");
+  if (reloadButton) {
+    reloadButton.disabled = disabled;
+  }
+};
+
+const setProjectDetailLoadingState = () => {
+  renderSummaryMessage("Loading workflow summary...");
+  setTableBodyMessage("campaigns-table-body", 6, "Loading...");
+  setTableBodyMessage("runs-table-body", 6, "Loading...");
+  setTableBodyMessage("candidates-table-body", 7, "Loading...");
+  setTableBodyMessage("review-queue-table-body", 7, "Loading...");
+  setTableBodyMessage("project-sources-table-body", 6, "Loading...");
+  setTableBodyMessage("lineage-table-body", 6, "Loading...");
+  currentCampaigns = [];
+  currentRuns = [];
+  refreshCreateFormState("loading");
+};
+
+const setProjectDetailErrorState = () => {
+  renderSummaryMessage("Workflow summary unavailable.");
+  setTableBodyMessage("campaigns-table-body", 6, "Load failed.");
+  setTableBodyMessage("runs-table-body", 6, "Load failed.");
+  setTableBodyMessage("candidates-table-body", 7, "Load failed.");
+  setTableBodyMessage("review-queue-table-body", 7, "Load failed.");
+  setTableBodyMessage("project-sources-table-body", 6, "Load failed.");
+  setTableBodyMessage("lineage-table-body", 6, "Load failed.");
+  currentCampaigns = [];
+  currentRuns = [];
+  refreshCreateFormState("error");
+};
+
+const refreshCreateFormState = (mode = "ready") => {
   const campaignSelect = byId("create-run-campaign-id");
   const runSubmit = byId("create-run-submit");
   const runHint = byId("create-run-hint");
+  const runSelect = byId("create-candidate-run-id");
+  const candidateSubmit = byId("create-candidate-submit");
+  const candidateHint = byId("create-candidate-hint");
+
+  if (mode === "loading") {
+    setSelectOptions(campaignSelect, [], "Loading campaigns...");
+    setSelectOptions(runSelect, [], "Loading runs...");
+    if (runSubmit) {
+      runSubmit.disabled = true;
+    }
+    if (candidateSubmit) {
+      candidateSubmit.disabled = true;
+    }
+    if (runHint) {
+      runHint.textContent = "Loading campaigns...";
+    }
+    if (candidateHint) {
+      candidateHint.textContent = "Loading runs...";
+    }
+    return;
+  }
+
+  if (mode === "error") {
+    setSelectOptions(campaignSelect, [], "Load failed.");
+    setSelectOptions(runSelect, [], "Load failed.");
+    if (runSubmit) {
+      runSubmit.disabled = true;
+    }
+    if (candidateSubmit) {
+      candidateSubmit.disabled = true;
+    }
+    if (runHint) {
+      runHint.textContent = "Project detail load failed.";
+    }
+    if (candidateHint) {
+      candidateHint.textContent = "Project detail load failed.";
+    }
+    return;
+  }
 
   const campaignOptions = currentCampaigns.map((item) => ({
     value: item.search_campaign_id,
@@ -379,9 +511,6 @@ const refreshCreateFormState = () => {
     label: `${item.title} — ${campaignTitleById.get(item.search_campaign_id) || "Run"}`,
   }));
 
-  const runSelect = byId("create-candidate-run-id");
-  const candidateSubmit = byId("create-candidate-submit");
-  const candidateHint = byId("create-candidate-hint");
   setSelectOptions(runSelect, runOptions, "No runs available.");
 
   const hasRuns = currentRuns.length > 0;
@@ -399,27 +528,54 @@ const refreshCreateFormState = () => {
 };
 
 const runFormAction = async (form, statusId, callback, successMessage, afterSuccess) => {
+  if (form.dataset.busy === "true") {
+    return;
+  }
+  form.dataset.busy = "true";
+
   const submitButton = form.querySelector('button[type="submit"]');
   const originalLabel = submitButton ? submitButton.textContent : "";
 
   if (submitButton) {
-    submitButton.disabled = true;
     submitButton.textContent = "Working...";
   }
-  setStatus(statusId, "Executing create action...");
+
+  if (bootstrap.page === "projects") {
+    setProjectsPageDisabled(true);
+  }
+  if (bootstrap.page === "project-detail") {
+    setProjectInteractionDisabled(true);
+  }
+
+  setStatus(statusId, "Executing create action...", "info");
 
   try {
     const result = await callback();
+    let statusText = successMessage;
+    let statusKind = "success";
+
     if (afterSuccess) {
-      await afterSuccess(result);
+      const afterSuccessResult = await afterSuccess(result);
+      if (afterSuccessResult === false) {
+        statusText = `${successMessage} Reload failed; see detail status.`;
+        statusKind = "error";
+      }
     }
-    setStatus(statusId, successMessage);
+
+    setStatus(statusId, statusText, statusKind);
   } catch (error) {
-    setStatus(statusId, error.message, true);
+    setStatus(statusId, error.message, "error");
   } finally {
+    form.dataset.busy = "false";
     if (submitButton && submitButton.isConnected) {
-      submitButton.disabled = false;
       submitButton.textContent = originalLabel;
+    }
+    if (bootstrap.page === "projects") {
+      setProjectsPageDisabled(false);
+    }
+    if (bootstrap.page === "project-detail") {
+      setProjectInteractionDisabled(false);
+      refreshCreateFormState(currentProject ? "ready" : "error");
     }
   }
 };
@@ -485,7 +641,6 @@ const renderProjectHeader = (project) => {
     </div>
   `;
 };
-
 
 const buildProjectPayload = (form) => {
   const payload = {
@@ -662,9 +817,7 @@ const renderCandidateAction = (item) => {
       data-action="promote-candidate"
       data-search-campaign-id="${escapeHtml(item.search_campaign_id)}"
       data-search-run-id="${escapeHtml(item.search_run_id)}"
-      data-search-result-candidate-id="${
-        escapeHtml(item.search_result_candidate_id)
-      }"
+      data-search-result-candidate-id="${escapeHtml(item.search_result_candidate_id)}"
     >
       Promote to review
     </button>
@@ -817,13 +970,30 @@ const renderLineage = (items) => {
 };
 
 const loadProjectsPage = async () => {
-  setStatus("projects-status", "Loading projects...");
+  const loadToken = ++projectsLoadToken;
+  setProjectsPageDisabled(true);
+  setTableBodyMessage("projects-table-body", 6, "Loading...");
+  setStatus("projects-status", "Loading projects...", "info");
+
   try {
     const payload = await fetchJson(`${apiBase}/projects`);
+    if (loadToken !== projectsLoadToken) {
+      return false;
+    }
     renderProjectsTable(payload.items);
-    setStatus("projects-status", `${payload.items.length} project(s) loaded.`);
+    setStatus("projects-status", `${payload.items.length} project(s) loaded.`, "success");
+    return true;
   } catch (error) {
-    setStatus("projects-status", error.message, true);
+    if (loadToken !== projectsLoadToken) {
+      return false;
+    }
+    setTableBodyMessage("projects-table-body", 6, "Load failed.");
+    setStatus("projects-status", error.message, "error");
+    return false;
+  } finally {
+    if (loadToken === projectsLoadToken) {
+      setProjectsPageDisabled(false);
+    }
   }
 };
 
@@ -834,9 +1004,8 @@ const handleProjectsCreateSubmit = async (form) => {
     () => postJson(`${apiBase}/projects`, buildProjectPayload(form)),
     "Project created.",
     async (project) => {
-      window.location.assign(
-        `/operator/projects/${encodeURIComponent(project.project_id)}`,
-      );
+      window.location.assign(`/operator/projects/${encodeURIComponent(project.project_id)}`);
+      return true;
     },
   );
 };
@@ -844,8 +1013,12 @@ const handleProjectsCreateSubmit = async (form) => {
 const loadProjectDetailPage = async () => {
   const projectId = bootstrap.projectId;
   const projectBase = `${apiBase}/projects/${encodeURIComponent(projectId)}`;
+  const loadToken = ++detailLoadToken;
 
-  setStatus("detail-status", "Loading project detail...");
+  setProjectInteractionDisabled(true);
+  setProjectDetailLoadingState();
+  setStatus("detail-status", "Loading project detail...", "info");
+
   try {
     const projectPromise = fetchJson(projectBase);
     const summaryPromise = fetchJson(`${projectBase}/workflow-summary`);
@@ -853,14 +1026,23 @@ const loadProjectDetailPage = async () => {
     const reviewQueuePromise = fetchJson(`${projectBase}/review-queue-items`);
     const projectSourcesPromise = fetchJson(`${projectBase}/sources`);
 
-    const [project, summary, campaignsPayload, reviewQueuePayload, projectSourcesPayload] =
-      await Promise.all([
-        projectPromise,
-        summaryPromise,
-        campaignsPromise,
-        reviewQueuePromise,
-        projectSourcesPromise,
-      ]);
+    const [
+      project,
+      summary,
+      campaignsPayload,
+      reviewQueuePayload,
+      projectSourcesPayload,
+    ] = await Promise.all([
+      projectPromise,
+      summaryPromise,
+      campaignsPromise,
+      reviewQueuePromise,
+      projectSourcesPromise,
+    ]);
+
+    if (loadToken !== detailLoadToken) {
+      return false;
+    }
 
     currentProject = project;
     currentCampaigns = campaignsPayload.items;
@@ -880,10 +1062,16 @@ const loadProjectDetailPage = async () => {
         encodeURIComponent(campaign.search_campaign_id)
       }`;
       const runsPayload = await fetchJson(`${campaignBase}/runs`);
+      if (loadToken !== detailLoadToken) {
+        return false;
+      }
       for (const run of runsPayload.items) {
         runs.push(run);
         const runBase = `${campaignBase}/runs/${encodeURIComponent(run.search_run_id)}`;
         const candidatesPayload = await fetchJson(`${runBase}/result-candidates`);
+        if (loadToken !== detailLoadToken) {
+          return false;
+        }
         for (const candidate of candidatesPayload.items) {
           candidates.push(candidate);
         }
@@ -892,12 +1080,23 @@ const loadProjectDetailPage = async () => {
 
     currentRuns = runs;
     refreshCreateFormState();
-
     renderRuns(runs);
     renderCandidates(candidates);
-    setStatus("detail-status", `Loaded project ${project.title}.`);
+    setStatus("detail-status", `Loaded project ${project.title}.`, "success");
+    return true;
   } catch (error) {
-    setStatus("detail-status", error.message, true);
+    if (loadToken !== detailLoadToken) {
+      return false;
+    }
+    currentProject = null;
+    setProjectDetailErrorState();
+    setStatus("detail-status", error.message, "error");
+    return false;
+  } finally {
+    if (loadToken === detailLoadToken) {
+      setProjectInteractionDisabled(false);
+      refreshCreateFormState(currentProject ? "ready" : "error");
+    }
   }
 };
 
@@ -913,7 +1112,7 @@ const handleProjectDetailCreateSubmit = async (form) => {
       "Search campaign created.",
       async () => {
         form.reset();
-        await loadProjectDetailPage();
+        return loadProjectDetailPage();
       },
     );
     return;
@@ -930,7 +1129,7 @@ const handleProjectDetailCreateSubmit = async (form) => {
       "Search run created.",
       async () => {
         form.reset();
-        await loadProjectDetailPage();
+        return loadProjectDetailPage();
       },
     );
     return;
@@ -949,28 +1148,43 @@ const handleProjectDetailCreateSubmit = async (form) => {
       "Result candidate created.",
       async () => {
         form.reset();
-        await loadProjectDetailPage();
+        return loadProjectDetailPage();
       },
     );
   }
 };
 
 const runOperatorAction = async (button, callback, successMessage) => {
+  if (button.dataset.busy === "true") {
+    return;
+  }
+  button.dataset.busy = "true";
   const originalLabel = button.textContent;
-  button.disabled = true;
   button.textContent = "Working...";
-  setStatus("action-status", "Executing operator action...");
+  setProjectInteractionDisabled(true);
+  setStatus("action-status", "Executing operator action...", "info");
+
   try {
     await callback();
-    await loadProjectDetailPage();
-    setStatus("action-status", successMessage);
+    const reloaded = await loadProjectDetailPage();
+    if (reloaded) {
+      setStatus("action-status", successMessage, "success");
+    } else {
+      setStatus(
+        "action-status",
+        `${successMessage} Reload failed; see detail status.`,
+        "error",
+      );
+    }
   } catch (error) {
-    setStatus("action-status", error.message, true);
+    setStatus("action-status", error.message, "error");
   } finally {
+    button.dataset.busy = "false";
     if (button.isConnected) {
-      button.disabled = false;
       button.textContent = originalLabel;
     }
+    setProjectInteractionDisabled(false);
+    refreshCreateFormState(currentProject ? "ready" : "error");
   }
 };
 
@@ -993,7 +1207,21 @@ document.addEventListener("submit", async (event) => {
 
 document.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action]");
-  if (!button || !bootstrap.projectId) {
+  if (!button) {
+    return;
+  }
+
+  if (button.dataset.action === "reload-projects") {
+    await loadProjectsPage();
+    return;
+  }
+
+  if (button.dataset.action === "reload-project-detail") {
+    await loadProjectDetailPage();
+    return;
+  }
+
+  if (!bootstrap.projectId) {
     return;
   }
 
@@ -1076,9 +1304,17 @@ def _projects_page() -> HTMLResponse:
       <p class="page-subtitle">
         Project list for the manual operator workflow baseline.
       </p>
-      <p class="status" id="projects-status">Waiting to load projects.</p>
+      <p class="status info" id="projects-status">Waiting to load projects.</p>
     </div>
     <div class="actions">
+      <button
+        type="button"
+        class="action-button secondary"
+        id="projects-reload-button"
+        data-action="reload-projects"
+      >
+        Reload projects
+      </button>
       <a href="/healthz">Health</a>
       <a href="/runtime">Runtime</a>
     </div>
@@ -1107,14 +1343,12 @@ def _projects_page() -> HTMLResponse:
           </div>
           <div class="form-actions">
             <button type="submit" class="action-button">Create project</button>
-            <span class="form-hint">
-              Defaults: status draft, type standard.
-            </span>
+            <span class="form-hint">Defaults: status draft, type standard.</span>
           </div>
         </div>
       </div>
       <p
-        class="status"
+        class="status info"
         id="projects-create-status"
         data-create-status="projects-create"
       >
@@ -1167,9 +1401,17 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
       <p class="page-subtitle">
         Read-heavy operator surface with targeted workflow actions.
       </p>
-      <p class="status" id="detail-status">Waiting to load project detail.</p>
+      <p class="status info" id="detail-status">Waiting to load project detail.</p>
     </div>
     <div class="actions">
+      <button
+        type="button"
+        class="action-button secondary"
+        id="project-detail-reload-button"
+        data-action="reload-project-detail"
+      >
+        Reload detail
+      </button>
       <a href="/operator/projects">Back to projects</a>
       <span>
         Requested project:
@@ -1203,13 +1445,13 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </p>
     <ul class="action-list">
       <li data-operator-action="promote-to-review">
-        Candidate -> Review Queue
+        Candidate -&gt; Review Queue
       </li>
       <li data-operator-action="promote-to-source">
-        Review Queue -> Source / ProjectSource
+        Review Queue -&gt; Source / ProjectSource
       </li>
     </ul>
-    <p class="status" id="action-status" data-action-status="operator-actions">
+    <p class="status info" id="action-status" data-action-status="operator-actions">
       No action executed yet.
     </p>
   </section>
@@ -1300,9 +1542,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
           >
             Create run
           </button>
-          <span class="form-hint" id="create-run-hint">
-            Loading campaigns...
-          </span>
+          <span class="form-hint" id="create-run-hint">Loading campaigns...</span>
         </div>
       </form>
 
@@ -1357,17 +1597,11 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
           >
             Create candidate
           </button>
-          <span class="form-hint" id="create-candidate-hint">
-            Loading runs...
-          </span>
+          <span class="form-hint" id="create-candidate-hint">Loading runs...</span>
         </div>
       </form>
     </div>
-    <p
-      class="status"
-      id="create-status"
-      data-create-status="project-create-actions"
-    >
+    <p class="status info" id="create-status" data-create-status="project-create-actions">
       No create action executed yet.
     </p>
   </section>
