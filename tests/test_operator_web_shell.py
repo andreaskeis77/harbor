@@ -138,3 +138,16 @@ def test_operator_project_detail_contains_openai_dry_run_markers(
     assert 'id="openai-dry-run-instructions"' in response.text
     assert 'id="openai-dry-run-persist"' in response.text
     assert 'id="openai-dry-run-output-text"' in response.text
+
+def test_chat_page_contains_shell_and_markers(client: TestClient) -> None:
+    create_project(client)
+
+    response = client.get("/chat")
+    assert response.status_code == 200
+    assert 'data-chat-shell="chat"' in response.text
+    assert 'id="harbor-chat-bootstrap"' in response.text
+    assert 'data-chat-form="dry-run-chat"' in response.text
+    assert 'data-chat-history="dry-run-chat"' in response.text
+    assert 'id="chat-project-id"' in response.text
+    assert 'id="chat-input-text"' in response.text
+    assert 'id="chat-send-button"' in response.text
