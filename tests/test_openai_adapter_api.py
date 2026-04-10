@@ -63,6 +63,26 @@ def _create_project(client: TestClient) -> dict[str, object]:
     return response.json()
 
 
+def _create_source(
+    client: TestClient,
+    *,
+    title: str,
+    canonical_url: str,
+) -> dict[str, object]:
+    response = client.post(
+        "/api/v1/sources",
+        json={
+            "source_type": "web_page",
+            "title": title,
+            "canonical_url": canonical_url,
+            "content_type": "text/html",
+            "trust_tier": "candidate",
+        },
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
 def test_openai_runtime_endpoint_defaults(client: TestClient) -> None:
     response = client.get("/api/v1/openai/runtime")
     assert response.status_code == 200
@@ -237,6 +257,60 @@ def test_build_project_chat_turn_input_limits_and_compacts_prior_turns() -> None
     assert "Current operator message:\nGive me the next step." in rendered
 
 
+def test_openai_project_chat_turn_payload_limits_project_sources(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for key in _OPENAI_ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
+    clear_settings_cache()
+
+    project_context = {
+        "project_id": "project-1",
+        "title": "Scuba Research",
+        "short_description": "Hotels with house reef",
+        "status": "draft",
+        "project_type": "standard",
+        "blueprint_status": "not_blueprint",
+    }
+    project_sources = [
+        {
+            "note": f"Source note {index}",
+            "source": {
+                "title": f"Accepted Source {index}",
+                "canonical_url": f"https://example.com/accepted-source-{index}",
+            },
+        }
+        for index in range(1, 9)
+    ]
+
+    payload = openai_adapter_module.openai_project_chat_turn_payload(
+        HarborSettings(),
+        project_context=project_context,
+        input_text="Summarize the accepted project sources.",
+        project_sources=project_sources,
+        instructions="Stay concise.",
+    )
+
+    assert payload["status"] == "not_configured"
+    assert payload["request_metadata"]["project_source_count_available"] == 8
+    assert payload["request_metadata"]["project_source_count_included"] == 6
+
+    rendered_input_text = payload["request"]["rendered_input_text"]
+    assert "Harbor project context:" in rendered_input_text
+    assert "Project sources" in rendered_input_text
+    assert "Accepted Source 1" in rendered_input_text
+    assert "Accepted Source 6" in rendered_input_text
+    assert "Accepted Source 7" not in rendered_input_text
+    assert "Accepted Source 8" not in rendered_input_text
+    assert "Source note 1" in rendered_input_text
+    assert (
+        "Current operator message:\nSummarize the accepted project sources."
+        in rendered_input_text
+    )
+
+    clear_settings_cache()
+
+
 def test_openai_probe_live_call_with_fake_client(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("HARBOR_OPENAI_API_KEY", "test-openai-key")
     monkeypatch.setenv("HARBOR_OPENAI_MODEL", "gpt-5")
@@ -385,6 +459,10 @@ def test_openai_project_chat_turn_not_configured(
     assert payload["status"] == "not_configured"
     assert payload["session"]["project_id"] == project["project_id"]
     assert payload["turn"]["request_input_text"] == "Hello Harbor."
+    assert payload["request_metadata"]["project_source_count_available"] == 0
+    assert payload["request_metadata"]["project_source_count_included"] == 0
+    assert "Project sources" in payload["request"]["rendered_input_text"]
+    assert "(no accepted project sources available)" in payload["request"]["rendered_input_text"]
 
     sessions_response = project_client.get(
         f"/api/v1/openai/projects/{project['project_id']}/chat-sessions"
@@ -401,6 +479,95 @@ def test_openai_project_chat_turn_not_configured(
     turns_payload = turns_response.json()
     assert len(turns_payload["items"]) == 1
     assert turns_payload["items"][0]["status"] == "not_configured"
+
+
+def test_openai_project_chat_turn_includes_accepted_project_sources(
+    project_client: TestClient,
+) -> None:
+    project = _create_project(project_client)
+    source_one = _create_source(
+        project_client,
+        title="Accepted Source One",
+        canonical_url="https://example.com/accepted-source-one",
+    )
+    source_two = _create_source(
+        project_client,
+        title="Accepted Source Two",
+        canonical_url="https://example.com/accepted-source-two",
+    )
+    source_three = _create_source(
+        project_client,
+        title="Candidate Source",
+        canonical_url="https://example.com/candidate-source",
+    )
+
+    attach_source_one_response = project_client.post(
+        f"/api/v1/projects/{project['project_id']}/sources",
+        json={
+            "source_id": source_one["source_id"],
+            "relevance": "primary",
+            "review_status": "accepted",
+            "note": "Primary source note.",
+        },
+    )
+    assert attach_source_one_response.status_code == 201
+
+    attach_source_two_response = project_client.post(
+        f"/api/v1/projects/{project['project_id']}/sources",
+        json={
+            "source_id": source_two["source_id"],
+            "relevance": "supporting",
+            "review_status": "accepted",
+        },
+    )
+    assert attach_source_two_response.status_code == 201
+
+    attach_source_three_response = project_client.post(
+        f"/api/v1/projects/{project['project_id']}/sources",
+        json={
+            "source_id": source_three["source_id"],
+            "relevance": "supporting",
+            "review_status": "candidate",
+            "note": "Candidate sources should stay out of chat grounding.",
+        },
+    )
+    assert attach_source_three_response.status_code == 201
+
+    response = project_client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-turns",
+        json={
+            "input_text": "Summarize the accepted project sources.",
+            "instructions": "Stay concise.",
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["status"] == "not_configured"
+    assert payload["request_metadata"]["project_source_count_available"] == 2
+    assert payload["request_metadata"]["project_source_count_included"] == 2
+    assert payload["request"]["instructions"] == "Stay concise."
+
+    rendered_input_text = payload["request"]["rendered_input_text"]
+    assert "Harbor project context:" in rendered_input_text
+    assert "Project sources" in rendered_input_text
+    assert "Accepted Source One" in rendered_input_text
+    assert "Accepted Source Two" in rendered_input_text
+    assert "https://example.com/accepted-source-one" in rendered_input_text
+    assert "https://example.com/accepted-source-two" in rendered_input_text
+    assert "Primary source note." in rendered_input_text
+    assert "Candidate Source" not in rendered_input_text
+    assert (
+        "Current operator message:\nSummarize the accepted project sources."
+        in rendered_input_text
+    )
+    assert rendered_input_text.index("Harbor project context:") < rendered_input_text.index(
+        "Project sources"
+    )
+    assert rendered_input_text.index("Project sources") < rendered_input_text.index(
+        "Current operator message:"
+    )
+    assert payload["turn"]["rendered_input_text"] == rendered_input_text
 
 
 def test_openai_project_chat_turn_with_fake_client(

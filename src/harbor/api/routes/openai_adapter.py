@@ -31,6 +31,7 @@ from harbor.openai_dry_run_log_registry import (
 )
 from harbor.persistence.session import get_db_session
 from harbor.project_registry import ProjectRead, get_project
+from harbor.source_registry import ProjectSourceRead, list_project_sources
 
 router = APIRouter(prefix="/openai", tags=["openai"])
 DbSession = Annotated[Session, Depends(get_db_session)]
@@ -51,6 +52,18 @@ class OpenAIProjectChatTurnRequest(BaseModel):
     input_text: str = Field(min_length=1, max_length=4000)
     chat_session_id: str | None = Field(default=None, max_length=36)
     instructions: str | None = Field(default=None, max_length=4000)
+
+def _accepted_project_sources_for_chat_context(
+    session: Session,
+    project_id: str,
+) -> list[dict[str, object]]:
+    return [
+        ProjectSourceRead.from_records(project_source_record, source_record).model_dump(
+            mode="json"
+        )
+        for project_source_record, source_record in list_project_sources(session, project_id)
+        if project_source_record.review_status == "accepted"
+    ]
 
 
 @router.get("/runtime")
@@ -196,11 +209,13 @@ def openai_project_chat_turn(
 
     settings = get_settings()
     project_payload = ProjectRead.from_record(project_record).model_dump(mode="json")
+    project_sources = _accepted_project_sources_for_chat_context(session, project_id)
     payload = openai_project_chat_turn_payload(
         settings,
         project_context=project_payload,
         input_text=request.input_text,
         prior_turns=prior_turns,
+        project_sources=project_sources,
         instructions=request.instructions,
     )
 
