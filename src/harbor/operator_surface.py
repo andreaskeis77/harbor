@@ -1232,6 +1232,15 @@ def smoke_chat_surface_slice_payload() -> dict[str, object]:
                 "chat_page_has_instructions_preset_state": (
                     'id="chat-instructions-preset-state"' in chat_page.text
                 ),
+                "chat_page_has_history_density": (
+                    'data-chat-history-density="compact"' in chat_page.text
+                ),
+                "chat_page_has_turn_density": (
+                    'data-chat-turn-density="compact"' in chat_page.text
+                ),
+                "chat_page_has_collapsible_support": (
+                    'data-chat-collapsible-support="chat-content"' in chat_page.text
+                ),
                 "project": project.json(),
             }
         finally:
