@@ -1,21 +1,22 @@
 # Harbor Masterplan
 
 ## Product direction
-
 Harbor is a project-partitioned research operating system, not a generic chat-RAG.
 
 The sequence stays:
 
 - A0 — accepted product / architecture / governance baseline
-- T1 — local technical bootstrap and manual operator flow release baseline
+- T1 — local technical bootstrap and manual operator flow baseline
 - T2 — operator web surface
-- T3 — OpenAI adapter layer against the canonical backend
-- T4 — chat surface against the canonical backend
-- T5 — refresh / discovery / monitoring evolution
+- T3 — OpenAI adapter and dry-run surfaces
+- T4 — chat surface and operator-facing chat hardening
+- T5 — source-grounded knowledge and operator action surfaces
+- T6 — deeper automation / monitoring evolution
 
 ## Current accepted state
 
 Accepted:
+
 - A0 baseline
 - T1.0 runtime bootstrap
 - T1.1 runtime configuration and local operator surface
@@ -33,139 +34,111 @@ Accepted:
 - T1.11 workflow summary and lineage surface
 - T1.12 docs + runbook + release hygiene
 - T1.13 `v0.1.0-alpha` release cut
+- T2.0A operator web shell read surface
+- T2.1A operator promote actions in web shell
+- T2.1B manual create actions in web shell
+- T2.2A operator UX/API hardening
+- T3.0A OpenAI adapter baseline
+- T3.0B OpenAI project dry-run surface
+- T3.1A operator web shell OpenAI dry-run panel
+- T3.1B persisted OpenAI dry-run log history
+- T4.0A chat surface baseline
+- T4.0B persisted chat sessions and turns
+- T4.1A project-grounded multi-turn chat context hardening
+- T4.1B chat turn context inspection panel
+- T4.2A chat session title/status UX hardening
+- T4.2B chat error/retry UX hardening
+- T4.3A chat composer / instructions UX split
+- T4.3B chat instructions preset/default UX hardening
+- T4.4A chat turn rendering density/readability hardening
+- T4.4B selected-turn diff/compare readability hardening
 
-Current focus:
-- T2.0 operator web shell
+## Current focus
+- T4.5A project-source-grounded chat baseline
 
-## T1 sequence
+## Phase intent
 
-### T1.0
-- repository scaffold
-- FastAPI runtime
-- health endpoint
-- quality gates
+### T1
+Establish the canonical backend, persistence foundation, manual research workflow, and alpha release baseline.
 
-### T1.1
-- runtime settings
-- operator commands
-- local smoke surface
+### T2
+Expose the backend through an operator web shell while keeping the web layer thin and API-only.
 
-### T1.2
-- persistence package
-- Postgres config
-- DB status surface
-- Alembic baseline
+### T3
+Establish a clean, testable OpenAI integration seam and operator-visible dry-run surfaces before broader chat behavior.
 
-### T1.3
-- first project persistence model
-- first migration
-- create/list/get project API
-- project registry tests
+### T4
+Build a thin chat surface on the canonical backend, add persistence for sessions/turns, then harden readability and operator UX.
 
-### T1.4
-- handbook persistence baseline
-- handbook version history
-- read/write current handbook API
-- handbook version list API
+### T5
+Ground the chat in Harbor knowledge and begin controlled operator action surfaces, starting with project sources and later handbook/action handoff.
 
-### T1.5
-- source registry
-- project-source attachment registry
-- create/list source API
-- attach/list project source API
-- first duplicate-protection for project/source
+## T4 current sequence
 
-### T1.6A
-- search campaign registry
-- create/list/get search campaign API
-- project-scoped campaign tests
-- smoke search campaign slice
+### T4.0A
+- chat page baseline
+- project selector
+- single-message send through existing dry-run path
+- transient in-browser history only
 
-### T1.6B
-- review queue baseline
-- create/list review queue API
-- project-scoped review queue tests
-- smoke review queue slice
+### T4.0B
+- persisted chat sessions
+- persisted chat turns
+- load/continue sessions in `/chat`
 
-### T1.7A
-- search run registry
-- create/list/get search run API
-- campaign-scoped run tests
-- smoke search run slice
+### T4.1A
+- multi-turn context hardening
+- bounded prior-turn inclusion
+- compaction metadata
 
-### T1.7B
-- search result candidate registry
-- create/list candidate API
-- run-scoped candidate tests
-- smoke search result candidate slice
+### T4.1B
+- selected-turn context inspection panel
 
-### T1.8
-- candidate-to-review promotion
-- promotion lineage on review queue items
-- smoke candidate-review promotion slice
+### T4.2A
+- session title/status UX hardening
 
-### T1.9
-- review-queue-to-source promotion
-- candidate accepted-state handoff
-- smoke review-queue-source promotion slice
+### T4.2B
+- chat error/retry UX hardening
 
-### T1.10
-- duplicate guards for promotion flow
-- idempotence protection on promotion endpoints
-- smoke duplicate-guard slice
+### T4.3A
+- chat composer / instructions UX split
 
-### T1.11
-- project workflow summary
-- lineage surface
-- smoke workflow summary slice
+### T4.3B
+- instructions preset/default UX hardening
 
-### T1.12
-- README / PROJECT_STATE / INDEX sync
-- alpha runbook
-- alpha release checklist
-- release hygiene documentation
+### T4.4A
+- dense, readable per-turn rendering
 
-### T1.13
-- `v0.1.0-alpha` release cut
-- tagged manual operator baseline
+### T4.4B
+- selected-turn diff/compare readability hardening
 
-## T2 sequence
-
-### T2.0
-- operator web shell
-- project list
-- project detail page
-- workflow summary surface
-- read-heavy views for campaigns, runs, candidates, review queue, project sources
-- web shell must call Harbor APIs only
-
-### T2.1
-- operator actions UI
-- targeted promote / create / operator actions over existing APIs
-- no parallel business logic outside the backend
-
-### T2.2
-- UX / API hardening
-- validation polish
-- error handling polish
-- pagination / filtering / consistency improvements as needed
+### T4.5A
+- project-source-grounded chat baseline
+- include project sources in adapter-side prompt context
+- expose project-source grounding metadata in request payload
+- no new persistence
+- no new automation
+- no new broad UI surface
 
 ## Explicit non-goals right now
 
 Not now:
-- direct DB-driven web UI logic
-- OpenAI integration
-- chat surface
-- source crawling automation
-- monitoring agents
+
+- autonomous tool orchestration
+- automated search execution
+- handbook synthesis from chat without explicit operator action
+- vector/embedding subsystem
 - multi-user collaboration
+- background agents
 
 ## Transition rule
 
-We continue with small vertical slices.
-Every slice updates:
-- `MASTERPLAN.md`
-- `PROJECT_STATE.md`
-- one `HANDOFF_*.md`
+Every accepted slice updates:
 
-For T2, the web layer remains a thin client over Harbor APIs.
+- `README.md`
+- `docs/MASTERPLAN.md`
+- `docs/PROJECT_STATE.md`
+- `docs/INDEX.md`
+- `docs/_handoff/HANDOFF_*.md`
+
+For Harbor, docs are not commentary. They are part of the operable system.
