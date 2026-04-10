@@ -10,6 +10,34 @@ from harbor.config import get_settings
 router = APIRouter(tags=["operator_web"])
 
 
+CHAT_INSTRUCTION_PRESETS = [
+    {
+        "key": "research-plan",
+        "label": "Research plan",
+        "value": (
+            "Draft a compact next-step research plan with explicit unknowns and "
+            "decision-relevant follow-ups."
+        ),
+    },
+    {
+        "key": "evidence-summary",
+        "label": "Evidence summary",
+        "value": (
+            "Summarize only the grounded facts in the supplied Harbor context and "
+            "state missing evidence briefly."
+        ),
+    },
+    {
+        "key": "decision-brief",
+        "label": "Decision brief",
+        "value": (
+            "Return a concise operator decision brief with recommendation, "
+            "rationale, and open questions."
+        ),
+    },
+]
+
+
 BASE_CSS = """
 :root {
   color-scheme: light dark;
@@ -1534,6 +1562,14 @@ const apiBase = bootstrap.apiBase;
 const preferredProjectId = new URLSearchParams(window.location.search).get(
   "project_id",
 );
+const chatDefaultInstructions = String(
+  bootstrap.chatDefaultInstructions || "",
+).trim();
+const CHAT_DEFAULT_PRESET_KEY = "__default__";
+const CHAT_CUSTOM_PRESET_KEY = "__custom__";
+const chatInstructionPresets = Array.isArray(bootstrap.chatInstructionPresets)
+  ? bootstrap.chatInstructionPresets
+  : [];
 let chatProjects = [];
 let chatSessions = [];
 let chatHistory = [];
@@ -1649,6 +1685,8 @@ const syncChatControls = () => {
   const reloadButton = byId("chat-reload-projects-button");
   const retryButton = byId("chat-retry-last-failed-button");
   const clearInstructionsButton = byId("chat-clear-instructions-button");
+  const presetSelect = byId("chat-instructions-preset");
+  const applyPresetButton = byId("chat-apply-instructions-preset-button");
 
   if (projectSelect) {
     projectSelect.disabled = !hasProjects || chatBusy;
@@ -1679,6 +1717,13 @@ const syncChatControls = () => {
   }
   if (clearInstructionsButton) {
     clearInstructionsButton.disabled = !hasProjects || chatBusy;
+  }
+  if (presetSelect) {
+    presetSelect.disabled = !hasProjects || chatBusy;
+  }
+  if (applyPresetButton) {
+    const presetKey = String(presetSelect?.value || CHAT_DEFAULT_PRESET_KEY);
+    applyPresetButton.disabled = !hasProjects || chatBusy || presetKey === CHAT_CUSTOM_PRESET_KEY;
   }
 };
 
@@ -1723,6 +1768,71 @@ const sessionTitle = (session) => {
 const sessionStatus = (session) => {
   const status = String(session?.last_status || "").trim();
   return status || "pending";
+};
+
+const matchedInstructionPreset = (instructions) => {
+  if (!instructions) {
+    return null;
+  }
+  return chatInstructionPresets.find((preset) => preset.value === instructions) || null;
+};
+
+const renderDefaultInstructionsPreview = () => {
+  const target = byId("chat-default-instructions-text");
+  if (!target) {
+    return;
+  }
+  target.textContent = chatDefaultInstructions || "Harbor default instructions unavailable.";
+};
+
+const renderInstructionPresetOptions = () => {
+  const select = byId("chat-instructions-preset");
+  if (!select) {
+    return;
+  }
+
+  select.innerHTML = "";
+
+  const defaultOption = document.createElement("option");
+  defaultOption.value = CHAT_DEFAULT_PRESET_KEY;
+  defaultOption.textContent = "Harbor default instructions";
+  select.appendChild(defaultOption);
+
+  for (const preset of chatInstructionPresets) {
+    const option = document.createElement("option");
+    option.value = preset.key;
+    option.textContent = preset.label;
+    select.appendChild(option);
+  }
+
+  const customOption = document.createElement("option");
+  customOption.value = CHAT_CUSTOM_PRESET_KEY;
+  customOption.textContent = "Custom current text";
+  select.appendChild(customOption);
+};
+
+const applyInstructionPreset = (presetKey) => {
+  const instructions = byId("chat-instructions-text");
+  const presetSelect = byId("chat-instructions-preset");
+  if (!instructions || !presetSelect) {
+    return;
+  }
+
+  if (presetKey === CHAT_DEFAULT_PRESET_KEY) {
+    instructions.value = "";
+    presetSelect.value = CHAT_DEFAULT_PRESET_KEY;
+    renderInstructionsState();
+    return;
+  }
+
+  const preset = chatInstructionPresets.find((item) => item.key === presetKey);
+  if (!preset) {
+    return;
+  }
+
+  instructions.value = preset.value;
+  presetSelect.value = preset.key;
+  renderInstructionsState();
 };
 
 const clearFailedChatRequest = () => {
@@ -2121,17 +2231,34 @@ const currentInstructionsText = () => {
 
 const renderInstructionsState = () => {
   const target = byId("chat-instructions-state");
-  if (!target) {
+  const presetState = byId("chat-instructions-preset-state");
+  const presetSelect = byId("chat-instructions-preset");
+  if (!target || !presetState || !presetSelect) {
     return;
   }
 
   const instructions = currentInstructionsText();
   if (!instructions) {
     target.textContent = "Using Harbor default instructions.";
+    presetState.textContent = "Preset: Harbor default instructions.";
+    presetSelect.value = CHAT_DEFAULT_PRESET_KEY;
+    syncChatControls();
+    return;
+  }
+
+  const matchedPreset = matchedInstructionPreset(instructions);
+  if (matchedPreset) {
+    target.textContent = `Using preset instructions: ${matchedPreset.label}.`;
+    presetState.textContent = `Preset: ${matchedPreset.label}.`;
+    presetSelect.value = matchedPreset.key;
+    syncChatControls();
     return;
   }
 
   target.textContent = `Using custom instructions (${instructions.length} chars).`;
+  presetState.textContent = "Preset: custom current text.";
+  presetSelect.value = CHAT_CUSTOM_PRESET_KEY;
+  syncChatControls();
 };
 
 const persistChatTurn = async ({
@@ -2357,11 +2484,11 @@ document.addEventListener("click", async (event) => {
     startNewChatSession();
   }
   if (button.dataset.chatAction === "clear-instructions") {
-    const instructions = byId("chat-instructions-text");
-    if (instructions) {
-      instructions.value = "";
-    }
-    renderInstructionsState();
+    applyInstructionPreset(CHAT_DEFAULT_PRESET_KEY);
+  }
+  if (button.dataset.chatAction === "apply-instructions-preset") {
+    const presetSelect = byId("chat-instructions-preset");
+    applyInstructionPreset(String(presetSelect?.value || CHAT_DEFAULT_PRESET_KEY));
   }
   if (button.dataset.chatAction === "retry-last-failed") {
     await retryFailedChatMessage();
@@ -2399,6 +2526,12 @@ document.addEventListener("change", async (event) => {
   if (turnSelect) {
     currentTurnId = String(turnSelect.value || "").trim() || null;
     renderChatTurnInspector();
+    return;
+  }
+
+  const presetSelect = event.target.closest("#chat-instructions-preset");
+  if (presetSelect) {
+    syncChatControls();
   }
 });
 
@@ -2413,6 +2546,8 @@ document.addEventListener("submit", async (event) => {
 });
 
 clearChatHistory("Loading Harbor projects...");
+renderDefaultInstructionsPreview();
+renderInstructionPresetOptions();
 renderInstructionsState();
 renderChatRetryPanel();
 loadChatProjects();
@@ -3138,6 +3273,40 @@ def _chat_page() -> HTMLResponse:
         <div class="form-panel" data-chat-composer-panel="instructions">
           <h3>Instructions</h3>
           <div class="form-field">
+            <label class="form-label" for="chat-instructions-preset">
+              Preset
+            </label>
+            <select
+              id="chat-instructions-preset"
+              name="instructions_preset"
+              data-chat-instructions-preset="persisted-chat"
+              disabled
+            >
+              <option value="__default__">Harbor default instructions</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button
+              type="button"
+              class="action-button secondary"
+              id="chat-apply-instructions-preset-button"
+              data-chat-action="apply-instructions-preset"
+              disabled
+            >
+              Apply preset
+            </button>
+            <span class="form-hint" id="chat-instructions-preset-state">
+              Preset: Harbor default instructions.
+            </span>
+          </div>
+          <div
+            class="chat-turn-detail"
+            data-chat-default-instructions="persisted-chat"
+          >
+            <div class="response-label">Harbor default instructions</div>
+            <pre class="response-pre" id="chat-default-instructions-text"></pre>
+          </div>
+          <div class="form-field">
             <label class="form-label" for="chat-instructions-text">
               Optional instructions override
             </label>
@@ -3164,7 +3333,8 @@ def _chat_page() -> HTMLResponse:
             </span>
           </div>
           <div class="form-hint">
-            Custom instructions are transient and apply to the next sent or retried turn.
+            Presets and custom instructions are transient and apply to the
+            next sent or retried turn.
           </div>
         </div>
       </div>
