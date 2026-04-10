@@ -282,10 +282,41 @@ td {
   display: grid;
   gap: 12px;
 }
+.chat-history-note {
+  margin: 0 0 12px;
+  color: #94a3b8;
+}
+.chat-turn-block {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 12px;
+  background: #0b1220;
+}
+.chat-turn-block-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.chat-turn-block-title {
+  font-weight: 700;
+  color: #e5e7eb;
+}
+.chat-turn-block-meta {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+.chat-turn-block-body {
+  display: grid;
+  gap: 10px;
+}
 .chat-message {
   border: 1px solid #334155;
   border-radius: 12px;
-  padding: 14px;
+  padding: 12px;
   background: #0f172a;
 }
 .chat-message.user {
@@ -314,6 +345,47 @@ td {
 }
 .chat-message-text {
   margin: 0;
+}
+.chat-message-body {
+  display: grid;
+  gap: 8px;
+}
+.chat-message-preview {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+.chat-collapsible {
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #111827;
+}
+.chat-collapsible > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 12px;
+  color: #cbd5e1;
+}
+.chat-collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+.chat-collapsible-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.chat-collapsible-label {
+  color: #e5e7eb;
+  font-weight: 600;
+}
+.chat-collapsible-preview {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+.chat-collapsible-body {
+  padding: 0 12px 12px;
 }
 .chat-turn-selector {
   max-width: 360px;
@@ -1660,6 +1732,75 @@ const formatDateTime = (value) => {
   return parsed.toLocaleString();
 };
 
+const compactWhitespace = (value) => {
+  return String(value ?? "")
+    .replace(/\\s+/g, " ")
+    .trim();
+};
+
+const previewText = (value, maxLength = 220) => {
+  const normalized = compactWhitespace(value);
+  if (!normalized) {
+    return "No content.";
+  }
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, maxLength - 15)} …[truncated]`;
+};
+
+const shouldCollapseText = (value, collapseLimit = 280) => {
+  const text = String(value ?? "");
+  const normalized = compactWhitespace(text);
+  return (
+    normalized.length > collapseLimit ||
+    text.split("\n").length > 6 ||
+    text.includes("\n\n")
+  );
+};
+
+const renderCollapsibleTextBlock = (
+  label,
+  value,
+  { collapseLimit = 280, openByDefault = false } = {},
+) => {
+  const text = String(value ?? "").trim();
+  if (!text) {
+    return `
+      <div class="chat-message-body">
+        <p class="chat-message-preview">No content.</p>
+      </div>
+    `;
+  }
+
+  if (!shouldCollapseText(text, collapseLimit)) {
+    return `
+      <div class="chat-message-body">
+        <p class="chat-message-preview">${safeText(label)}</p>
+        <pre class="response-pre chat-message-text">${safeText(text)}</pre>
+      </div>
+    `;
+  }
+
+  return `
+    <details class="chat-collapsible" data-chat-collapsible="chat-content"${
+      openByDefault ? " open" : ""
+    }>
+      <summary>
+        <span class="chat-collapsible-summary">
+          <span class="chat-collapsible-label">${safeText(label)}</span>
+          <span class="chat-collapsible-preview">${safeText(
+            previewText(text, 220),
+          )}</span>
+        </span>
+      </summary>
+      <div class="chat-collapsible-body">
+        <pre class="response-pre chat-message-text">${safeText(text)}</pre>
+      </div>
+    </details>
+  `;
+};
+
 const setChatControlsDisabled = (disabled) => {
   const form = byId("chat-message-form");
   if (form) {
@@ -2107,16 +2248,25 @@ const renderChatTurnInspector = () => {
       <div class="response-value">${safeText(formatDateTime(turn.created_at))}</div>
     </div>
     <div class="chat-turn-detail">
-      <div class="response-label">Rendered Harbor input</div>
-      <pre class="response-pre">${safeText(turn.rendered_input_text)}</pre>
+      ${renderCollapsibleTextBlock(
+        "Rendered Harbor input",
+        turn.rendered_input_text,
+        { collapseLimit: 420 },
+      )}
     </div>
     <div class="chat-turn-detail">
-      <div class="response-label">Persisted operator message</div>
-      <pre class="response-pre">${safeText(turn.request_input_text)}</pre>
+      ${renderCollapsibleTextBlock(
+        "Persisted operator message",
+        turn.request_input_text,
+        { collapseLimit: 220 },
+      )}
     </div>
     <div class="chat-turn-detail">
-      <div class="response-label">Persisted assistant output</div>
-      <pre class="response-pre">${safeText(assistantText)}</pre>
+      ${renderCollapsibleTextBlock(
+        "Persisted assistant output",
+        assistantText,
+        { collapseLimit: 320 },
+      )}
     </div>
   `;
 };
@@ -2172,38 +2322,54 @@ const renderChatHistory = () => {
   const fragments = [];
   for (const turn of chatHistory) {
     const turnLabel = `Turn ${turn.turn_index}`;
-    const userMeta = [
-      `Project: ${chatProjectLabel(turn.project_id)}`,
-      turnLabel,
+    const turnMeta = [
       formatDateTime(turn.created_at),
+      turn.status ? `Status: ${turn.status}` : "",
+      turn.model ? `Model: ${turn.model}` : "",
     ].filter(Boolean);
-    fragments.push(`
-      <article class="chat-message user">
-        <div class="chat-message-header">
-          <div class="chat-role">Operator</div>
-          <div class="chat-meta">${safeText(userMeta.join(" · "))}</div>
-        </div>
-        <pre class="response-pre chat-message-text">${safeText(turn.request_input_text)}</pre>
-      </article>
-    `);
-
     const assistantText = turn.output_text || turn.error_message || "No output.";
     const assistantRole = turn.status === "completed" ? "Assistant" : "Error";
     const assistantClass = turn.status === "completed" ? "assistant" : "error";
-    const assistantMeta = [
-      turnLabel,
-      turn.provider ? `Provider: ${turn.provider}` : "",
-      turn.model ? `Model: ${turn.model}` : "",
-      turn.status ? `Status: ${turn.status}` : "",
-      turn.response_id ? `Response: ${turn.response_id}` : "",
+    const operatorMeta = [
+      `Project: ${chatProjectLabel(turn.project_id)}`,
+      turn.request_input_text ? `Chars: ${String(turn.request_input_text).length}` : "",
     ].filter(Boolean);
+    const assistantMeta = [
+      turn.provider ? `Provider: ${turn.provider}` : "",
+      turn.response_id ? `Response: ${turn.response_id}` : "",
+      assistantText ? `Chars: ${String(assistantText).length}` : "",
+    ].filter(Boolean);
+
     fragments.push(`
-      <article class="chat-message ${assistantClass}">
-        <div class="chat-message-header">
-          <div class="chat-role">${safeText(assistantRole)}</div>
-          <div class="chat-meta">${safeText(assistantMeta.join(" · "))}</div>
+      <article class="chat-turn-block" data-chat-turn-block="persisted-chat">
+        <div class="chat-turn-block-header">
+          <div class="chat-turn-block-title">${safeText(turnLabel)}</div>
+          <div class="chat-turn-block-meta">${safeText(turnMeta.join(" · "))}</div>
         </div>
-        <pre class="response-pre chat-message-text">${safeText(assistantText)}</pre>
+        <div class="chat-turn-block-body">
+          <section class="chat-message user">
+            <div class="chat-message-header">
+              <div class="chat-role">Operator</div>
+              <div class="chat-meta">${safeText(operatorMeta.join(" · "))}</div>
+            </div>
+            ${renderCollapsibleTextBlock(
+              "Operator message",
+              turn.request_input_text,
+              { collapseLimit: 220 },
+            )}
+          </section>
+          <section class="chat-message ${assistantClass}">
+            <div class="chat-message-header">
+              <div class="chat-role">${safeText(assistantRole)}</div>
+              <div class="chat-meta">${safeText(assistantMeta.join(" · "))}</div>
+            </div>
+            ${renderCollapsibleTextBlock(
+              assistantRole === "Assistant" ? "Assistant output" : "Error output",
+              assistantText,
+              { collapseLimit: 320 },
+            )}
+          </section>
+        </div>
       </article>
     `);
   }
@@ -3397,16 +3563,20 @@ def _chat_page() -> HTMLResponse:
 
   <section class="section-card">
     <h2>Persisted Session History</h2>
+    <p class="chat-history-note" data-chat-history-density="compact">
+      Long operator and assistant turns render in compact cards and collapse
+      automatically when they become dense.
+    </p>
     <div id="chat-history" class="chat-history" data-chat-history="persisted-chat">
       <div class="empty">No persisted turns yet.</div>
     </div>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-chat-turn-density="compact">
     <h2>Selected Turn Context</h2>
-    <p class="action-note">
+    <p class="action-note" data-chat-collapsible-support="chat-content">
       Inspect the exact Harbor-rendered input and persisted output for a selected
-      turn.
+      turn. Longer fields collapse automatically for readability.
     </p>
     <div class="form-field chat-turn-selector">
       <label class="form-label" for="chat-turn-id">Persisted turn</label>
