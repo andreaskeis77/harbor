@@ -157,8 +157,14 @@ def test_chat_page_contains_shell_and_markers(client: TestClient) -> None:
     assert 'data-chat-action="retry-last-failed"' in response.text
     assert 'data-chat-action="new-session"' in response.text
     assert 'data-chat-action="clear-instructions"' in response.text
+    assert 'data-chat-action="apply-instructions-preset"' in response.text
     assert 'id="chat-input-text"' in response.text
+    assert 'id="chat-instructions-preset"' in response.text
+    assert 'data-chat-instructions-preset="persisted-chat"' in response.text
+    assert 'data-chat-default-instructions="persisted-chat"' in response.text
+    assert 'id="chat-default-instructions-text"' in response.text
     assert 'id="chat-instructions-text"' in response.text
     assert 'data-chat-instructions-field="persisted-chat"' in response.text
     assert 'id="chat-instructions-state"' in response.text
+    assert 'id="chat-instructions-preset-state"' in response.text
     assert 'id="chat-send-button"' in response.text

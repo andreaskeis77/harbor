@@ -1217,8 +1217,20 @@ def smoke_chat_surface_slice_payload() -> dict[str, object]:
                 "chat_page_has_instructions_input": (
                     'data-chat-instructions-field="persisted-chat"' in chat_page.text
                 ),
+                "chat_page_has_instructions_preset": (
+                    'data-chat-instructions-preset="persisted-chat"' in chat_page.text
+                ),
+                "chat_page_has_apply_preset_button": (
+                    'data-chat-action="apply-instructions-preset"' in chat_page.text
+                ),
+                "chat_page_has_default_instructions": (
+                    'data-chat-default-instructions="persisted-chat"' in chat_page.text
+                ),
                 "chat_page_has_instructions_state": (
                     'id="chat-instructions-state"' in chat_page.text
+                ),
+                "chat_page_has_instructions_preset_state": (
+                    'id="chat-instructions-preset-state"' in chat_page.text
                 ),
                 "project": project.json(),
             }
