@@ -1,255 +1,105 @@
 # Harbor Strategy Roadmap v0.1
 
-Stand: 2026-04-08
+## Purpose
+This roadmap turns Harbor development into an ordered release path instead of an open-ended feature stream.
 
-## Zielbild
+## Guiding idea
+Harbor should grow in this order:
 
-Harbor wird schrittweise als **projektbasiertes Recherche-, Wissens- und Monitoring-System** aufgebaut. Die Architektur bleibt bewusst modular:
+1. canonical backend
+2. operator usability
+3. LLM integration seam
+4. thin chat surface
+5. source-grounded knowledge
+6. explicit operator actions
+7. deeper automation only after the earlier layers are stable
 
-1. **Core Harbor Backend**
-   - Persistenz
-   - Migrationen
-   - Registries / Services
-   - REST-API
-   - Smoke-Slices
-   - Quality Gates
+## Current status snapshot
 
-2. **Operator UX / Web Shell**
-   - dünne Weboberfläche
-   - arbeitet ausschließlich über Harbor-APIs
-   - keine zweite Logikspur neben dem Backend
+Completed through:
+- T4.4B — selected-turn diff/compare readability hardening
 
-3. **AI Adapter Layer**
-   - OpenAI/LLM-Integration als klar getrennte Schicht
-   - Tool-Aufrufe gegen Harbor
-   - keine direkten DB-Schreibpfade aus Modelllogik
+Next:
+- T4.5A — project-source-grounded chat baseline
 
-4. **Automation / Monitoring Layer**
-   - Scheduler
-   - Refresh-Läufe
-   - Alerts
-   - später kontrollierte agentische oder halbautomatische Flows
+## Phase roadmap
 
-Grundsatz: **Harbor bleibt immer System of record.**
+### A0 — accepted baseline
+Goal:
+- product scope
+- domain model
+- architecture/governance baseline
 
----
+### T1 — manual operator flow baseline
+Goal:
+- canonical runtime
+- persistence
+- manual research workflow
+- `v0.1.0-alpha` baseline
 
-## Aktueller Stand
+Outcome:
+- Harbor can manage projects, sources, campaigns, runs, candidates, review queue, promotion flow, and workflow summary.
 
-Der aktuelle funktionale Alpha-Kern ist:
+### T2 — operator web shell
+Goal:
+- thin browser surface over the canonical APIs
+- operator read/actions without backend bypass
 
-**Project → Search Campaign → Search Run → Search Result Candidate → Review Queue → Source / ProjectSource**
+Outcome:
+- `/operator/...` is usable and hardened.
 
-Zusätzlich bereits vorhanden:
-- Duplicate Guards / Idempotenz für Promotion-Schritte
-- Workflow Summary / Lineage Surface
-- Alpha Runbook
-- Alpha Release Checklist
-- Tag und GitHub Release `v0.1.0-alpha`
+### T3 — OpenAI adapter and dry-run
+Goal:
+- clean OpenAI seam before broader chat behavior
+- runtime/probe surfaces
+- project dry-run
+- persisted dry-run history
 
-Dieser Stand ist bewusst **operator-driven**:
-- keine echte Websuche
-- keine Agentik
-- keine erweiterte Deduplizierung / Merge-Logik
-- keine UI für Endnutzer
+Outcome:
+- Harbor can exercise the model in a controlled, inspectable way.
 
----
+### T4 — chat surface
+Goal:
+- thin chat surface on the canonical backend
+- persisted sessions/turns
+- bounded multi-turn grounding
+- readable operator UX
 
-## Engineering-Prinzipien
+Outcome:
+- `/chat` is now an inspectable, persisted operator chat surface.
 
-### 1. Kleine Bolts
-Änderungen werden als kleine, klar geschnittene Bolts umgesetzt.
+### T4.5 — source-grounded chat
+Goal:
+- move from project-only grounding to project-plus-source grounding
 
-Ein Bolt enthält idealerweise nur:
-- einen fachlichen Schwerpunkt
-- betroffene API-Fläche
-- Tests
-- passenden Smoke-Slice
-- PR / Merge
-- Doku-Sync, wenn Benutzerverhalten betroffen ist
+First slice:
+- T4.5A — include accepted project sources in chat context
 
-### 2. API-first
-UI, AI und spätere Automatisierung laufen über Harbor-APIs, nicht direkt gegen die DB.
+Expected benefit:
+- answers become grounded in the same curated sources Harbor already stores.
 
-### 3. Strikte Schichtentrennung
-- keine KI-Logik in Persistenz / Registry-Core
-- keine UI-Logik in Modellen
-- keine direkten DB-Schreibpfade außerhalb kontrollierter Harbor-Services
+### T5 — operator action surfaces
+Goal:
+- convert grounded chat output into explicit Harbor actions
 
-### 4. Qualität vor Scope
-Ein Schritt gilt erst als fertig, wenn:
-- `quality-gates` grün sind
-- relevante Smoke-Slices grün sind
-- PR gemerged ist
-- `main` lokal aktualisiert und erneut geprüft wurde
+Likely first slices:
+- handbook/notes drafting from selected chat output
+- explicit save/transfer action from chat to handbook/project notes
+- source-attributed response rendering
 
-### 5. Änderungsübergabe
-Bei Mehrdatei-Änderungen werden bevorzugt **ZIP-Artefakte mit korrekter Ordnerstruktur** verwendet.  
-Direkte Chat-Patches nur für kleine Einzeländerungen oder kurze Validierungsblöcke.
+### T6 — deeper automation
+Only after T5 is stable:
+- broader workflow automation
+- search/discovery refresh automation
+- stricter monitoring/agent patterns
 
----
+## Delivery discipline
 
-## Release-Strategie
+Each bolt should remain:
+- small
+- repo-consistent
+- locally validated
+- explicitly merged before the next bolt starts
 
-### v0.1.0-alpha — erreicht
-Erster manueller Operator-Release.
-
-Enthalten:
-- Projects
-- Handbook persistence
-- Sources / ProjectSources
-- Search Campaigns
-- Search Runs
-- Search Result Candidates
-- Candidate → Review Queue
-- Review Queue → Source
-- Duplicate Guards
-- Workflow Summary / Lineage
-- Docs / Runbook / Release Hygiene
-
-### v0.2.0-alpha — nächste sinnvolle Stufe
-Erste nutzbare **Operator Web Shell**.
-
-### v0.3.0-alpha
-OpenAI-gestützte Assistenz:
-- Candidate-Triage-Vorschläge
-- Source-Drafting / Bewertungsentwürfe
-- weiterhin menschlich freigegeben
-
-### v0.4.0-beta
-Chat-gestützte Bedienung / kontrollierte Assistenz-Workflows.
-
-### v1.0.0
-Stärker gehärteter, betriebsfähiger Kern mit:
-- Monitoring
-- Scheduler
-- Observability
-- reiferer Deduplizierung / Merge-Strategie
-
----
-
-## Produkt-Roadmap
-
-## Phase A — Web-Nutzbarkeit
-
-### T2.0 — Operator Web Shell
-Ziel:
-- erste dünne Weboberfläche für den bestehenden Harbor-Flow
-
-Geplanter Scope:
-- Projektliste
-- Projekt-Detail mit Workflow Summary
-- Ansichten für:
-  - Search Campaigns
-  - Runs
-  - Candidates
-  - Review Queue
-  - Project Sources
-
-Nicht in T2.0:
-- keine neue Persistenzlogik
-- keine OpenAI-Integration
-- keine Search-Automation
-- keine Agentik
-
-### T2.1 — Operator Actions UI
-Ziel:
-- Candidate → Review
-- Review → Source
-- Statusänderungen
-- Duplicate-Fehler sauber anzeigen
-
-### T2.2 — UX / API Hardening
-Ziel:
-- Filter
-- Sortierung
-- Pagination
-- bessere Fehlermeldungen
-- Demo-/Testfluss
-
-**Release-Ziel nach Phase A:** `v0.2.0-alpha`
-
----
-
-## Phase B — OpenAI Adapter Layer
-
-### T2.3 — OpenAI Adapter
-Ziel:
-- Harbor-Funktionen als kontrollierte Tools nutzbar machen
-- strukturierte Outputs
-- klarer Audit-/Fehlerpfad
-
-Leitplanken:
-- keine direkten Modell-Schreibrechte auf DB
-- KI spricht nur mit Harbor-API / Harbor-Tools
-- keine versteckte Fachlogik in Prompts
-
-### T2.4 — Assisted Candidate Triage
-KI schlägt Dispositionen vor, Mensch entscheidet.
-
-### T2.5 — Assisted Source Drafting
-KI schlägt Summary, Trust Tier, Relevance und Notizen vor, Mensch entscheidet.
-
-**Release-Ziel nach Phase B:** `v0.3.0-alpha`
-
----
-
-## Phase C — Chat Surface / AI UX
-
-### T2.6 — Chat Surface
-Optionen:
-- Harbor-eigene Web-Chatfläche
-- ChatKit-basierte Oberfläche
-- später optional GPT Actions / Custom GPT / Agents SDK
-
-Ziel:
-- natürlichere Bedienung
-- aber weiterhin kontrollierte Tool-Aufrufe und menschliche Freigaben
-
-### T2.7 — Controlled Workflow Assistants
-Ziel:
-- dialoggestützte Recherche-Unterstützung
-- geführte Entscheidungs- und Review-Flows
-- keine unkontrollierte Vollagentik
-
-**Release-Ziel nach Phase C:** `v0.4.0-beta`
-
----
-
-## Phase D — Betriebsreife / Automation
-
-### T3.x — Monitoring und Scheduler
-Ziel:
-- geplante Refresh-Läufe
-- Beobachtungsfunktionen
-- Alerts / Benachrichtigungen
-
-### T3.x — Observability & Ops
-Ziel:
-- Logging
-- Traceability
-- Fehlerbilder systematischer analysieren
-- Betriebsrunbooks erweitern
-
-### T3.x — Erweiterte Deduplizierung / Merge-Strategie
-Ziel:
-- echte Merge-Entscheidungen
-- Konfliktbehandlung
-- robustere Wiederaufnahme- und Korrekturpfade
-
-**Release-Ziel:** `v1.0.0`
-
----
-
-## Nächster konkreter Schritt
-
-**T2.0 — Operator Web Shell**
-
-Warum genau jetzt:
-- Backend-Kern ist nutzbar
-- Workflow Summary existiert bereits
-- Duplicate Guards sind vorhanden
-- erste echte Nutzbarkeit entsteht über Sichtbarkeit und Bedienung, nicht sofort über KI
-
-Architekturregel:
-Die Web Shell darf **nur über Harbor-APIs** arbeiten, nicht direkt an der Datenbank vorbei.
+Do not continue from an unverified reconstructed slice.
+Use `origin/main` as the canonical baseline for every new bolt.

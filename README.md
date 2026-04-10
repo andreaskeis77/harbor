@@ -3,52 +3,62 @@
 Harbor is a project-partitioned research and monitoring system.
 
 ## Current phase
-T2.0 — Operator Web Shell
+T4.5A — project-source-grounded chat baseline
 
 ## Repository posture
-Harbor now contains:
+Harbor currently contains:
+
 - accepted A0 product and architecture baseline
 - runtime bootstrap and local operator surface
 - persistence foundation and Postgres baseline
-- project registry vertical slice
-- handbook persistence baseline
-- source and project-source slice
-- search campaign registry baseline
-- review queue baseline
-- search run registry baseline
-- search result candidate baseline
-- candidate-to-review promotion
-- review-queue-to-source promotion
-- duplicate guards for promotion flow
-- workflow summary and lineage surface
-- `v0.1.0-alpha` manual operator release cut
-
-## Local repository root
-Canonical local path: `C:\projekte\Harbor`
+- manual operator research workflow:
+  - project
+  - source / project-source
+  - search campaign
+  - review queue
+  - search run
+  - search result candidate
+  - candidate/review/source promotion flow
+  - duplicate guards
+  - workflow summary and lineage
+- operator web shell under `/operator/...`
+- OpenAI adapter baseline
+- project dry-run surface
+- persisted OpenAI dry-run log history
+- chat surface under `/chat`
+- persisted chat sessions and chat turns
+- multi-turn chat context hardening
+- chat turn inspection and compare readability surfaces
+- chat composer / instructions UX split
+- chat instructions preset/default UX
 
 ## Release baseline
-`v0.1.0-alpha` — manual operator flow
+Historical release baseline:
+- `v0.1.0-alpha` — manual operator flow baseline
 
-## Current implementation focus
-T2.0 introduces the first thin web shell for the existing backend flow.
-The shell must stay read-heavy first and must call Harbor APIs only.
+Current `main` is materially ahead of that alpha baseline.
 
-## Initial navigation
+## Local repository root
+Canonical local path:
+- `C:\projekte\Harbor`
+
+## Start here
 1. `docs/MASTERPLAN.md`
 2. `docs/PROJECT_STATE.md`
-3. `docs/INDEX.md`
-4. `docs/STRATEGY_ROADMAP_v0_1.md`
-5. `docs/RUNBOOK_ALPHA_OPERATOR_v0_1.md`
-6. `docs/RELEASE_CHECKLIST_ALPHA_v0_1.md`
+3. `docs/STRATEGY_ROADMAP_v0_1.md`
+4. `docs/WORKING_AGREEMENT.md`
+5. `docs/VALIDATION_PROTOCOL.md`
+6. `docs/_handoff/HANDOFF_2026-04-10_T4_4B_to_T4_5A.md`
 
-## Local commands
+## Standard local commands
 ```powershell
 .\.venv\Scripts\Activate.ps1
+
 python .\tools\task_runner.py show-settings
 python .\tools\task_runner.py show-db-settings
 python .\tools\task_runner.py quality-gates
+
 python .\tools\task_runner.py smoke-project-slice
-python .\tools\task_runner.py smoke-handbook-slice
 python .\tools\task_runner.py smoke-source-slice
 python .\tools\task_runner.py smoke-search-campaign-slice
 python .\tools\task_runner.py smoke-search-run-slice
@@ -58,22 +68,27 @@ python .\tools\task_runner.py smoke-candidate-review-promotion-slice
 python .\tools\task_runner.py smoke-review-queue-source-promotion-slice
 python .\tools\task_runner.py smoke-promotion-duplicate-guard-slice
 python .\tools\task_runner.py smoke-workflow-summary-slice
-python .\tools\task_runner.py run-dev
+python .\tools\task_runner.py smoke-operator-web-shell-slice
+python .\tools\task_runner.py smoke-openai-adapter-slice
+python .\tools\task_runner.py smoke-openai-project-dry-run-slice
+python .\tools\task_runner.py smoke-openai-chat-session-slice
+python .\tools\task_runner.py smoke-chat-surface-slice
 ```
 
-## Current proof points
+## Key surfaces
 - `/healthz`
 - `/runtime`
 - `/db/status`
-- `/api/v1/projects`
-- `/api/v1/projects/{project_id}/handbook`
-- `/api/v1/sources`
-- `/api/v1/projects/{project_id}/sources`
-- `/api/v1/projects/{project_id}/search-campaigns`
-- `/api/v1/projects/{project_id}/search-campaigns/{search_campaign_id}/runs`
-- `/api/v1/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/result-candidates`
-- `/api/v1/projects/{project_id}/review-queue-items`
-- `/api/v1/projects/{project_id}/workflow-summary`
+- `/operator/projects`
+- `/operator/projects/{project_id}`
+- `/chat`
+- `/api/v1/openai/runtime`
+- `/api/v1/openai/probe`
+- `/api/v1/openai/projects/{project_id}/dry-run`
+- `/api/v1/openai/projects/{project_id}/dry-run-logs`
+- `/api/v1/openai/projects/{project_id}/chat-sessions`
+- `/api/v1/openai/projects/{project_id}/chat-sessions/{chat_session_id}/turns`
+- `/api/v1/openai/projects/{project_id}/chat-turns`
 
-## Latest validated release baseline
-T1.13 — `v0.1.0-alpha` release cut
+## Current next step
+T4.5A — project-source-grounded chat baseline

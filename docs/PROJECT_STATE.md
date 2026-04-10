@@ -1,9 +1,10 @@
 # Project State
 
 ## Current phase
-T2.0 — Operator Web Shell
+T4.5A — project-source-grounded chat baseline
 
 ## Confirmed completed
+
 - A0 baseline accepted
 - T1.0 runtime bootstrap
 - T1.1 runtime configuration and local operator surface
@@ -21,75 +22,89 @@ T2.0 — Operator Web Shell
 - T1.11 workflow summary and lineage surface
 - T1.12 docs + runbook + release hygiene
 - T1.13 `v0.1.0-alpha` release cut
+- T2.0A operator web shell read surface
+- T2.1A operator action buttons
+- T2.1B manual create actions
+- T2.2A operator UX/API hardening
+- T3.0A OpenAI adapter baseline
+- T3.0B OpenAI project dry-run surface
+- T3.1A operator web shell OpenAI dry-run panel
+- T3.1B persisted OpenAI dry-run log history
+- T4.0A chat surface baseline
+- T4.0B persisted chat sessions and chat turns
+- T4.1A multi-turn context hardening
+- T4.1B chat turn context inspection panel
+- T4.2A chat session title/status UX hardening
+- T4.2B chat error/retry UX hardening
+- T4.3A chat composer/instructions UX split
+- T4.3B chat instructions preset/default UX hardening
+- T4.4A chat turn rendering density/readability hardening
+- T4.4B selected-turn diff/compare readability hardening
 
 ## Current runtime posture
+
 Harbor now has:
-- running FastAPI runtime
-- local operator commands
+
+- FastAPI runtime
 - DB status surface
-- persistence foundation with SQLAlchemy + Alembic baseline
-- project registry
-- handbook version registry
-- source registry
-- project-source attachment registry
-- search campaign registry
-- search run registry
-- search result candidate registry
-- review queue registry
-- candidate-to-review promotion path
-- review-queue-to-source promotion path
-- duplicate-guard behavior for promotion flow
-- project workflow summary and lineage API
-- first manual end-to-end operator flow release
+- canonical persistence layer with SQLAlchemy + Alembic
+- manual operator research workflow
+- operator web shell under `/operator/...`
+- OpenAI runtime/probe adapter surface
+- project dry-run surface
+- persisted dry-run logs
+- chat surface under `/chat`
+- persisted project-scoped chat sessions and turns
+- bounded multi-turn project-grounded context
+- selected-turn inspection and compare readability surface
+- richer chat UX for session state, retry behavior, composer/instructions handling, and density/readability
 
-## Current functional release scope
-Manual operator flow:
-- Project
-- Search Campaign
-- Search Run
-- Search Result Candidate
-- Review Queue
-- Source / ProjectSource
+## Current proof surfaces
 
-Additionally present:
-- duplicate guards
-- workflow summary
-- lineage surface
-- alpha runbook and release checklist
+- `/healthz`
+- `/runtime`
+- `/db/status`
+- `/operator/projects`
+- `/operator/projects/{project_id}`
+- `/chat`
+- `/api/v1/openai/runtime`
+- `/api/v1/openai/probe`
+- `/api/v1/openai/projects/{project_id}/dry-run`
+- `/api/v1/openai/projects/{project_id}/dry-run-logs`
+- `/api/v1/openai/projects/{project_id}/chat-sessions`
+- `/api/v1/openai/projects/{project_id}/chat-sessions/{chat_session_id}/turns`
+- `/api/v1/openai/projects/{project_id}/chat-turns`
 
-## Confirmed release proof baseline
-- `python -m alembic upgrade head`
-- `python .\tools\task_runner.py smoke-project-slice`
-- `python .\tools\task_runner.py smoke-handbook-slice`
-- `python .\tools\task_runner.py smoke-source-slice`
-- `python .\tools\task_runner.py smoke-search-campaign-slice`
-- `python .\tools\task_runner.py smoke-search-run-slice`
-- `python .\tools\task_runner.py smoke-search-result-candidate-slice`
-- `python .\tools\task_runner.py smoke-review-queue-slice`
-- `python .\tools\task_runner.py smoke-candidate-review-promotion-slice`
-- `python .\tools\task_runner.py smoke-review-queue-source-promotion-slice`
-- `python .\tools\task_runner.py smoke-promotion-duplicate-guard-slice`
-- `python .\tools\task_runner.py smoke-workflow-summary-slice`
-- `python .\tools\task_runner.py quality-gates`
+## Validation rule
+
+A Harbor bolt is not merge-ready until:
+
+- targeted pytest is green
+- relevant smoke slices are green
+- `python .\tools\task_runner.py quality-gates` is green
+
+Green tests without green quality gates are not enough.
+
+## Historical release baseline
+
+- `v0.1.0-alpha` remains the last explicitly documented alpha release baseline
+- current `main` is substantially ahead of that point
 
 ## Active next implementation slice
-T2.0A — Operator Web Shell read surface
+
+T4.5A — project-source-grounded chat baseline
 
 Scope:
-- project list
-- project detail page
-- workflow summary
-- read surfaces for campaigns, runs, candidates, review queue, project sources
 
-Architecture rule:
-- web shell calls Harbor APIs only
-- no DB-bypass logic in the web shell
-- no new persistence logic in T2.0A
+- include accepted project sources in adapter-side chat context
+- bound the included source set to a small fixed window
+- expose source-grounding request metadata
+- keep the change adapter-side and testable
 
 ## Intentionally not yet in scope
-- operator actions UI
-- OpenAI integration
-- chat surface
-- real web search execution
-- scheduling / recurring refresh
-- agentic workflows
+
+- autonomous tool orchestration
+- automated search execution
+- handbook synthesis without explicit operator action
+- vector retrieval subsystem
+- multi-user features
