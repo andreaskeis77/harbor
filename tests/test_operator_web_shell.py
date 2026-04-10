@@ -169,5 +169,7 @@ def test_chat_page_contains_shell_and_markers(client: TestClient) -> None:
     assert 'id="chat-instructions-preset-state"' in response.text
     assert 'data-chat-history-density="compact"' in response.text
     assert 'data-chat-turn-density="compact"' in response.text
+    assert 'data-chat-turn-compare="persisted-chat"' in response.text
+    assert 'data-chat-turn-compare-note="selected-turn"' in response.text
     assert 'data-chat-collapsible-support="chat-content"' in response.text
     assert 'id="chat-send-button"' in response.text
