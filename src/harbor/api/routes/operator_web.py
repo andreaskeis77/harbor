@@ -393,6 +393,18 @@ td {
 .chat-turn-summary {
   margin-top: 0;
 }
+.chat-turn-compare-grid {
+  margin-top: 0;
+}
+.chat-turn-compare-note {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+.chat-turn-compare-row {
+  display: grid;
+  gap: 8px;
+}
 .chat-inspector {
   display: grid;
   gap: 12px;
@@ -1749,6 +1761,26 @@ const previewText = (value, maxLength = 220) => {
   return `${normalized.slice(0, maxLength - 15)} …[truncated]`;
 };
 
+const textLength = (value) => {
+  return String(value ?? "").trim().length;
+};
+
+const lineCount = (value) => {
+  const text = String(value ?? "").trim();
+  if (!text) {
+    return 0;
+  }
+  return text.split("\n").length;
+};
+
+const formatDelta = (current, baseline) => {
+  const delta = current - baseline;
+  if (delta === 0) {
+    return "0";
+  }
+  return `${delta > 0 ? "+" : ""}${String(delta)}`;
+};
+
 const shouldCollapseText = (value, collapseLimit = 280) => {
   const text = String(value ?? "");
   const normalized = compactWhitespace(text);
@@ -2192,12 +2224,21 @@ const renderTurnInspectorOptions = (preferredTurnId = null) => {
 
 const clearChatTurnInspector = (text) => {
   const summary = byId("chat-turn-summary");
+  const compare = byId("chat-turn-compare-grid");
   const detail = byId("chat-turn-inspector");
   renderTurnInspectorOptions();
   if (summary) {
     summary.innerHTML = `
       <div class="response-card">
         <div class="response-label">Selected turn</div>
+        <div class="response-value">&mdash;</div>
+      </div>
+    `;
+  }
+  if (compare) {
+    compare.innerHTML = `
+      <div class="response-card">
+        <div class="response-label">Comparison</div>
         <div class="response-value">&mdash;</div>
       </div>
     `;
@@ -2209,8 +2250,9 @@ const clearChatTurnInspector = (text) => {
 
 const renderChatTurnInspector = () => {
   const summary = byId("chat-turn-summary");
+  const compare = byId("chat-turn-compare-grid");
   const detail = byId("chat-turn-inspector");
-  if (!summary || !detail) {
+  if (!summary || !compare || !detail) {
     return;
   }
 
@@ -2223,7 +2265,18 @@ const renderChatTurnInspector = () => {
     return;
   }
 
-  const assistantText = turn.output_text || turn.error_message || "No output.";
+  const operatorText = String(turn.request_input_text || "").trim();
+  const renderedText = String(turn.rendered_input_text || "").trim();
+  const assistantText = String(
+    turn.output_text || turn.error_message || "No output.",
+  ).trim();
+  const operatorChars = textLength(operatorText);
+  const renderedChars = textLength(renderedText);
+  const assistantChars = textLength(assistantText);
+  const operatorLines = lineCount(operatorText);
+  const renderedLines = lineCount(renderedText);
+  const assistantLines = lineCount(assistantText);
+
   summary.innerHTML = `
     <div class="response-card">
       <div class="response-label">Selected turn</div>
@@ -2242,26 +2295,54 @@ const renderChatTurnInspector = () => {
       <div class="response-value">${safeText(turn.response_id)}</div>
     </div>
   `;
+  compare.innerHTML = `
+    <div class="response-card">
+      <div class="response-label">Operator chars</div>
+      <div class="response-value">${safeText(operatorChars)}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Rendered input chars</div>
+      <div class="response-value">${safeText(renderedChars)}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Assistant output chars</div>
+      <div class="response-value">${safeText(assistantChars)}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Input → rendered delta</div>
+      <div class="response-value">${safeText(formatDelta(renderedChars, operatorChars))}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Rendered → output delta</div>
+      <div class="response-value">${safeText(formatDelta(assistantChars, renderedChars))}</div>
+    </div>
+    <div class="response-card">
+      <div class="response-label">Line counts</div>
+      <div class="response-value">${safeText(
+        `${operatorLines} / ${renderedLines} / ${assistantLines}`,
+      )}</div>
+    </div>
+  `;
   detail.innerHTML = `
     <div class="chat-turn-detail">
       <div class="response-label">Created</div>
       <div class="response-value">${safeText(formatDateTime(turn.created_at))}</div>
     </div>
-    <div class="chat-turn-detail">
-      ${renderCollapsibleTextBlock(
-        "Rendered Harbor input",
-        turn.rendered_input_text,
-        { collapseLimit: 420 },
-      )}
-    </div>
-    <div class="chat-turn-detail">
+    <div class="chat-turn-compare-row">
       ${renderCollapsibleTextBlock(
         "Persisted operator message",
-        turn.request_input_text,
+        operatorText,
         { collapseLimit: 220 },
       )}
     </div>
-    <div class="chat-turn-detail">
+    <div class="chat-turn-compare-row">
+      ${renderCollapsibleTextBlock(
+        "Rendered Harbor input",
+        renderedText,
+        { collapseLimit: 420 },
+      )}
+    </div>
+    <div class="chat-turn-compare-row">
       ${renderCollapsibleTextBlock(
         "Persisted assistant output",
         assistantText,
@@ -3596,6 +3677,21 @@ def _chat_page() -> HTMLResponse:
     >
       <div class="response-card">
         <div class="response-label">Selected turn</div>
+        <div class="response-value">&mdash;</div>
+      </div>
+    </div>
+    <p class="chat-turn-compare-note" data-chat-turn-compare-note="selected-turn">
+      Compare the persisted operator input, the Harbor-rendered input, and the
+      persisted assistant output with compact metrics before opening dense text
+      blocks.
+    </p>
+    <div
+      class="response-grid chat-turn-compare-grid"
+      id="chat-turn-compare-grid"
+      data-chat-turn-compare="persisted-chat"
+    >
+      <div class="response-card">
+        <div class="response-label">Comparison</div>
         <div class="response-value">&mdash;</div>
       </div>
     </div>

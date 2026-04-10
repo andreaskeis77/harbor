@@ -1238,6 +1238,12 @@ def smoke_chat_surface_slice_payload() -> dict[str, object]:
                 "chat_page_has_turn_density": (
                     'data-chat-turn-density="compact"' in chat_page.text
                 ),
+                "chat_page_has_turn_compare": (
+                    'data-chat-turn-compare="persisted-chat"' in chat_page.text
+                ),
+                "chat_page_has_turn_compare_note": (
+                    'data-chat-turn-compare-note="selected-turn"' in chat_page.text
+                ),
                 "chat_page_has_collapsible_support": (
                     'data-chat-collapsible-support="chat-content"' in chat_page.text
                 ),
