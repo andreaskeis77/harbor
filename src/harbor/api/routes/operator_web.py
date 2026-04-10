@@ -1643,10 +1643,12 @@ const syncChatControls = () => {
   const sessionSelect = byId("chat-session-id");
   const turnSelect = byId("chat-turn-id");
   const input = byId("chat-input-text");
+  const instructions = byId("chat-instructions-text");
   const sendButton = byId("chat-send-button");
   const newSessionButton = byId("chat-new-session-button");
   const reloadButton = byId("chat-reload-projects-button");
   const retryButton = byId("chat-retry-last-failed-button");
+  const clearInstructionsButton = byId("chat-clear-instructions-button");
 
   if (projectSelect) {
     projectSelect.disabled = !hasProjects || chatBusy;
@@ -1660,6 +1662,9 @@ const syncChatControls = () => {
   if (input) {
     input.disabled = !hasProjects || chatBusy;
   }
+  if (instructions) {
+    instructions.disabled = !hasProjects || chatBusy;
+  }
   if (sendButton) {
     sendButton.disabled = !hasProjects || chatBusy;
   }
@@ -1671,6 +1676,9 @@ const syncChatControls = () => {
   }
   if (retryButton) {
     retryButton.disabled = !lastFailedChatRequest || chatBusy;
+  }
+  if (clearInstructionsButton) {
+    clearInstructionsButton.disabled = !hasProjects || chatBusy;
   }
 };
 
@@ -1726,12 +1734,14 @@ const rememberFailedChatRequest = ({
   projectId,
   chatSessionId,
   inputText,
+  instructions,
   errorMessage,
 }) => {
   lastFailedChatRequest = {
     projectId,
     chatSessionId: chatSessionId || null,
     inputText,
+    instructions: instructions || null,
     errorMessage,
     failedAt: new Date().toISOString(),
   };
@@ -1797,6 +1807,12 @@ const renderChatRetryPanel = () => {
     <div class="chat-turn-detail">
       <div class="response-label">Retry message</div>
       <pre class="response-pre">${safeText(lastFailedChatRequest.inputText)}</pre>
+    </div>
+    <div class="chat-turn-detail">
+      <div class="response-label">Retry instructions</div>
+      <pre class="response-pre">${safeText(
+        lastFailedChatRequest.instructions || "Harbor default instructions"
+      )}</pre>
     </div>
   `;
 };
@@ -2099,12 +2115,37 @@ const clearChatHistory = (text) => {
 
 const selectedProjectId = () => String(byId("chat-project-id")?.value || "").trim();
 
-const persistChatTurn = async ({ projectId, inputText, chatSessionId }) => {
+const currentInstructionsText = () => {
+  return String(byId("chat-instructions-text")?.value || "").trim();
+};
+
+const renderInstructionsState = () => {
+  const target = byId("chat-instructions-state");
+  if (!target) {
+    return;
+  }
+
+  const instructions = currentInstructionsText();
+  if (!instructions) {
+    target.textContent = "Using Harbor default instructions.";
+    return;
+  }
+
+  target.textContent = `Using custom instructions (${instructions.length} chars).`;
+};
+
+const persistChatTurn = async ({
+  projectId,
+  inputText,
+  chatSessionId,
+  instructions,
+}) => {
   return postJson(
     `${apiBase}/openai/projects/${encodeURIComponent(projectId)}/chat-turns`,
     {
       input_text: inputText,
       chat_session_id: chatSessionId,
+      instructions: instructions || null,
     },
   );
 };
@@ -2116,9 +2157,14 @@ const retryFailedChatMessage = async () => {
 
   const failedRequest = { ...lastFailedChatRequest };
   const input = byId("chat-input-text");
+  const instructions = byId("chat-instructions-text");
   if (input) {
     input.value = failedRequest.inputText;
   }
+  if (instructions) {
+    instructions.value = failedRequest.instructions || "";
+  }
+  renderInstructionsState();
 
   chatBusy = true;
   syncChatControls();
@@ -2129,6 +2175,7 @@ const retryFailedChatMessage = async () => {
       projectId: failedRequest.projectId,
       inputText: failedRequest.inputText,
       chatSessionId: failedRequest.chatSessionId,
+      instructions: failedRequest.instructions,
     });
 
     currentSessionId = payload.session.openai_project_chat_session_id;
@@ -2143,6 +2190,7 @@ const retryFailedChatMessage = async () => {
       projectId: failedRequest.projectId,
       chatSessionId: failedRequest.chatSessionId,
       inputText: failedRequest.inputText,
+      instructions: failedRequest.instructions,
       errorMessage: error.message,
     });
     setChatStatus(`Retry failed: ${error.message}`, "error");
@@ -2251,6 +2299,7 @@ const submitChatMessage = async (event) => {
 
   const projectId = selectedProjectId();
   const inputText = String(byId("chat-input-text")?.value || "").trim();
+  const instructions = currentInstructionsText();
 
   if (!projectId) {
     setChatStatus("Select a project first.", "error");
@@ -2270,6 +2319,7 @@ const submitChatMessage = async (event) => {
       projectId,
       inputText,
       chatSessionId: currentSessionId,
+      instructions,
     });
 
     currentSessionId = payload.session.openai_project_chat_session_id;
@@ -2282,6 +2332,7 @@ const submitChatMessage = async (event) => {
       projectId,
       chatSessionId: currentSessionId,
       inputText,
+      instructions,
       errorMessage: error.message,
     });
     setChatStatus(
@@ -2305,6 +2356,13 @@ document.addEventListener("click", async (event) => {
   if (button.dataset.chatAction === "new-session") {
     startNewChatSession();
   }
+  if (button.dataset.chatAction === "clear-instructions") {
+    const instructions = byId("chat-instructions-text");
+    if (instructions) {
+      instructions.value = "";
+    }
+    renderInstructionsState();
+  }
   if (button.dataset.chatAction === "retry-last-failed") {
     await retryFailedChatMessage();
   }
@@ -2315,6 +2373,7 @@ document.addEventListener("change", async (event) => {
   if (projectSelect) {
     currentSessionId = null;
     clearFailedChatRequest();
+    renderInstructionsState();
     await loadChatSessions(selectedProjectId());
     return;
   }
@@ -2354,8 +2413,10 @@ document.addEventListener("submit", async (event) => {
 });
 
 clearChatHistory("Loading Harbor projects...");
+renderInstructionsState();
 renderChatRetryPanel();
 loadChatProjects();
+byId("chat-instructions-text")?.addEventListener("input", renderInstructionsState);
 """
 
 
@@ -3016,7 +3077,7 @@ def _chat_page() -> HTMLResponse:
   </header>
 
   <section class="section-card">
-    <h2>Message</h2>
+    <h2>Composer</h2>
     <p class="action-note">
       Select a Harbor project, continue a persisted chat session or start a new
       one, then send a message through the Harbor OpenAI adapter.
@@ -3057,15 +3118,55 @@ def _chat_page() -> HTMLResponse:
           Sessions and turns are persisted in Harbor.
         </span>
       </div>
-      <div class="form-field">
-        <label class="form-label" for="chat-input-text">Message</label>
-        <textarea
-          id="chat-input-text"
-          name="input_text"
-          required
-          disabled
-          placeholder="Ask Harbor for a compact project-specific response."
-        ></textarea>
+      <div class="form-grid">
+        <div class="form-panel" data-chat-composer-panel="message">
+          <h3>Message</h3>
+          <div class="form-field">
+            <label class="form-label" for="chat-input-text">Operator message</label>
+            <textarea
+              id="chat-input-text"
+              name="input_text"
+              required
+              disabled
+              placeholder="Ask Harbor for a compact project-specific response."
+            ></textarea>
+          </div>
+          <div class="form-hint">
+            The message is persisted as the operator input for the new chat turn.
+          </div>
+        </div>
+        <div class="form-panel" data-chat-composer-panel="instructions">
+          <h3>Instructions</h3>
+          <div class="form-field">
+            <label class="form-label" for="chat-instructions-text">
+              Optional instructions override
+            </label>
+            <textarea
+              id="chat-instructions-text"
+              name="instructions"
+              data-chat-instructions-field="persisted-chat"
+              disabled
+              placeholder="Optional. Leave blank to use Harbor's default chat instructions."
+            ></textarea>
+          </div>
+          <div class="form-actions">
+            <button
+              type="button"
+              class="action-button secondary"
+              id="chat-clear-instructions-button"
+              data-chat-action="clear-instructions"
+              disabled
+            >
+              Use default instructions
+            </button>
+            <span class="form-hint" id="chat-instructions-state">
+              Using Harbor default instructions.
+            </span>
+          </div>
+          <div class="form-hint">
+            Custom instructions are transient and apply to the next sent or retried turn.
+          </div>
+        </div>
       </div>
       <div class="form-actions">
         <button
