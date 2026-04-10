@@ -50,3 +50,17 @@ A bolt is done only when:
 - docs are updated
 - project state is updated
 - next step is explicit
+
+## 2026-04-10 additions
+
+### Artifact integrity over incremental improvisation
+A generated delivery artifact must either contain every touched repository file or provide one deterministic apply script that writes every touched repository file. Partial artifacts are treated as invalid.
+
+### Contract-preserving changes
+If a feature spans route, builder, and tests, the bolt must update those layers coherently. It is not acceptable to patch one layer and infer the rest.
+
+### Root-cause analysis before the next artifact
+If an artifact fails in apply, import, test, smoke, or quality-gates, Harbor work returns to a verified clean base before another artifact is produced. No patching on top of a broken artifact.
+
+### Use the established harness
+New tests should extend the existing fixture and fake-client harness for the surface under change instead of inventing an ad hoc host.

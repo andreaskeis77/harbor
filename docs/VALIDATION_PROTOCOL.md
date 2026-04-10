@@ -53,3 +53,20 @@ python .\tools\task_runner.py smoke-chat-surface-slice
 python .\tools\task_runner.py smoke-openai-chat-session-slice
 python .\tools\task_runner.py quality-gates
 ```
+
+## 2026-04-10 recovery and apply discipline
+
+### Required sequence after a generated artifact
+1. verify the intended git base
+2. apply the artifact
+3. inspect the changed-file set
+4. run the smallest relevant targeted tests
+5. run the relevant smokes
+6. run `python .\tools\task_runner.py quality-gates`
+7. only then commit and push
+
+### Recovery rule after failure
+If any of apply, import, tests, smokes, or quality-gates fail, stop and perform root-cause analysis from a verified clean base. The next artifact must be re-cut from that base rather than patched on top of the broken state.
+
+### Merge-ready rule
+A bolt is merge-ready only when the changed file set is understood, the relevant checks are green, and the state/documentation have been updated to match reality.

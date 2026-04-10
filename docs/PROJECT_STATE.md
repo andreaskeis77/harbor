@@ -108,3 +108,30 @@ Scope:
 - handbook synthesis without explicit operator action
 - vector retrieval subsystem
 - multi-user features
+
+## 2026-04-10 validated branch state
+
+Validated branch: `bolt/t4-5a-project-source-grounded-chat-baseline-v2`
+
+Confirmed completed on this branch:
+- T4.5A — project-source-grounded chat baseline
+
+Delivered in T4.5A:
+- accepted project sources are injected into chat turn grounding
+- rendered input now includes a dedicated `Project sources` prompt section
+- request metadata now records `project_source_count_available` and `project_source_count_included`
+- no-source cases are rendered explicitly as `(no accepted project sources available)`
+- the existing prior-turn compaction behavior remains intact
+
+Validated locally with:
+- `python -m pytest tests/test_openai_adapter_api.py -q`
+- `python .\tools\task_runner.py smoke-source-slice`
+- `python .\tools\task_runner.py smoke-openai-adapter-slice`
+- `python .\tools\task_runner.py smoke-openai-chat-session-slice`
+- `python .\tools\task_runner.py smoke-chat-surface-slice`
+- `python .\tools\task_runner.py quality-gates`
+
+Documented follow-up from this bolt:
+- lessons learned captured
+- delivery and validation protocols hardened
+- next product bolt remains `T4.5B` after merge

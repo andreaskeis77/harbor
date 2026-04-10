@@ -142,3 +142,12 @@ Every accepted slice updates:
 - `docs/_handoff/HANDOFF_*.md`
 
 For Harbor, docs are not commentary. They are part of the operable system.
+
+## 2026-04-10 validated branch update
+
+Validated on branch `bolt/t4-5a-project-source-grounded-chat-baseline-v2`:
+- T4.5A is complete and locally green.
+- Chat turns are now grounded in accepted project sources.
+- The next planned product bolt remains `T4.5B — source attribution / source visibility in chat`.
+
+Methodically, this update also hardens Harbor delivery discipline: complete artifacts, verified bases, root-cause analysis after red applies, and no further patching on top of a broken artifact.

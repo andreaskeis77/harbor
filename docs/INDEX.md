@@ -45,3 +45,9 @@
 
 ## ADRs
 - `docs/adr/README.md`
+
+## 2026-04-10 updates
+
+- `LESSONS_LEARNED_T4_5A_2026-04-10.md`
+- `docs/_handoff/HANDOFF_2026-04-10_T4_5A_to_T4_5B.md`
+- method hardening updates in `ENGINEERING_MANIFEST.md`, `DELIVERY_PROTOCOL.md`, `WORKING_AGREEMENT.md`, and `VALIDATION_PROTOCOL.md`
