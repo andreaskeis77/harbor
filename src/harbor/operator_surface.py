@@ -1210,7 +1210,16 @@ def smoke_chat_surface_slice_payload() -> dict[str, object]:
                 "chat_page_has_new_session_button": (
                     'data-chat-action="new-session"' in chat_page.text
                 ),
+                "chat_page_has_clear_instructions_button": (
+                    'data-chat-action="clear-instructions"' in chat_page.text
+                ),
                 "chat_page_has_message_input": 'id="chat-input-text"' in chat_page.text,
+                "chat_page_has_instructions_input": (
+                    'data-chat-instructions-field="persisted-chat"' in chat_page.text
+                ),
+                "chat_page_has_instructions_state": (
+                    'id="chat-instructions-state"' in chat_page.text
+                ),
                 "project": project.json(),
             }
         finally:
