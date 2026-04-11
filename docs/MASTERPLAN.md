@@ -55,9 +55,10 @@ Accepted:
 - T4.5A project-source-grounded chat baseline
 - T4.5B source attribution / source visibility in chat
 - T5.0A enriched source context in chat prompt
+- T5.0B source citation in assistant responses
 
 ## Current focus
-- T5.0A — enriched source context in chat prompt (in progress)
+- T5.0B — source citation in assistant responses (in progress)
 
 ## Phase intent
 
@@ -141,6 +142,15 @@ Ground the chat in Harbor knowledge and begin controlled operator action surface
 - source_attribution includes enriched fields
 - backend-only change (no UI, no persistence, no migration)
 - 2 new unit tests, enriched assertions on existing integration test
+
+### T5.0B
+- source citation in assistant responses
+- prompt engineering: citation instruction appended when sources are present
+- rendered source section includes "Cite sources by number" instruction
+- post-processing: `_extract_source_citations()` extracts `[N]` references from output
+- `cited_sources` field in chat turn payload (computed, not persisted)
+- UI: inline citation badges with hover title in assistant messages
+- 4 new unit tests, enriched assertions on 4 existing tests
 
 ## Explicit non-goals right now
 

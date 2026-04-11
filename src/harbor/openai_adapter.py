@@ -28,6 +28,11 @@ MAX_CHAT_HISTORY_ASSISTANT_CHARS = 320
 MAX_PROJECT_SOURCES_IN_CHAT_CONTEXT = 6
 TRUNCATION_SUFFIX = " …[truncated]"
 
+SOURCE_CITATION_INSTRUCTION = (
+    " When referencing information from the project sources, cite them by number "
+    "(e.g. [1], [2])."
+)
+
 
 class OpenAIProbeError(RuntimeError):
     pass
@@ -220,7 +225,34 @@ def _project_sources_lines(project_sources: list[dict[str, str]]) -> list[str]:
         if index < len(project_sources):
             lines.append("")
 
+    lines.append("")
+    lines.append("Cite sources by number (e.g. [1], [2]) when referencing them.")
+
     return lines
+
+
+def _extract_source_citations(
+    output_text: str | None,
+    prepared_sources: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    """Extract cited sources from assistant output text.
+
+    Scans for [N] patterns and maps them back to the prepared source list.
+    Returns the subset of sources that were actually cited, preserving order.
+    """
+    if not output_text or not prepared_sources:
+        return []
+
+    cited_indices: set[int] = set()
+    for match in re.finditer(r"\[(\d+)]", output_text):
+        index = int(match.group(1))
+        if 1 <= index <= len(prepared_sources):
+            cited_indices.add(index)
+
+    return [
+        prepared_sources[i - 1]
+        for i in sorted(cited_indices)
+    ]
 
 
 def build_project_dry_run_input(
@@ -306,6 +338,8 @@ def openai_project_chat_turn_payload(
     instructions_source = "custom" if instructions else "default"
     _, history_meta = _prepare_prior_chat_turns(prior_turns)
     prepared_sources, source_meta = _prepare_project_sources(project_sources)
+    if prepared_sources:
+        effective_instructions = effective_instructions + SOURCE_CITATION_INSTRUCTION
     rendered_input_text = build_project_chat_turn_input(
         project_context,
         input_text,
@@ -326,6 +360,7 @@ def openai_project_chat_turn_payload(
         },
         "request_metadata": source_meta,
         "source_attribution": prepared_sources,
+        "cited_sources": [],
         "response_id": None,
         "response_status": None,
         "output_text": None,
@@ -352,7 +387,9 @@ def openai_project_chat_turn_payload(
         payload["status"] = "completed"
         payload["response_id"] = _response_attr(response, "id")
         payload["response_status"] = _response_attr(response, "status")
-        payload["output_text"] = _response_output_text(response)
+        output_text = _response_output_text(response)
+        payload["output_text"] = output_text
+        payload["cited_sources"] = _extract_source_citations(output_text, prepared_sources)
         return payload
     except Exception as exc:  # pragma: no cover - defensive envelope for chat turns
         payload["status"] = "error"

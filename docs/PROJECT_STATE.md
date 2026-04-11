@@ -1,7 +1,7 @@
 # Project State
 
 ## Current phase
-T5.0A — enriched source context in chat prompt
+T5.0B — source citation in assistant responses
 
 ## Confirmed completed
 
@@ -42,6 +42,7 @@ T5.0A — enriched source context in chat prompt
 - T4.4B selected-turn diff/compare readability hardening
 - T4.5A project-source-grounded chat baseline
 - T4.5B source attribution / source visibility in chat
+- T5.0A enriched source context in chat prompt
 
 ## Current runtime posture
 
@@ -78,12 +79,14 @@ Harbor now has:
 - **116 tests, 96% coverage** (H4)
 - **117 tests, 96% coverage** (T4.5B)
 - **119 tests, 96% coverage** (T5.0A)
+- **123 tests, 96% coverage** (T5.0B)
 - **validation edge-case tests for all review-queue registry branches**
 - **Pydantic input-constraint boundary tests (422 rejection)**
 - **E2E workflow lifecycle test (project → campaign → run → candidate → review → source)**
 - **source_attribution persisted per chat turn** (JSON: source_id, project_source_id, title, URL, note)
 - **source attribution visible in chat UI** (compact badge in history, collapsible detail in inspector)
 - **enriched source context in chat prompt** (relevance, trust_tier, review_status rendered per source)
+- **source citation in assistant responses** (citation instruction, `[N]` extraction, inline UI badges)
 
 ## Current proof surfaces
 
@@ -118,16 +121,17 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-T5.0A — enriched source context in chat prompt (in progress)
+T5.0B — source citation in assistant responses (in progress)
 
 Scope:
 
-- `_prepare_project_sources()` now extracts `relevance`, `trust_tier`, `review_status` from project-source and source data
-- `_project_sources_lines()` renders structured metadata bracket `[relevance=..., trust=..., review=...]` per source
-- `source_attribution` entries include enriched metadata fields
-- backend-only change: no UI, no persistence, no migration
-- 2 new unit tests, enriched assertions on existing integration test
-- 119 tests, 96% coverage, quality gates green
+- citation instruction appended to system prompt when sources are present
+- rendered source section includes "Cite sources by number" instruction
+- `_extract_source_citations()` extracts `[N]` references from assistant output
+- `cited_sources` field in chat turn payload (computed from output, not persisted)
+- UI: inline citation badges (`<span class="citation-ref">`) with hover title in assistant messages
+- 4 new unit tests, enriched assertions on 4 existing integration tests
+- 123 tests, 96% coverage, quality gates green
 
 ## Intentionally not yet in scope
 
