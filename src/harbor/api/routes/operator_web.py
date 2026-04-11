@@ -461,6 +461,28 @@ td {
   font-size: 0.85rem;
   color: #94a3b8;
 }
+.propose-source-form {
+  display: grid;
+  gap: 8px;
+}
+.propose-source-form input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.propose-source-result {
+  margin-top: 8px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+}
+.propose-source-result.success {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+.propose-source-result.error {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
 .chat-session-summary {
   margin-top: 0;
 }
@@ -2897,6 +2919,56 @@ document.addEventListener("submit", async (event) => {
   }
 });
 
+const proposeSourceForm = byId("propose-source-form");
+if (proposeSourceForm) {
+  proposeSourceForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const projectId = byId("chat-project-id")?.value;
+    if (!projectId) {
+      return;
+    }
+    const url = byId("propose-source-url")?.value?.trim();
+    if (!url) {
+      return;
+    }
+    const title = byId("propose-source-title")?.value?.trim() || null;
+    const note = byId("propose-source-note")?.value?.trim() || null;
+    const resultDiv = byId("propose-source-result");
+    const body = { canonical_url: url };
+    if (title) body.title = title;
+    if (note) body.note = note;
+    try {
+      const ep = `${apiBase}/openai/projects/` +
+        `${encodeURIComponent(projectId)}/propose-source`;
+      const opts = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      };
+      const response = await fetch(ep, opts);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      if (resultDiv) {
+        const t = safeText(data.source?.title || url);
+        resultDiv.innerHTML =
+          `<div class="propose-source-result success">` +
+          `Source proposed: ${t} (candidate)</div>`;
+      }
+      proposeSourceForm.reset();
+    } catch (err) {
+      if (resultDiv) {
+        const m = safeText(String(err.message || err));
+        resultDiv.innerHTML =
+          `<div class="propose-source-result error">` +
+          `${m}</div>`;
+      }
+    }
+  });
+}
+
 clearChatHistory("Loading Harbor projects...");
 renderDefaultInstructionsPreview();
 renderInstructionPresetOptions();
@@ -3745,6 +3817,38 @@ def _chat_page() -> HTMLResponse:
     >
       <div class="empty">New session not yet persisted.</div>
     </div>
+  </section>
+
+  <section class="section-card">
+    <details class="chat-collapsible">
+      <summary>
+        <span class="chat-collapsible-summary">
+          <span class="chat-collapsible-label">Propose Source</span>
+          <span class="chat-collapsible-preview">Submit a URL to propose as project source</span>
+        </span>
+      </summary>
+      <div class="chat-collapsible-body">
+        <form id="propose-source-form" class="propose-source-form">
+          <div class="form-field">
+            <label class="form-label" for="propose-source-url">URL (required)</label>
+            <input type="url" id="propose-source-url" class="form-input"
+              placeholder="https://example.com/article" required maxlength="1000" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="propose-source-title">Title (optional)</label>
+            <input type="text" id="propose-source-title" class="form-input"
+              placeholder="Source title" maxlength="300" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="propose-source-note">Note (optional)</label>
+            <input type="text" id="propose-source-note" class="form-input"
+              placeholder="Why this source is relevant" maxlength="1000" />
+          </div>
+          <button type="submit" class="button button-sm">Propose source</button>
+        </form>
+        <div id="propose-source-result"></div>
+      </div>
+    </details>
   </section>
 
   <section class="section-card">

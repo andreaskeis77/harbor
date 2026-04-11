@@ -57,9 +57,10 @@ Accepted:
 - T5.0A enriched source context in chat prompt
 - T5.0B source citation in assistant responses
 - T5.1A handbook context in chat
+- T5.1B operator action: propose source from chat
 
 ## Current focus
-- T5.1A — handbook context in chat (in progress)
+- T5.1B — operator action: propose source from chat (in progress)
 
 ## Phase intent
 
@@ -162,6 +163,14 @@ Ground the chat in Harbor knowledge and begin controlled operator action surface
 - handbook metadata in `request_metadata` (`handbook_available`, `handbook_chars`, `handbook_truncated`)
 - no new persistence, no UI changes
 - 6 new unit tests, enriched assertions on 2 existing tests
+
+### T5.1B
+- operator action: propose source from chat
+- `POST /api/v1/openai/projects/{project_id}/propose-source` convenience endpoint
+- creates source (`web_page`, `candidate` trust) + attaches to project (`candidate` relevance/review)
+- collapsible "Propose Source" form in chat UI (URL, title, note)
+- reuses existing `create_source` + `attach_source_to_project` flow
+- 3 new API tests (full fields, minimal, project not found)
 
 ## Explicit non-goals right now
 
