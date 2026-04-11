@@ -459,6 +459,9 @@ def test_openai_project_chat_turn_not_configured(
     assert "Cite sources by number" not in payload["request"]["rendered_input_text"]
     assert "cite them by number" not in payload["request"]["instructions"].lower()
     assert payload["cited_sources"] == []
+    # T5.1A: No handbook → placeholder in rendered text
+    assert payload["request_metadata"]["handbook_available"] is False
+    assert "(no handbook available for this project)" in payload["request"]["rendered_input_text"]
 
     sessions_response = project_client.get(
         f"/api/v1/openai/projects/{project['project_id']}/chat-sessions"
@@ -557,6 +560,9 @@ def test_openai_project_chat_turn_includes_accepted_project_sources(
     assert "https://example.com/accepted-source-two" in rendered_input_text
     assert "Primary source note." in rendered_input_text
     assert "Candidate Source" not in rendered_input_text
+    # T5.1A: No handbook for this project → placeholder
+    assert "(no handbook available for this project)" in rendered_input_text
+    assert payload["request_metadata"]["handbook_available"] is False
     assert (
         "Current operator message:\nSummarize the accepted project sources."
         in rendered_input_text
@@ -672,6 +678,85 @@ def test_prepare_project_sources_extracts_enriched_fields() -> None:
     assert entry["project_source_id"] == "ps-1"
     assert meta["project_source_count_available"] == 1
     assert meta["project_source_count_included"] == 1
+
+
+def test_prepare_handbook_context_with_content() -> None:
+    text, meta = openai_adapter_module._prepare_handbook_context(
+        "# Research Notes\n\nThis is a handbook entry about coral reef research."
+    )
+    assert text == "# Research Notes This is a handbook entry about coral reef research."
+    assert meta["handbook_available"] is True
+    assert meta["handbook_chars"] > 0
+    assert meta["handbook_truncated"] is False
+
+
+def test_prepare_handbook_context_empty() -> None:
+    text, meta = openai_adapter_module._prepare_handbook_context(None)
+    assert text == ""
+    assert meta["handbook_available"] is False
+
+    text2, meta2 = openai_adapter_module._prepare_handbook_context("")
+    assert text2 == ""
+    assert meta2["handbook_available"] is False
+
+    text3, meta3 = openai_adapter_module._prepare_handbook_context("   ")
+    assert text3 == ""
+    assert meta3["handbook_available"] is False
+
+
+def test_prepare_handbook_context_truncation() -> None:
+    long_text = "x" * 3000
+    text, meta = openai_adapter_module._prepare_handbook_context(long_text)
+    assert meta["handbook_truncated"] is True
+    assert len(text) <= openai_adapter_module.MAX_HANDBOOK_CHARS
+    assert text.endswith("…[truncated]")
+
+
+def test_handbook_context_lines_with_content() -> None:
+    lines = openai_adapter_module._handbook_context_lines("Some handbook content here.")
+    rendered = "\n".join(lines)
+    assert "Project handbook" in rendered
+    assert "Some handbook content here." in rendered
+
+
+def test_handbook_context_lines_empty() -> None:
+    lines = openai_adapter_module._handbook_context_lines("")
+    rendered = "\n".join(lines)
+    assert "Project handbook" in rendered
+    assert "(no handbook available for this project)" in rendered
+
+
+def test_openai_project_chat_turn_with_handbook(
+    project_client: TestClient,
+) -> None:
+    project = _create_project(project_client)
+
+    # Create a handbook for the project
+    handbook_response = project_client.put(
+        f"/api/v1/projects/{project['project_id']}/handbook",
+        json={
+            "handbook_markdown": "# Reef Guide\n\nBest reefs are in the Maldives and Red Sea.",
+        },
+    )
+    assert handbook_response.status_code == 200
+
+    response = project_client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-turns",
+        json={"input_text": "What are the best reefs?"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+
+    rendered = payload["request"]["rendered_input_text"]
+    assert "Project handbook" in rendered
+    assert "Reef Guide" in rendered
+    assert "Maldives and Red Sea" in rendered
+    assert payload["request_metadata"]["handbook_available"] is True
+    assert payload["request_metadata"]["handbook_truncated"] is False
+
+    # Verify ordering: handbook before sources before operator message
+    assert rendered.index("Project handbook") < rendered.index("Project sources")
+    assert rendered.index("Project sources") < rendered.index("Current operator message:")
 
 
 def test_extract_source_citations_basic() -> None:

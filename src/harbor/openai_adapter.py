@@ -26,6 +26,7 @@ MAX_CHAT_HISTORY_TURNS = 6
 MAX_CHAT_HISTORY_OPERATOR_CHARS = 240
 MAX_CHAT_HISTORY_ASSISTANT_CHARS = 320
 MAX_PROJECT_SOURCES_IN_CHAT_CONTEXT = 6
+MAX_HANDBOOK_CHARS = 2000
 TRUNCATION_SUFFIX = " …[truncated]"
 
 SOURCE_CITATION_INSTRUCTION = (
@@ -231,6 +232,32 @@ def _project_sources_lines(project_sources: list[dict[str, str]]) -> list[str]:
     return lines
 
 
+def _prepare_handbook_context(
+    handbook_markdown: str | None,
+) -> tuple[str, dict[str, object]]:
+    if not handbook_markdown or not handbook_markdown.strip():
+        return "", {"handbook_available": False, "handbook_chars": 0, "handbook_truncated": False}
+
+    text = handbook_markdown.strip()
+    truncated_text, was_truncated = _truncate_text(text, max_chars=MAX_HANDBOOK_CHARS)
+    return truncated_text, {
+        "handbook_available": True,
+        "handbook_chars": len(text),
+        "handbook_truncated": was_truncated,
+    }
+
+
+def _handbook_context_lines(handbook_text: str) -> list[str]:
+    lines = ["Project handbook", ""]
+
+    if not handbook_text:
+        lines.append("(no handbook available for this project)")
+        return lines
+
+    lines.append(handbook_text)
+    return lines
+
+
 def _extract_source_citations(
     output_text: str | None,
     prepared_sources: list[dict[str, str]],
@@ -281,9 +308,11 @@ def build_project_chat_turn_input(
     *,
     prior_turns: list[Mapping[str, object]] | None = None,
     project_sources: list[Mapping[str, object]] | None = None,
+    handbook_markdown: str | None = None,
 ) -> str:
     prepared_turns, history_meta = _prepare_prior_chat_turns(prior_turns)
     prepared_sources, _ = _prepare_project_sources(project_sources)
+    handbook_text, _ = _prepare_handbook_context(handbook_markdown)
     lines = [
         "Harbor project context:",
         f"- project_id: {_context_value(project_context, 'project_id')}",
@@ -292,6 +321,8 @@ def build_project_chat_turn_input(
         f"- status: {_context_value(project_context, 'status')}",
         f"- project_type: {_context_value(project_context, 'project_type')}",
         f"- blueprint_status: {_context_value(project_context, 'blueprint_status')}",
+        "",
+        *_handbook_context_lines(handbook_text),
         "",
         *_project_sources_lines(prepared_sources),
         "",
@@ -330,6 +361,7 @@ def openai_project_chat_turn_payload(
     input_text: str,
     prior_turns: list[Mapping[str, object]] | None = None,
     project_sources: list[Mapping[str, object]] | None = None,
+    handbook_markdown: str | None = None,
     instructions: str | None = None,
     client_factory: ClientFactory | None = None,
 ) -> dict[str, object]:
@@ -338,6 +370,7 @@ def openai_project_chat_turn_payload(
     instructions_source = "custom" if instructions else "default"
     _, history_meta = _prepare_prior_chat_turns(prior_turns)
     prepared_sources, source_meta = _prepare_project_sources(project_sources)
+    _, handbook_meta = _prepare_handbook_context(handbook_markdown)
     if prepared_sources:
         effective_instructions = effective_instructions + SOURCE_CITATION_INSTRUCTION
     rendered_input_text = build_project_chat_turn_input(
@@ -345,6 +378,7 @@ def openai_project_chat_turn_payload(
         input_text,
         prior_turns=prior_turns,
         project_sources=project_sources,
+        handbook_markdown=handbook_markdown,
     )
     payload: dict[str, object] = {
         **openai_runtime_payload(settings),
@@ -358,7 +392,7 @@ def openai_project_chat_turn_payload(
             "store": False,
             **history_meta,
         },
-        "request_metadata": source_meta,
+        "request_metadata": {**source_meta, **handbook_meta},
         "source_attribution": prepared_sources,
         "cited_sources": [],
         "response_id": None,

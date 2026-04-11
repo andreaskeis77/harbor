@@ -56,9 +56,10 @@ Accepted:
 - T4.5B source attribution / source visibility in chat
 - T5.0A enriched source context in chat prompt
 - T5.0B source citation in assistant responses
+- T5.1A handbook context in chat
 
 ## Current focus
-- T5.0B — source citation in assistant responses (in progress)
+- T5.1A — handbook context in chat (in progress)
 
 ## Phase intent
 
@@ -151,6 +152,16 @@ Ground the chat in Harbor knowledge and begin controlled operator action surface
 - `cited_sources` field in chat turn payload (computed, not persisted)
 - UI: inline citation badges with hover title in assistant messages
 - 4 new unit tests, enriched assertions on 4 existing tests
+
+### T5.1A
+- handbook context in chat
+- load current handbook version for the project during chat turn construction
+- inject handbook content as knowledge layer in the chat prompt (between project context and sources)
+- `_prepare_handbook_context()` with truncation at `MAX_HANDBOOK_CHARS = 2000`
+- `_handbook_context_lines()` renders handbook section with placeholder when absent
+- handbook metadata in `request_metadata` (`handbook_available`, `handbook_chars`, `handbook_truncated`)
+- no new persistence, no UI changes
+- 6 new unit tests, enriched assertions on 2 existing tests
 
 ## Explicit non-goals right now
 
