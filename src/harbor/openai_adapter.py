@@ -177,6 +177,17 @@ def _prepare_project_sources(
         project_source_id = source.get("project_source_id")
         if project_source_id is not None:
             entry["project_source_id"] = str(project_source_id)
+
+        relevance = source.get("relevance")
+        if relevance is not None:
+            entry["relevance"] = str(relevance)
+        trust_tier = source_mapping.get("trust_tier")
+        if trust_tier is not None:
+            entry["trust_tier"] = str(trust_tier)
+        review_status = source.get("review_status")
+        if review_status is not None:
+            entry["review_status"] = str(review_status)
+
         prepared.append(entry)
 
     return prepared, {
@@ -195,6 +206,15 @@ def _project_sources_lines(project_sources: list[dict[str, str]]) -> list[str]:
     for index, source in enumerate(project_sources, start=1):
         lines.append(f"{index}. {source['title']}")
         lines.append(f"   URL: {source['canonical_url']}")
+        meta_parts: list[str] = []
+        if source.get("relevance"):
+            meta_parts.append(f"relevance={source['relevance']}")
+        if source.get("trust_tier"):
+            meta_parts.append(f"trust={source['trust_tier']}")
+        if source.get("review_status"):
+            meta_parts.append(f"review={source['review_status']}")
+        if meta_parts:
+            lines.append(f"   [{', '.join(meta_parts)}]")
         if source["note"]:
             lines.append(f"   Note: {source['note']}")
         if index < len(project_sources):

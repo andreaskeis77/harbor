@@ -1,7 +1,7 @@
 # Project State
 
 ## Current phase
-T4.5B — source attribution / source visibility in chat
+T5.0A — enriched source context in chat prompt
 
 ## Confirmed completed
 
@@ -41,6 +41,7 @@ T4.5B — source attribution / source visibility in chat
 - T4.4A chat turn rendering density/readability hardening
 - T4.4B selected-turn diff/compare readability hardening
 - T4.5A project-source-grounded chat baseline
+- T4.5B source attribution / source visibility in chat
 
 ## Current runtime posture
 
@@ -76,11 +77,13 @@ Harbor now has:
 - **82 tests, 95% coverage** (H3)
 - **116 tests, 96% coverage** (H4)
 - **117 tests, 96% coverage** (T4.5B)
+- **119 tests, 96% coverage** (T5.0A)
 - **validation edge-case tests for all review-queue registry branches**
 - **Pydantic input-constraint boundary tests (422 rejection)**
 - **E2E workflow lifecycle test (project → campaign → run → candidate → review → source)**
 - **source_attribution persisted per chat turn** (JSON: source_id, project_source_id, title, URL, note)
 - **source attribution visible in chat UI** (compact badge in history, collapsible detail in inspector)
+- **enriched source context in chat prompt** (relevance, trust_tier, review_status rendered per source)
 
 ## Current proof surfaces
 
@@ -115,18 +118,16 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-T4.5B — source attribution / source visibility in chat (in progress)
+T5.0A — enriched source context in chat prompt (in progress)
 
 Scope:
 
-- `source_attribution` TEXT column added to `openai_project_chat_turn_registry` (migration 0011)
-- `_prepare_project_sources()` now extracts `source_id` and `project_source_id` alongside title/URL/note
-- `openai_project_chat_turn_payload()` returns `source_attribution` list in the response
-- `OpenAIProjectChatTurnRead` exposes `source_attribution` (deserialized from JSON)
-- chat history UI: compact source badge showing count and titles per turn
-- inspector panel: collapsible source attribution section with title, URL, and note per source
-- 2 new tests: source attribution structure/persistence, no-sources empty-list case
-- 117 tests, 96% coverage, quality gates green
+- `_prepare_project_sources()` now extracts `relevance`, `trust_tier`, `review_status` from project-source and source data
+- `_project_sources_lines()` renders structured metadata bracket `[relevance=..., trust=..., review=...]` per source
+- `source_attribution` entries include enriched metadata fields
+- backend-only change: no UI, no persistence, no migration
+- 2 new unit tests, enriched assertions on existing integration test
+- 119 tests, 96% coverage, quality gates green
 
 ## Intentionally not yet in scope
 
