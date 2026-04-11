@@ -17,10 +17,12 @@ Harbor should grow in this order:
 ## Current status snapshot
 
 Completed through:
-- T4.4B — selected-turn diff/compare readability hardening
+- T5.2A — operator action: draft handbook entry from chat
+
+T5 is feature-complete as originally scoped.
 
 Next:
-- T4.5A — project-source-grounded chat baseline
+- Planning phase: T5 hardening (H5) or T6 automation baseline
 
 ## Phase roadmap
 
@@ -66,32 +68,41 @@ Goal:
 - readable operator UX
 
 Outcome:
-- `/chat` is now an inspectable, persisted operator chat surface.
+- `/chat` is an inspectable, persisted operator chat surface with source grounding.
 
-### T4.5 — source-grounded chat
+### T5 — source-grounded knowledge and operator actions (COMPLETE)
 Goal:
-- move from project-only grounding to project-plus-source grounding
+- ground chat in Harbor's curated knowledge (sources + handbook)
+- provide explicit operator action surfaces from chat context
 
-First slice:
-- T4.5A — include accepted project sources in chat context
-
-Expected benefit:
-- answers become grounded in the same curated sources Harbor already stores.
-
-### T5 — operator action surfaces
-Goal:
-- convert grounded chat output into explicit Harbor actions
-
-Likely first slices:
-- handbook/notes drafting from selected chat output
-- explicit save/transfer action from chat to handbook/project notes
-- source-attributed response rendering
+Delivered:
+- T5.0A: enriched source context in chat prompt (relevance, trust_tier, review_status)
+- T5.0B: source citation in assistant responses (`[N]` extraction, inline badges)
+- T5.1A: handbook context in chat prompt (truncated at 2000 chars)
+- T5.1B: propose source from chat (convenience endpoint + UI form)
+- T5.2A: draft handbook from chat (save assistant output as handbook version)
 
 ### T6 — deeper automation
-Only after T5 is stable:
-- broader workflow automation
-- search/discovery refresh automation
-- stricter monitoring/agent patterns
+Only after operator surfaces are complete:
+- search campaign execution automation
+- background task infrastructure
+- monitoring/observability for automated workflows
+- stricter agent patterns
+
+## Candidate intermediate phases
+
+### H5 — T5 hardening
+Before T6, harden the T5 deliverables:
+- stale doc catch-up
+- operator_web.py structural cleanup (CSS/JS extraction)
+- handbook version history in operator web shell
+- source review workflow in web shell
+
+### UX consolidation
+Before deeper automation:
+- unified operator dashboard
+- source review status changes in web shell (currently API-only)
+- chat session management (archive, delete, export)
 
 ## Delivery discipline
 

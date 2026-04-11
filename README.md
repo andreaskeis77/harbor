@@ -3,8 +3,8 @@
 Harbor is a project-partitioned research and monitoring system.
 
 ## Current phase
-H4 — Phase 4 hardening complete (validation depth, input boundaries, E2E workflow)
-Next: T4.5B — source attribution / source visibility in chat
+T5.2A complete — operator action surfaces for source-grounded chat
+Next: planning (T5 hardening or T6 automation baseline)
 
 ## Repository posture
 Harbor currently contains:
@@ -32,6 +32,10 @@ Harbor currently contains:
 - chat turn inspection and compare readability surfaces
 - chat composer / instructions UX split
 - chat instructions preset/default UX
+- source-grounded chat with enriched metadata and citation extraction
+- handbook context injection in chat prompt
+- operator action: propose source from chat
+- operator action: draft handbook entry from chat
 
 ## Release baseline
 Historical release baseline:
@@ -49,7 +53,7 @@ Canonical local path:
 3. `docs/STRATEGY_ROADMAP_v0_1.md`
 4. `docs/WORKING_AGREEMENT.md`
 5. `docs/VALIDATION_PROTOCOL.md`
-6. `docs/_handoff/HANDOFF_2026-04-10_T4_4B_to_T4_5A.md`
+6. `docs/_handoff/HANDOFF_2026-04-11_T5_2A_to_next.md`
 
 ## Standard local commands
 ```powershell
@@ -90,16 +94,15 @@ python .\tools\task_runner.py smoke-chat-surface-slice
 - `/api/v1/openai/projects/{project_id}/chat-sessions`
 - `/api/v1/openai/projects/{project_id}/chat-sessions/{chat_session_id}/turns`
 - `/api/v1/openai/projects/{project_id}/chat-turns`
+- `/api/v1/openai/projects/{project_id}/propose-source`
+- `/api/v1/openai/projects/{project_id}/draft-handbook`
 
-## Current next step
-T4.5B — source attribution / source visibility in chat
-
-## Hardening status (H1–H4, 2026-04-11)
-- 116 tests, 96% coverage (70% gate enforced)
+## Current metrics
+- 135 tests, 96% coverage (70% gate enforced)
+- 11 Alembic migrations (linear chain, integrity-tested)
+- 49 API endpoints, 11 ORM models
 - typed domain exceptions, middleware exception handlers
 - request-scoped transaction middleware (commit-on-success/rollback-on-error)
 - structured request logging with request-id propagation
-- consolidated linear migration chain (10 migrations, 3 integrity tests)
 - expanded Ruff lint rules: E, F, I, B, UP, SIM, PIE, LOG, RUF
-- validation edge-case tests, input boundary tests, E2E workflow lifecycle test
 - 24 permanent engineering manifest rules
