@@ -422,6 +422,7 @@ class OpenAIProjectChatTurnRecord(Base):
     output_text: Mapped[str | None] = mapped_column(Text(), nullable=True)
     error_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    source_attribution: Mapped[str | None] = mapped_column(Text(), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

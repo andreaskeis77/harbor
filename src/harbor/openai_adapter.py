@@ -166,13 +166,18 @@ def _prepare_project_sources(
         note = ""
         if note_value not in (None, ""):
             note = _collapse_whitespace(note_value)
-        prepared.append(
-            {
-                "title": title,
-                "canonical_url": canonical_url,
-                "note": note,
-            }
-        )
+        entry: dict[str, str] = {
+            "title": title,
+            "canonical_url": canonical_url,
+            "note": note,
+        }
+        source_id = source_mapping.get("source_id")
+        if source_id is not None:
+            entry["source_id"] = str(source_id)
+        project_source_id = source.get("project_source_id")
+        if project_source_id is not None:
+            entry["project_source_id"] = str(project_source_id)
+        prepared.append(entry)
 
     return prepared, {
         "project_source_count_available": len(sources),
@@ -280,7 +285,7 @@ def openai_project_chat_turn_payload(
     effective_instructions = instructions or DEFAULT_PROJECT_CHAT_TURN_INSTRUCTIONS
     instructions_source = "custom" if instructions else "default"
     _, history_meta = _prepare_prior_chat_turns(prior_turns)
-    _, source_meta = _prepare_project_sources(project_sources)
+    prepared_sources, source_meta = _prepare_project_sources(project_sources)
     rendered_input_text = build_project_chat_turn_input(
         project_context,
         input_text,
@@ -300,6 +305,7 @@ def openai_project_chat_turn_payload(
             **history_meta,
         },
         "request_metadata": source_meta,
+        "source_attribution": prepared_sources,
         "response_id": None,
         "response_status": None,
         "output_text": None,

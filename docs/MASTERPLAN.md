@@ -52,9 +52,11 @@ Accepted:
 - T4.3B chat instructions preset/default UX hardening
 - T4.4A chat turn rendering density/readability hardening
 - T4.4B selected-turn diff/compare readability hardening
+- T4.5A project-source-grounded chat baseline
+- T4.5B source attribution / source visibility in chat
 
 ## Current focus
-- H4 — Phase 4 hardening (validation depth, input boundaries, E2E workflow)
+- T4.5B — source attribution / source visibility in chat (in progress)
 
 ## Phase intent
 
@@ -117,6 +119,15 @@ Ground the chat in Harbor knowledge and begin controlled operator action surface
 - include project sources in adapter-side prompt context
 - expose project-source grounding metadata in request payload
 - no new persistence
+- no new automation
+- no new broad UI surface
+
+### T4.5B
+- source attribution / source visibility in chat
+- persist source_attribution JSON on each chat turn (Alembic migration)
+- expose source_attribution in chat turn API response (source_id, project_source_id, title, URL, note)
+- chat history: compact source badge per turn
+- inspector panel: collapsible source attribution detail section
 - no new automation
 - no new broad UI surface
 

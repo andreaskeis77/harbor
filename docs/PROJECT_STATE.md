@@ -1,7 +1,7 @@
 # Project State
 
 ## Current phase
-H4 — Phase 4 hardening (validation depth, input boundaries, E2E workflow)
+T4.5B — source attribution / source visibility in chat
 
 ## Confirmed completed
 
@@ -40,6 +40,7 @@ H4 — Phase 4 hardening (validation depth, input boundaries, E2E workflow)
 - T4.3B chat instructions preset/default UX hardening
 - T4.4A chat turn rendering density/readability hardening
 - T4.4B selected-turn diff/compare readability hardening
+- T4.5A project-source-grounded chat baseline
 
 ## Current runtime posture
 
@@ -74,9 +75,12 @@ Harbor now has:
 - **alembic fileConfig fix: `disable_existing_loggers=False`**
 - **82 tests, 95% coverage** (H3)
 - **116 tests, 96% coverage** (H4)
+- **117 tests, 96% coverage** (T4.5B)
 - **validation edge-case tests for all review-queue registry branches**
 - **Pydantic input-constraint boundary tests (422 rejection)**
 - **E2E workflow lifecycle test (project → campaign → run → candidate → review → source)**
+- **source_attribution persisted per chat turn** (JSON: source_id, project_source_id, title, URL, note)
+- **source attribution visible in chat UI** (compact badge in history, collapsible detail in inspector)
 
 ## Current proof surfaces
 
@@ -111,17 +115,18 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-H4 — Phase 4 hardening (completed)
+T4.5B — source attribution / source visibility in chat (in progress)
 
 Scope:
 
-- quality-gates runner hardened with `compileall` for `tools/`
-- expanded endpoint tests: `/runtime` and `/healthz` structure verification
-- 17 review-queue validation edge-case tests (84% → 97% coverage)
-- 15 Pydantic input-validation boundary tests (422 rejection)
-- 1 E2E workflow lifecycle test (full research pipeline)
-- engineering manifest: 4 new permanent rules
-- validation protocol: H4 checks section
+- `source_attribution` TEXT column added to `openai_project_chat_turn_registry` (migration 0011)
+- `_prepare_project_sources()` now extracts `source_id` and `project_source_id` alongside title/URL/note
+- `openai_project_chat_turn_payload()` returns `source_attribution` list in the response
+- `OpenAIProjectChatTurnRead` exposes `source_attribution` (deserialized from JSON)
+- chat history UI: compact source badge showing count and titles per turn
+- inspector panel: collapsible source attribution section with title, URL, and note per source
+- 2 new tests: source attribution structure/persistence, no-sources empty-list case
+- 117 tests, 96% coverage, quality gates green
 
 ## Intentionally not yet in scope
 

@@ -555,6 +555,43 @@ def test_openai_project_chat_turn_includes_accepted_project_sources(
     )
     assert payload["turn"]["rendered_input_text"] == rendered_input_text
 
+    # Verify source_attribution is returned in payload and persisted turn
+    source_attr = payload["source_attribution"]
+    assert isinstance(source_attr, list)
+    assert len(source_attr) == 2
+    attr_titles = {s["title"] for s in source_attr}
+    assert attr_titles == {"Accepted Source One", "Accepted Source Two"}
+    for entry in source_attr:
+        assert "source_id" in entry
+        assert "project_source_id" in entry
+        assert "canonical_url" in entry
+    source_one_attr = next(s for s in source_attr if s["title"] == "Accepted Source One")
+    assert source_one_attr["canonical_url"] == "https://example.com/accepted-source-one"
+    assert source_one_attr["note"] == "Primary source note."
+
+    # Verify source_attribution is persisted on the turn record
+    turn_attr = payload["turn"]["source_attribution"]
+    assert isinstance(turn_attr, list)
+    assert len(turn_attr) == 2
+    turn_titles = {s["title"] for s in turn_attr}
+    assert turn_titles == {"Accepted Source One", "Accepted Source Two"}
+
+
+def test_openai_project_chat_turn_no_sources_attribution(
+    project_client: TestClient,
+) -> None:
+    project = _create_project(project_client)
+    response = project_client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/chat-turns",
+        json={"input_text": "What do you know?"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+
+    # No sources attached — attribution should be empty list
+    assert payload["source_attribution"] == []
+    assert payload["turn"]["source_attribution"] == []
+
 
 def test_openai_project_chat_turn_with_fake_client(
     project_client: TestClient,

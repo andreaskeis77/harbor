@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -69,6 +70,7 @@ class OpenAIProjectChatTurnRead(BaseModel):
     output_text: str | None
     error_type: str | None
     error_message: str | None
+    source_attribution: list[dict[str, str]] | None
     created_at: datetime
 
     @classmethod
@@ -76,6 +78,12 @@ class OpenAIProjectChatTurnRead(BaseModel):
         cls,
         record: OpenAIProjectChatTurnRecord,
     ) -> OpenAIProjectChatTurnRead:
+        source_attribution = None
+        if record.source_attribution is not None:
+            try:
+                source_attribution = json.loads(record.source_attribution)
+            except (json.JSONDecodeError, TypeError):
+                source_attribution = None
         return cls(
             openai_project_chat_turn_id=record.openai_project_chat_turn_id,
             openai_project_chat_session_id=record.openai_project_chat_session_id,
@@ -91,6 +99,7 @@ class OpenAIProjectChatTurnRead(BaseModel):
             output_text=record.output_text,
             error_type=record.error_type,
             error_message=record.error_message,
+            source_attribution=source_attribution,
             created_at=record.created_at,
         )
 
@@ -107,6 +116,14 @@ def _optional_text(value: Any) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _serialize_source_attribution(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, list):
+        return json.dumps(value)
+    return None
 
 
 def _session_title_from_input(input_text: str) -> str:
@@ -256,6 +273,7 @@ def create_openai_project_chat_turn(
         output_text=_optional_text(payload.get("output_text")),
         error_type=_optional_text(payload.get("error_type")),
         error_message=_optional_text(payload.get("error_message")),
+        source_attribution=_serialize_source_attribution(payload.get("source_attribution")),
     )
     session_record.updated_at = datetime.now(UTC)
     session.add(record)
