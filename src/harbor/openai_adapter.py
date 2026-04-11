@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from importlib.util import find_spec
-from typing import Any, Callable
+from typing import Any
 
 from harbor.config import HarborSettings, get_settings
 

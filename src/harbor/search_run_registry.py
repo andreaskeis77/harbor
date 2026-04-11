@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import NotFoundError
 from harbor.persistence.models import SearchCampaignRecord, SearchRunRecord
 from harbor.project_registry import get_project
 
@@ -86,11 +87,11 @@ def create_search_run(
 ) -> SearchRunRecord:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     campaign = _get_campaign(session, project_id, search_campaign_id)
     if campaign is None:
-        raise KeyError("search_campaign_not_found")
+        raise NotFoundError("Search campaign", search_campaign_id)
 
     record = SearchRunRecord(
         project_id=project_id,
@@ -102,7 +103,7 @@ def create_search_run(
         note=payload.note,
     )
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record
 
@@ -113,9 +114,9 @@ def list_search_runs(
     search_campaign_id: str,
 ) -> list[SearchRunRecord]:
     if get_project(session, project_id) is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
     if _get_campaign(session, project_id, search_campaign_id) is None:
-        raise KeyError("search_campaign_not_found")
+        raise NotFoundError("Search campaign", search_campaign_id)
 
     stmt = (
         select(SearchRunRecord)
@@ -150,7 +151,7 @@ def update_search_run_status(
 ) -> SearchRunRecord:
     record = get_search_run(session, project_id, search_campaign_id, search_run_id)
     if record is None:
-        raise KeyError("search_run_not_found")
+        raise NotFoundError("Search run", search_run_id)
 
     record.status = payload.status
     if payload.note is not None:
@@ -165,6 +166,6 @@ def update_search_run_status(
         record.finished_at = _utcnow()
 
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record

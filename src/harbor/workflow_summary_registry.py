@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import NotFoundError
 from harbor.persistence.models import (
     ProjectSourceRecord,
     ReviewQueueItemRecord,
@@ -154,7 +155,7 @@ def _build_counts(session: Session, project_id: str) -> WorkflowSummaryCounts:
 def get_workflow_summary(session: Session, project_id: str) -> WorkflowSummaryRead:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     counts = _build_counts(session, project_id)
     latest_review_items = _latest_candidate_review_items(session, project_id)

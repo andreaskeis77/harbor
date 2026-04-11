@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from harbor.persistence.session import get_db_session
@@ -21,7 +21,4 @@ def get_workflow_summary_endpoint(
     project_id: str,
     session: DbSession,
 ) -> WorkflowSummaryRead:
-    try:
-        return get_workflow_summary(session, project_id)
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail="Project not found.") from exc
+    return get_workflow_summary(session, project_id)

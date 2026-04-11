@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import NotFoundError
 from harbor.persistence.session import get_db_session
 from harbor.search_campaign_registry import (
     SearchCampaignCreate,
@@ -29,10 +30,7 @@ def create_search_campaign_endpoint(
     payload: SearchCampaignCreate,
     session: DbSession,
 ) -> SearchCampaignRead:
-    try:
-        record = create_search_campaign(session, project_id, payload)
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail="Project not found.") from exc
+    record = create_search_campaign(session, project_id, payload)
     return SearchCampaignRead.from_record(record)
 
 
@@ -44,13 +42,10 @@ def list_search_campaigns_endpoint(
     project_id: str,
     session: DbSession,
 ) -> SearchCampaignListResponse:
-    try:
-        items = [
-            SearchCampaignRead.from_record(record)
-            for record in list_search_campaigns(session, project_id)
-        ]
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail="Project not found.") from exc
+    items = [
+        SearchCampaignRead.from_record(record)
+        for record in list_search_campaigns(session, project_id)
+    ]
     return SearchCampaignListResponse(items=items)
 
 
@@ -65,5 +60,5 @@ def get_search_campaign_endpoint(
 ) -> SearchCampaignRead:
     record = get_search_campaign(session, project_id, search_campaign_id)
     if record is None:
-        raise HTTPException(status_code=404, detail="Search campaign not found.")
+        raise NotFoundError("Search campaign", search_campaign_id)
     return SearchCampaignRead.from_record(record)

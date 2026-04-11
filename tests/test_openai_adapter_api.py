@@ -6,8 +6,6 @@ from fastapi.testclient import TestClient
 from harbor import openai_adapter as openai_adapter_module
 from harbor.app import create_app
 from harbor.config import HarborSettings, clear_settings_cache
-from harbor.persistence import Base
-from harbor.persistence.session import build_engine
 
 _OPENAI_ENV_KEYS = (
     "HARBOR_OPENAI_API_KEY",
@@ -17,37 +15,25 @@ _OPENAI_ENV_KEYS = (
 
 
 @pytest.fixture()
-def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+def no_db_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    """Client without database — for testing OpenAI config/probe endpoints only."""
     for key in _OPENAI_ENV_KEYS:
         monkeypatch.delenv(key, raising=False)
     clear_settings_cache()
     settings = HarborSettings()
     app = create_app(settings=settings)
-    with TestClient(app) as client:
-        yield client
+    with TestClient(app) as tc:
+        yield tc
     clear_settings_cache()
 
 
 @pytest.fixture()
-def project_client(tmp_path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
-    db_file = tmp_path / "openai_project_dry_run_test.db"
-    monkeypatch.setenv(
-        "HARBOR_SQLALCHEMY_DATABASE_URL",
-        f"sqlite+pysqlite:///{db_file.as_posix()}",
-    )
+def project_client(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    """Re-use the shared DB client with OpenAI env keys cleared."""
     for key in _OPENAI_ENV_KEYS:
         monkeypatch.delenv(key, raising=False)
     clear_settings_cache()
-
-    settings = HarborSettings()
-    engine = build_engine(settings)
-    assert engine is not None
-    Base.metadata.create_all(bind=engine)
-
-    app = create_app(settings=settings)
-    with TestClient(app) as client:
-        yield client
-    clear_settings_cache()
+    return client
 
 
 def _create_project(client: TestClient) -> dict[str, object]:
@@ -83,8 +69,8 @@ def _create_source(
     return response.json()
 
 
-def test_openai_runtime_endpoint_defaults(client: TestClient) -> None:
-    response = client.get("/api/v1/openai/runtime")
+def test_openai_runtime_endpoint_defaults(no_db_client: TestClient) -> None:
+    response = no_db_client.get("/api/v1/openai/runtime")
     assert response.status_code == 200
     payload = response.json()
     assert payload["provider"] == "openai"
@@ -117,8 +103,8 @@ def test_openai_runtime_endpoint_with_env(monkeypatch: pytest.MonkeyPatch) -> No
     clear_settings_cache()
 
 
-def test_openai_probe_not_configured(client: TestClient) -> None:
-    response = client.post("/api/v1/openai/probe", json={})
+def test_openai_probe_not_configured(no_db_client: TestClient) -> None:
+    response = no_db_client.post("/api/v1/openai/probe", json={})
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "not_configured"
@@ -349,7 +335,7 @@ def test_openai_project_dry_run_project_not_found(project_client: TestClient) ->
         json={"input_text": "Summarize the project focus."},
     )
     assert response.status_code == 404
-    assert response.json()["detail"] == "Project not found."
+    assert response.json()["detail"] == "Project 'not-found' not found."
 
 
 def test_openai_project_dry_run_logs_project_not_found(
@@ -357,7 +343,7 @@ def test_openai_project_dry_run_logs_project_not_found(
 ) -> None:
     response = project_client.get("/api/v1/openai/projects/not-found/dry-run-logs")
     assert response.status_code == 404
-    assert response.json()["detail"] == "Project not found."
+    assert response.json()["detail"] == "Project 'not-found' not found."
 
 
 def test_openai_project_dry_run_not_configured(project_client: TestClient) -> None:
@@ -442,7 +428,7 @@ def test_openai_project_chat_sessions_project_not_found(
 ) -> None:
     response = project_client.get("/api/v1/openai/projects/not-found/chat-sessions")
     assert response.status_code == 404
-    assert response.json()["detail"] == "Project not found."
+    assert response.json()["detail"] == "Project 'not-found' not found."
 
 
 def test_openai_project_chat_turn_not_configured(
@@ -635,7 +621,7 @@ def test_openai_project_chat_turn_with_fake_client(
         f"/api/v1/openai/projects/{project['project_id']}/chat-sessions/not-found/turns"
     )
     assert missing_session_response.status_code == 404
-    assert missing_session_response.json()["detail"] == "Chat session not found."
+    assert missing_session_response.json()["detail"] == "Chat session 'not-found' not found."
 
     monkeypatch.delenv("HARBOR_OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("HARBOR_OPENAI_MODEL", raising=False)

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import NotFoundError
 from harbor.persistence.session import get_db_session
 from harbor.project_registry import (
     ProjectCreate,
@@ -35,5 +36,5 @@ def list_projects_endpoint(session: DbSession) -> ProjectListResponse:
 def get_project_endpoint(project_id: str, session: DbSession) -> ProjectRead:
     record = get_project(session, project_id)
     if record is None:
-        raise HTTPException(status_code=404, detail=f"Project '{project_id}' was not found.")
+        raise NotFoundError("Project", project_id)
     return ProjectRead.from_record(record)
