@@ -291,6 +291,10 @@ def test_openai_project_chat_turn_payload_limits_project_sources(
     assert "Source note 1" in rendered_input_text
     # T5.0A: Without relevance/trust_tier/review_status, no metadata bracket line
     assert "[relevance=" not in rendered_input_text
+    # T5.0B: Citation instruction present (sources exist), cited_sources empty (not_configured)
+    assert "Cite sources by number" in rendered_input_text
+    assert "cite them by number" in payload["request"]["instructions"].lower()
+    assert payload["cited_sources"] == []
     assert (
         "Current operator message:\nSummarize the accepted project sources."
         in rendered_input_text
@@ -451,6 +455,10 @@ def test_openai_project_chat_turn_not_configured(
     assert payload["request_metadata"]["project_source_count_included"] == 0
     assert "Project sources" in payload["request"]["rendered_input_text"]
     assert "(no accepted project sources available)" in payload["request"]["rendered_input_text"]
+    # T5.0B: No citation instruction when no sources
+    assert "Cite sources by number" not in payload["request"]["rendered_input_text"]
+    assert "cite them by number" not in payload["request"]["instructions"].lower()
+    assert payload["cited_sources"] == []
 
     sessions_response = project_client.get(
         f"/api/v1/openai/projects/{project['project_id']}/chat-sessions"
@@ -534,7 +542,11 @@ def test_openai_project_chat_turn_includes_accepted_project_sources(
     assert payload["status"] == "not_configured"
     assert payload["request_metadata"]["project_source_count_available"] == 2
     assert payload["request_metadata"]["project_source_count_included"] == 2
-    assert payload["request"]["instructions"] == "Stay concise."
+    # T5.0B: Citation instruction appended when sources are present
+    assert payload["request"]["instructions"].startswith("Stay concise.")
+    assert "cite them by number" in payload["request"]["instructions"].lower()
+    # cited_sources empty because not_configured (no LLM call)
+    assert payload["cited_sources"] == []
 
     rendered_input_text = payload["request"]["rendered_input_text"]
     assert "Harbor project context:" in rendered_input_text
@@ -556,6 +568,9 @@ def test_openai_project_chat_turn_includes_accepted_project_sources(
         "Current operator message:"
     )
     assert payload["turn"]["rendered_input_text"] == rendered_input_text
+
+    # T5.0B: Citation instruction rendered in source section
+    assert "Cite sources by number" in rendered_input_text
 
     # T5.0A: Verify enriched source metadata in rendered prompt
     assert "relevance=primary" in rendered_input_text
@@ -628,6 +643,9 @@ def test_project_sources_lines_renders_enriched_metadata() -> None:
     beta_section = rendered[rendered.index("2. Source Beta"):]
     assert "Note:" not in beta_section
 
+    # T5.0B: Citation instruction at end of sources section
+    assert "Cite sources by number" in rendered
+
 
 def test_prepare_project_sources_extracts_enriched_fields() -> None:
     project_sources = [
@@ -656,6 +674,43 @@ def test_prepare_project_sources_extracts_enriched_fields() -> None:
     assert meta["project_source_count_included"] == 1
 
 
+def test_extract_source_citations_basic() -> None:
+    sources = [
+        {"title": "Alpha", "canonical_url": "https://a.com"},
+        {"title": "Beta", "canonical_url": "https://b.com"},
+        {"title": "Gamma", "canonical_url": "https://c.com"},
+    ]
+    # Cites [1] and [3] but not [2]
+    output = "According to [1], the reef is excellent. See also [3] for details."
+    cited = openai_adapter_module._extract_source_citations(output, sources)
+    assert len(cited) == 2
+    assert cited[0]["title"] == "Alpha"
+    assert cited[1]["title"] == "Gamma"
+
+
+def test_extract_source_citations_no_matches() -> None:
+    sources = [{"title": "Alpha", "canonical_url": "https://a.com"}]
+    output = "No citations here at all."
+    cited = openai_adapter_module._extract_source_citations(output, sources)
+    assert cited == []
+
+
+def test_extract_source_citations_out_of_range() -> None:
+    sources = [{"title": "Alpha", "canonical_url": "https://a.com"}]
+    output = "Reference [0] and [2] are out of range, only [1] is valid."
+    cited = openai_adapter_module._extract_source_citations(output, sources)
+    assert len(cited) == 1
+    assert cited[0]["title"] == "Alpha"
+
+
+def test_extract_source_citations_empty_inputs() -> None:
+    assert openai_adapter_module._extract_source_citations(None, []) == []
+    assert openai_adapter_module._extract_source_citations("text [1]", []) == []
+    assert openai_adapter_module._extract_source_citations(
+        None, [{"title": "X"}]
+    ) == []
+
+
 def test_openai_project_chat_turn_no_sources_attribution(
     project_client: TestClient,
 ) -> None:
@@ -667,8 +722,9 @@ def test_openai_project_chat_turn_no_sources_attribution(
     assert response.status_code == 200
     payload = response.json()
 
-    # No sources attached — attribution should be empty list
+    # No sources attached — attribution and cited_sources should be empty
     assert payload["source_attribution"] == []
+    assert payload["cited_sources"] == []
     assert payload["turn"]["source_attribution"] == []
 
 

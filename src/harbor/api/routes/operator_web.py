@@ -423,6 +423,20 @@ td {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.citation-ref {
+  display: inline;
+  padding: 1px 4px;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: #60a5fa;
+  background: #1e293b;
+  border-radius: 3px;
+  cursor: default;
+}
+.citation-ref:hover {
+  background: #334155;
+  color: #93c5fd;
+}
 .chat-source-attribution-list {
   display: grid;
   gap: 10px;
@@ -1828,7 +1842,7 @@ const shouldCollapseText = (value, collapseLimit = 280) => {
 const renderCollapsibleTextBlock = (
   label,
   value,
-  { collapseLimit = 280, openByDefault = false } = {},
+  { collapseLimit = 280, openByDefault = false, sourceAttribution = null } = {},
 ) => {
   const text = String(value ?? "").trim();
   if (!text) {
@@ -1839,11 +1853,15 @@ const renderCollapsibleTextBlock = (
     `;
   }
 
+  const rendered = sourceAttribution
+    ? renderCitedText(text, sourceAttribution)
+    : safeText(text);
+
   if (!shouldCollapseText(text, collapseLimit)) {
     return `
       <div class="chat-message-body">
         <p class="chat-message-preview">${safeText(label)}</p>
-        <pre class="response-pre chat-message-text">${safeText(text)}</pre>
+        <pre class="response-pre chat-message-text">${rendered}</pre>
       </div>
     `;
   }
@@ -1861,10 +1879,26 @@ const renderCollapsibleTextBlock = (
         </span>
       </summary>
       <div class="chat-collapsible-body">
-        <pre class="response-pre chat-message-text">${safeText(text)}</pre>
+        <pre class="response-pre chat-message-text">${rendered}</pre>
       </div>
     </details>
   `;
+};
+
+const renderCitedText = (text, sourceAttribution) => {
+  const safe = safeText(text);
+  if (!Array.isArray(sourceAttribution) || !sourceAttribution.length) {
+    return safe;
+  }
+  return safe.replace(/\\[(\\d+)]/g, (match, num) => {
+    const index = parseInt(num, 10);
+    if (index >= 1 && index <= sourceAttribution.length) {
+      const source = sourceAttribution[index - 1];
+      const title = safeText(source.title || `Source ${index}`);
+      return `<span class="citation-ref" title="${title}">[${index}]</span>`;
+    }
+    return match;
+  });
 };
 
 const setChatControlsDisabled = (disabled) => {
@@ -2518,7 +2552,7 @@ const renderChatHistory = () => {
             ${renderCollapsibleTextBlock(
               assistantRole === "Assistant" ? "Assistant output" : "Error output",
               assistantText,
-              { collapseLimit: 320 },
+              { collapseLimit: 320, sourceAttribution: sourceAttr.length ? sourceAttr : null },
             )}
           </section>
         </div>
