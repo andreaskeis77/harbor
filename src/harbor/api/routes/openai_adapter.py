@@ -33,7 +33,14 @@ from harbor.openai_dry_run_log_registry import (
 )
 from harbor.persistence.session import get_db_session
 from harbor.project_registry import ProjectRead, get_project
-from harbor.source_registry import ProjectSourceRead, list_project_sources
+from harbor.source_registry import (
+    ProjectSourceCreate,
+    ProjectSourceRead,
+    SourceCreate,
+    attach_source_to_project,
+    create_source,
+    list_project_sources,
+)
 
 router = APIRouter(prefix="/openai", tags=["openai"])
 DbSession = Annotated[Session, Depends(get_db_session)]
@@ -54,6 +61,12 @@ class OpenAIProjectChatTurnRequest(BaseModel):
     input_text: str = Field(min_length=1, max_length=4000)
     chat_session_id: str | None = Field(default=None, max_length=36)
     instructions: str | None = Field(default=None, max_length=4000)
+
+
+class ProposeSourceRequest(BaseModel):
+    canonical_url: str = Field(min_length=1, max_length=1000)
+    title: str | None = Field(default=None, max_length=300)
+    note: str | None = Field(default=None, max_length=1000)
 
 def _accepted_project_sources_for_chat_context(
     session: Session,
@@ -230,3 +243,36 @@ def openai_project_chat_turn(
     ).model_dump(mode="json")
     payload["turn"] = OpenAIProjectChatTurnRead.from_record(turn_record).model_dump(mode="json")
     return payload
+
+
+@router.post("/projects/{project_id}/propose-source")
+def openai_project_propose_source(
+    project_id: str,
+    request: ProposeSourceRequest,
+    session: DbSession,
+) -> dict[str, object]:
+    project_record = get_project(session, project_id)
+    if project_record is None:
+        raise NotFoundError("Project", project_id)
+
+    source_record = create_source(
+        session,
+        SourceCreate(
+            source_type="web_page",
+            title=request.title,
+            canonical_url=request.canonical_url,
+            content_type="text/html",
+            trust_tier="candidate",
+        ),
+    )
+    project_source_record, source = attach_source_to_project(
+        session,
+        project_id,
+        ProjectSourceCreate(
+            source_id=source_record.source_id,
+            relevance="candidate",
+            review_status="candidate",
+            note=request.note,
+        ),
+    )
+    return ProjectSourceRead.from_records(project_source_record, source).model_dump(mode="json")

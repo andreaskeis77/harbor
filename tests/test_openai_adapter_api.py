@@ -883,3 +883,58 @@ def test_openai_project_chat_turn_with_fake_client(
     monkeypatch.delenv("HARBOR_OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("HARBOR_OPENAI_MODEL", raising=False)
     clear_settings_cache()
+
+
+def test_propose_source_creates_candidate(
+    project_client: TestClient,
+) -> None:
+    project = _create_project(project_client)
+    response = project_client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/propose-source",
+        json={
+            "canonical_url": "https://example.com/proposed",
+            "title": "Proposed Source",
+            "note": "Found during chat research.",
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["source"]["title"] == "Proposed Source"
+    assert payload["source"]["canonical_url"] == "https://example.com/proposed"
+    assert payload["source"]["trust_tier"] == "candidate"
+    assert payload["relevance"] == "candidate"
+    assert payload["review_status"] == "candidate"
+    assert payload["note"] == "Found during chat research."
+    assert payload["project_id"] == project["project_id"]
+    assert "project_source_id" in payload
+    assert "source_id" in payload
+
+
+def test_propose_source_minimal_fields(
+    project_client: TestClient,
+) -> None:
+    project = _create_project(project_client)
+    response = project_client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/propose-source",
+        json={"canonical_url": "https://example.com/minimal"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["source"]["canonical_url"] == "https://example.com/minimal"
+    assert payload["source"]["title"] is None
+    assert payload["relevance"] == "candidate"
+    assert payload["review_status"] == "candidate"
+    assert payload["note"] is None
+
+
+def test_propose_source_project_not_found(
+    project_client: TestClient,
+) -> None:
+    response = project_client.post(
+        "/api/v1/openai/projects/nonexistent/propose-source",
+        json={"canonical_url": "https://example.com/orphan"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Project 'nonexistent' not found."

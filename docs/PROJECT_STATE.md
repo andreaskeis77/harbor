@@ -1,7 +1,7 @@
 # Project State
 
 ## Current phase
-T5.1A — handbook context in chat
+T5.1B — operator action: propose source from chat
 
 ## Confirmed completed
 
@@ -44,6 +44,7 @@ T5.1A — handbook context in chat
 - T4.5B source attribution / source visibility in chat
 - T5.0A enriched source context in chat prompt
 - T5.0B source citation in assistant responses
+- T5.1A handbook context in chat
 
 ## Current runtime posture
 
@@ -82,6 +83,7 @@ Harbor now has:
 - **119 tests, 96% coverage** (T5.0A)
 - **123 tests, 96% coverage** (T5.0B)
 - **129 tests, 96% coverage** (T5.1A)
+- **132 tests, 96% coverage** (T5.1B)
 - **validation edge-case tests for all review-queue registry branches**
 - **Pydantic input-constraint boundary tests (422 rejection)**
 - **E2E workflow lifecycle test (project → campaign → run → candidate → review → source)**
@@ -90,6 +92,7 @@ Harbor now has:
 - **enriched source context in chat prompt** (relevance, trust_tier, review_status rendered per source)
 - **source citation in assistant responses** (citation instruction, `[N]` extraction, inline UI badges)
 - **handbook context in chat prompt** (current handbook version injected, truncated at 2000 chars)
+- **propose source from chat** (convenience endpoint + collapsible UI form)
 
 ## Current proof surfaces
 
@@ -106,6 +109,7 @@ Harbor now has:
 - `/api/v1/openai/projects/{project_id}/chat-sessions`
 - `/api/v1/openai/projects/{project_id}/chat-sessions/{chat_session_id}/turns`
 - `/api/v1/openai/projects/{project_id}/chat-turns`
+- `/api/v1/openai/projects/{project_id}/propose-source`
 
 ## Validation rule
 
@@ -124,18 +128,16 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-T5.1A — handbook context in chat (in progress)
+T5.1B — operator action: propose source from chat (in progress)
 
 Scope:
 
-- load current handbook version for the project during chat turn construction
-- inject handbook content as knowledge layer in the chat prompt (between project context and sources)
-- `_prepare_handbook_context()` with truncation at `MAX_HANDBOOK_CHARS = 2000`
-- `_handbook_context_lines()` renders handbook section with placeholder when absent
-- handbook metadata in `request_metadata` (`handbook_available`, `handbook_chars`, `handbook_truncated`)
-- no new persistence, no UI changes
-- 6 new unit tests, enriched assertions on 2 existing tests
-- 129 tests, 96% coverage, quality gates green
+- `POST /api/v1/openai/projects/{project_id}/propose-source` convenience endpoint
+- creates source (`web_page`, `candidate` trust) + attaches to project (`candidate` relevance/review)
+- collapsible "Propose Source" form in chat UI (URL, title, note)
+- reuses existing `create_source` + `attach_source_to_project` flow
+- 3 new API tests (full fields, minimal, project not found)
+- 132 tests, 96% coverage, quality gates green
 
 ## Intentionally not yet in scope
 
