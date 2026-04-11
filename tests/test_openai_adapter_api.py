@@ -289,6 +289,8 @@ def test_openai_project_chat_turn_payload_limits_project_sources(
     assert "Accepted Source 7" not in rendered_input_text
     assert "Accepted Source 8" not in rendered_input_text
     assert "Source note 1" in rendered_input_text
+    # T5.0A: Without relevance/trust_tier/review_status, no metadata bracket line
+    assert "[relevance=" not in rendered_input_text
     assert (
         "Current operator message:\nSummarize the accepted project sources."
         in rendered_input_text
@@ -555,6 +557,12 @@ def test_openai_project_chat_turn_includes_accepted_project_sources(
     )
     assert payload["turn"]["rendered_input_text"] == rendered_input_text
 
+    # T5.0A: Verify enriched source metadata in rendered prompt
+    assert "relevance=primary" in rendered_input_text
+    assert "trust=candidate" in rendered_input_text
+    assert "review=accepted" in rendered_input_text
+    assert "relevance=supporting" in rendered_input_text
+
     # Verify source_attribution is returned in payload and persisted turn
     source_attr = payload["source_attribution"]
     assert isinstance(source_attr, list)
@@ -569,12 +577,83 @@ def test_openai_project_chat_turn_includes_accepted_project_sources(
     assert source_one_attr["canonical_url"] == "https://example.com/accepted-source-one"
     assert source_one_attr["note"] == "Primary source note."
 
+    # T5.0A: Verify enriched metadata fields in source_attribution
+    assert source_one_attr["relevance"] == "primary"
+    assert source_one_attr["trust_tier"] == "candidate"
+    assert source_one_attr["review_status"] == "accepted"
+    source_two_attr = next(s for s in source_attr if s["title"] == "Accepted Source Two")
+    assert source_two_attr["relevance"] == "supporting"
+    assert source_two_attr["trust_tier"] == "candidate"
+    assert source_two_attr["review_status"] == "accepted"
+
     # Verify source_attribution is persisted on the turn record
     turn_attr = payload["turn"]["source_attribution"]
     assert isinstance(turn_attr, list)
     assert len(turn_attr) == 2
     turn_titles = {s["title"] for s in turn_attr}
     assert turn_titles == {"Accepted Source One", "Accepted Source Two"}
+
+
+def test_project_sources_lines_renders_enriched_metadata() -> None:
+    prepared_sources = [
+        {
+            "title": "Source Alpha",
+            "canonical_url": "https://example.com/alpha",
+            "note": "Important source.",
+            "relevance": "primary",
+            "trust_tier": "verified",
+            "review_status": "accepted",
+        },
+        {
+            "title": "Source Beta",
+            "canonical_url": "https://example.com/beta",
+            "note": "",
+            "relevance": "supporting",
+            "trust_tier": "candidate",
+            "review_status": "accepted",
+        },
+    ]
+    lines = openai_adapter_module._project_sources_lines(prepared_sources)
+    rendered = "\n".join(lines)
+
+    assert "1. Source Alpha" in rendered
+    assert "URL: https://example.com/alpha" in rendered
+    assert "[relevance=primary, trust=verified, review=accepted]" in rendered
+    assert "Note: Important source." in rendered
+
+    assert "2. Source Beta" in rendered
+    assert "URL: https://example.com/beta" in rendered
+    assert "[relevance=supporting, trust=candidate, review=accepted]" in rendered
+    # No note for Source Beta (empty string)
+    beta_section = rendered[rendered.index("2. Source Beta"):]
+    assert "Note:" not in beta_section
+
+
+def test_prepare_project_sources_extracts_enriched_fields() -> None:
+    project_sources = [
+        {
+            "relevance": "primary",
+            "review_status": "accepted",
+            "note": "A note",
+            "source": {
+                "title": "Test Source",
+                "canonical_url": "https://example.com/test",
+                "source_id": "src-1",
+                "trust_tier": "verified",
+            },
+            "project_source_id": "ps-1",
+        },
+    ]
+    prepared, meta = openai_adapter_module._prepare_project_sources(project_sources)
+    assert len(prepared) == 1
+    entry = prepared[0]
+    assert entry["relevance"] == "primary"
+    assert entry["trust_tier"] == "verified"
+    assert entry["review_status"] == "accepted"
+    assert entry["source_id"] == "src-1"
+    assert entry["project_source_id"] == "ps-1"
+    assert meta["project_source_count_available"] == 1
+    assert meta["project_source_count_included"] == 1
 
 
 def test_openai_project_chat_turn_no_sources_attribution(

@@ -54,9 +54,10 @@ Accepted:
 - T4.4B selected-turn diff/compare readability hardening
 - T4.5A project-source-grounded chat baseline
 - T4.5B source attribution / source visibility in chat
+- T5.0A enriched source context in chat prompt
 
 ## Current focus
-- T4.5B — source attribution / source visibility in chat (in progress)
+- T5.0A — enriched source context in chat prompt (in progress)
 
 ## Phase intent
 
@@ -130,6 +131,16 @@ Ground the chat in Harbor knowledge and begin controlled operator action surface
 - inspector panel: collapsible source attribution detail section
 - no new automation
 - no new broad UI surface
+
+## T5 current sequence
+
+### T5.0A
+- enriched source context in chat prompt
+- `_prepare_project_sources()` extracts `relevance`, `trust_tier`, `review_status`
+- `_project_sources_lines()` renders structured metadata bracket per source
+- source_attribution includes enriched fields
+- backend-only change (no UI, no persistence, no migration)
+- 2 new unit tests, enriched assertions on existing integration test
 
 ## Explicit non-goals right now
 
