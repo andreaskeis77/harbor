@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI
 
+from harbor.api.middleware import register_middleware
 from harbor.api.routes.db import router as db_router
 from harbor.api.routes.handbook import router as handbook_router
 from harbor.api.routes.health import router as health_router
@@ -16,11 +19,15 @@ from harbor.api.routes.sources import router as sources_router
 from harbor.api.routes.workflow_summary import router as workflow_summary_router
 from harbor.config import HarborSettings, get_settings
 
+logger = logging.getLogger("harbor.app")
+
 
 def create_app(settings: HarborSettings | None = None) -> FastAPI:
     settings = settings or get_settings()
 
     app = FastAPI(title=settings.app_name, version=settings.version)
+
+    register_middleware(app, log_level=settings.log_level)
 
     app.include_router(health_router)
     app.include_router(operator_web_router)
@@ -34,6 +41,13 @@ def create_app(settings: HarborSettings | None = None) -> FastAPI:
     app.include_router(review_queue_router, prefix=settings.api_v1_prefix)
     app.include_router(workflow_summary_router, prefix=settings.api_v1_prefix)
     app.include_router(openai_adapter_router, prefix=settings.api_v1_prefix)
+
+    logger.info(
+        "Harbor %s started (env=%s, db=%s)",
+        settings.version,
+        settings.environment,
+        "configured" if settings.postgres_configured else "not configured",
+    )
 
     return app
 
