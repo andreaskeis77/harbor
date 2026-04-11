@@ -1,7 +1,7 @@
 # Project State
 
 ## Current phase
-T4.5A — project-source-grounded chat baseline
+H4 — Phase 4 hardening (validation depth, input boundaries, E2E workflow)
 
 ## Confirmed completed
 
@@ -48,6 +48,9 @@ Harbor now has:
 - FastAPI runtime
 - DB status surface
 - canonical persistence layer with SQLAlchemy + Alembic
+- **consolidated linear migration chain** (10 migrations, single `migrations/` path)
+- **structured request logging with request-id propagation**
+- **global exception handler with traceable error responses**
 - manual operator research workflow
 - operator web shell under `/operator/...`
 - OpenAI runtime/probe adapter surface
@@ -58,6 +61,22 @@ Harbor now has:
 - bounded multi-turn project-grounded context
 - selected-turn inspection and compare readability surface
 - richer chat UX for session state, retry behavior, composer/instructions handling, and density/readability
+- **centralized test fixtures in `tests/conftest.py`**
+- **migration integrity tests (chain linearity, table completeness, ORM parity)**
+- **typed domain exception hierarchy (`HarborError` → `NotFoundError`, `DuplicateError`, `NotPromotableError`, `InvalidPayloadError`)**
+- **middleware-based exception-to-HTTP-status translation (no HTTPException in routes)**
+- **request-scoped transaction middleware (commit-on-success, rollback-on-error)**
+- **pytest-cov coverage quality gate (70% minimum threshold)**
+- **coverage excludes CLI-only operator surfaces**
+- **expanded Ruff lint rules: E, F, I, B, UP, SIM, PIE, LOG, RUF**
+- **observability verification: structured log output tests, error log tests**
+- **error-path tests: 503 DatabaseNotConfigured, config redaction, connectivity errors**
+- **alembic fileConfig fix: `disable_existing_loggers=False`**
+- **82 tests, 95% coverage** (H3)
+- **116 tests, 96% coverage** (H4)
+- **validation edge-case tests for all review-queue registry branches**
+- **Pydantic input-constraint boundary tests (422 rejection)**
+- **E2E workflow lifecycle test (project → campaign → run → candidate → review → source)**
 
 ## Current proof surfaces
 
@@ -92,14 +111,17 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-T4.5A — project-source-grounded chat baseline
+H4 — Phase 4 hardening (completed)
 
 Scope:
 
-- include accepted project sources in adapter-side chat context
-- bound the included source set to a small fixed window
-- expose source-grounding request metadata
-- keep the change adapter-side and testable
+- quality-gates runner hardened with `compileall` for `tools/`
+- expanded endpoint tests: `/runtime` and `/healthz` structure verification
+- 17 review-queue validation edge-case tests (84% → 97% coverage)
+- 15 Pydantic input-validation boundary tests (422 rejection)
+- 1 E2E workflow lifecycle test (full research pipeline)
+- engineering manifest: 4 new permanent rules
+- validation protocol: H4 checks section
 
 ## Intentionally not yet in scope
 

@@ -54,7 +54,7 @@ Accepted:
 - T4.4B selected-turn diff/compare readability hardening
 
 ## Current focus
-- T4.5A project-source-grounded chat baseline
+- H4 — Phase 4 hardening (validation depth, input boundaries, E2E workflow)
 
 ## Phase intent
 
@@ -151,3 +151,71 @@ Validated on branch `bolt/t4-5a-project-source-grounded-chat-baseline-v2`:
 - The next planned product bolt remains `T4.5B — source attribution / source visibility in chat`.
 
 Methodically, this update also hardens Harbor delivery discipline: complete artifacts, verified bases, root-cause analysis after red applies, and no further patching on top of a broken artifact.
+
+## H1 — Phase 1 hardening (2026-04-11)
+
+Cross-cutting hardening bolt inserted between T4.5A and T4.5B.
+
+### H1 scope
+- consolidated migration chain (single `migrations/` path, linear chain, no branches)
+- migration integrity tests (upgrade-head, chain-linearity, ORM-model parity)
+- structured application logging (`harbor.*` logger hierarchy)
+- request-logging middleware (method, path, status, duration, request-id)
+- global exception handler (500 with traceable request-id)
+- centralized test fixtures (`tests/conftest.py`)
+- stale configuration cleanup (`config/.env.example`, orphaned `alembic/`)
+- engineering manifest hardening with new permanent rules
+
+### H1 rationale
+External project review identified that Harbor's functional core was solid but the non-functional foundation (migration integrity, observability, test maintainability) had silent gaps that could compound into operational failures. This hardening bolt addresses those gaps before further feature work.
+
+## H2 — Phase 2 hardening (2026-04-11)
+
+Continuation of cross-cutting hardening, focusing on architecture resilience.
+
+### H2 scope
+- typed domain exception hierarchy (`HarborError` → `NotFoundError`, `DuplicateError`, `NotPromotableError`, `InvalidPayloadError`)
+- all 8 registry files migrated from string-based `KeyError`/`ValueError` to typed exceptions
+- all 8 route files cleaned: no `HTTPException`, no `try/except KeyError`, no `_translate_*` helpers
+- middleware exception handlers map domain types to HTTP status codes centrally
+- request-scoped transaction middleware: `get_db_session` owns commit/rollback boundary
+- all 16 `session.commit()` calls in registries converted to `session.flush()`
+- `DatabaseNotConfiguredError` replaces the last `HTTPException` in `session.py`
+- `pytest-cov` added with 60% coverage quality gate in `pyproject.toml`
+- 6 new tests for exception mapping and transaction atomicity
+- engineering manifest updated with 4 new permanent rules
+
+### H2 rationale
+Phase 1 established observability and test infrastructure but the error handling remained fragile: 48 string-based `KeyError` raises, 17 string-pattern matches in routes, and no transactional safety at the request boundary. Phase 2 replaces this with a typed, middleware-driven architecture that is both safer and easier to extend.
+
+## H3 — Phase 3 hardening (2026-04-11)
+
+Continuation of cross-cutting hardening, focusing on test depth, observability verification, and lint safety.
+
+### H3 scope
+- coverage gate raised from 60% to 70%, CLI operator surfaces excluded (95% effective coverage)
+- 17 new tests: error-path tests (503, config redaction, connectivity), observability tests (structured log output, error tracing), middleware handler mapping tests
+- status module hardened: structured logging for DB connectivity errors
+- Ruff expanded from 4 rule sets to 9: `E, F, I, B, UP, SIM, PIE, LOG, RUF`
+- alembic `env.py` fixed: `fileConfig(disable_existing_loggers=False)` prevents logger contamination
+- validation protocol updated with H2/H3 checks section
+- engineering manifest updated with 4 new permanent rules
+
+### H3 rationale
+Phase 2 established the exception hierarchy and transaction middleware but left error paths untested, logging output unverified, and the lint rule set too narrow. Phase 3 closes these gaps: every middleware handler has a test, structured logging is verified end-to-end, and the expanded lint rules catch modernization issues (UP), complexity anti-patterns (SIM), logging misuse (LOG), and Python-specific pitfalls (RUF). A critical discovery was that alembic's `fileConfig()` was silently disabling all Harbor loggers — now fixed and tested.
+
+## H4 — Phase 4 hardening (2026-04-11)
+
+Continuation of cross-cutting hardening, focusing on validation depth, input boundaries, and end-to-end workflow testing.
+
+### H4 scope
+- quality-gates runner: `compileall` step added for `tools/` directory
+- expanded endpoint tests: `/runtime` and `/healthz` structure verification
+- 17 new review-queue validation edge-case tests covering all uncovered branches (84% → 97% coverage)
+- 15 new Pydantic input-validation boundary tests verifying 422 rejection for `min_length`, `max_length`, `ge` constraints
+- 1 comprehensive E2E workflow lifecycle test: project → campaign → run → candidate → review promotion → source promotion with full state-transition and lineage verification
+- engineering manifest updated with 4 new permanent rules
+- validation protocol updated with H4 checks section
+
+### H4 rationale
+Phases 1-3 established infrastructure, architecture, and error-path testing. Phase 4 completes the testing pyramid: validation edge cases in the deepest registry functions, input constraint enforcement at the API boundary, and a full pipeline E2E test that verifies the entire research workflow operates as a coherent system. This catches regression risks that isolated unit and integration tests cannot: cross-entity ownership mismatches, disposition state machines, and duplicate-guard interactions across promotion stages.
