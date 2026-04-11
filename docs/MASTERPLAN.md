@@ -58,9 +58,10 @@ Accepted:
 - T5.0B source citation in assistant responses
 - T5.1A handbook context in chat
 - T5.1B operator action: propose source from chat
+- T5.2A operator action: draft handbook entry from chat
 
 ## Current focus
-- T5.1B — operator action: propose source from chat (in progress)
+- T5.2A — operator action: draft handbook entry from chat (in progress)
 
 ## Phase intent
 
@@ -171,6 +172,14 @@ Ground the chat in Harbor knowledge and begin controlled operator action surface
 - collapsible "Propose Source" form in chat UI (URL, title, note)
 - reuses existing `create_source` + `attach_source_to_project` flow
 - 3 new API tests (full fields, minimal, project not found)
+
+### T5.2A
+- operator action: draft handbook entry from chat
+- `POST /api/v1/openai/projects/{project_id}/draft-handbook` convenience endpoint
+- operator can save assistant chat output as a new handbook version
+- collapsible "Draft as handbook" action in chat turn inspector panel
+- reuses existing `create_handbook_version` flow, default change note when none provided
+- 3 new API tests (full fields, default note, project not found)
 
 ## Explicit non-goals right now
 

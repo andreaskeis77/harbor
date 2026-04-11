@@ -1,7 +1,7 @@
 # Project State
 
 ## Current phase
-T5.1B — operator action: propose source from chat
+T5.2A — operator action: draft handbook entry from chat
 
 ## Confirmed completed
 
@@ -45,6 +45,8 @@ T5.1B — operator action: propose source from chat
 - T5.0A enriched source context in chat prompt
 - T5.0B source citation in assistant responses
 - T5.1A handbook context in chat
+- T5.1B operator action: propose source from chat
+- T5.2A operator action: draft handbook entry from chat
 
 ## Current runtime posture
 
@@ -84,6 +86,7 @@ Harbor now has:
 - **123 tests, 96% coverage** (T5.0B)
 - **129 tests, 96% coverage** (T5.1A)
 - **132 tests, 96% coverage** (T5.1B)
+- **135 tests, 96% coverage** (T5.2A)
 - **validation edge-case tests for all review-queue registry branches**
 - **Pydantic input-constraint boundary tests (422 rejection)**
 - **E2E workflow lifecycle test (project → campaign → run → candidate → review → source)**
@@ -93,6 +96,7 @@ Harbor now has:
 - **source citation in assistant responses** (citation instruction, `[N]` extraction, inline UI badges)
 - **handbook context in chat prompt** (current handbook version injected, truncated at 2000 chars)
 - **propose source from chat** (convenience endpoint + collapsible UI form)
+- **draft handbook from chat** (operator can save assistant output as handbook version)
 
 ## Current proof surfaces
 
@@ -110,6 +114,7 @@ Harbor now has:
 - `/api/v1/openai/projects/{project_id}/chat-sessions/{chat_session_id}/turns`
 - `/api/v1/openai/projects/{project_id}/chat-turns`
 - `/api/v1/openai/projects/{project_id}/propose-source`
+- `/api/v1/openai/projects/{project_id}/draft-handbook`
 
 ## Validation rule
 
@@ -128,16 +133,16 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-T5.1B — operator action: propose source from chat (in progress)
+T5.2A — operator action: draft handbook entry from chat (in progress)
 
 Scope:
 
-- `POST /api/v1/openai/projects/{project_id}/propose-source` convenience endpoint
-- creates source (`web_page`, `candidate` trust) + attaches to project (`candidate` relevance/review)
-- collapsible "Propose Source" form in chat UI (URL, title, note)
-- reuses existing `create_source` + `attach_source_to_project` flow
-- 3 new API tests (full fields, minimal, project not found)
-- 132 tests, 96% coverage, quality gates green
+- `POST /api/v1/openai/projects/{project_id}/draft-handbook` convenience endpoint
+- operator can save assistant chat output as a new handbook version
+- collapsible "Draft as handbook" action in chat turn inspector panel
+- reuses existing `create_handbook_version` flow, default change note
+- 3 new API tests (full fields, default note, project not found)
+- 135 tests, 96% coverage, quality gates green
 
 ## Intentionally not yet in scope
 

@@ -938,3 +938,56 @@ def test_propose_source_project_not_found(
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Project 'nonexistent' not found."
+
+
+# ---------------------------------------------------------------------------
+# POST /openai/projects/{project_id}/draft-handbook
+# ---------------------------------------------------------------------------
+
+
+def test_draft_handbook_creates_version(
+    project_client: TestClient,
+) -> None:
+    project = _create_project(project_client)
+    response = project_client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/draft-handbook",
+        json={
+            "handbook_markdown": "# Research Notes\n\nKey findings from chat.",
+            "change_note": "Drafted from chat turn 3",
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["project_id"] == project["project_id"]
+    assert payload["version_number"] == 1
+    assert payload["handbook_markdown"] == "# Research Notes\n\nKey findings from chat."
+    assert payload["change_note"] == "Drafted from chat turn 3"
+    assert "handbook_version_id" in payload
+    assert "created_at" in payload
+
+
+def test_draft_handbook_default_change_note(
+    project_client: TestClient,
+) -> None:
+    project = _create_project(project_client)
+    response = project_client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/draft-handbook",
+        json={"handbook_markdown": "Minimal handbook content."},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["version_number"] == 1
+    assert payload["change_note"] == "Drafted from chat assistant output"
+
+
+def test_draft_handbook_project_not_found(
+    project_client: TestClient,
+) -> None:
+    response = project_client.post(
+        "/api/v1/openai/projects/nonexistent/draft-handbook",
+        json={"handbook_markdown": "Some content."},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Project 'nonexistent' not found."
