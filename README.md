@@ -3,7 +3,8 @@
 Harbor is a project-partitioned research and monitoring system.
 
 ## Current phase
-T4.5A — project-source-grounded chat baseline
+H4 — Phase 4 hardening complete (validation depth, input boundaries, E2E workflow)
+Next: T4.5B — source attribution / source visibility in chat
 
 ## Repository posture
 Harbor currently contains:
@@ -91,4 +92,14 @@ python .\tools\task_runner.py smoke-chat-surface-slice
 - `/api/v1/openai/projects/{project_id}/chat-turns`
 
 ## Current next step
-T4.5A — project-source-grounded chat baseline
+T4.5B — source attribution / source visibility in chat
+
+## Hardening status (H1–H4, 2026-04-11)
+- 116 tests, 96% coverage (70% gate enforced)
+- typed domain exceptions, middleware exception handlers
+- request-scoped transaction middleware (commit-on-success/rollback-on-error)
+- structured request logging with request-id propagation
+- consolidated linear migration chain (10 migrations, 3 integrity tests)
+- expanded Ruff lint rules: E, F, I, B, UP, SIM, PIE, LOG, RUF
+- validation edge-case tests, input boundary tests, E2E workflow lifecycle test
+- 24 permanent engineering manifest rules

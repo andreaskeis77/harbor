@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import DuplicateError, NotFoundError
 from harbor.persistence.models import ProjectSourceRecord, SourceRecord
 from harbor.project_registry import get_project
 
@@ -98,10 +99,9 @@ def create_source(session: Session, payload: SourceCreate) -> SourceRecord:
     )
     session.add(record)
     try:
-        session.commit()
+        session.flush()
     except IntegrityError as exc:
-        session.rollback()
-        raise ValueError("duplicate_source") from exc
+        raise DuplicateError("Source") from exc
     session.refresh(record)
     return record
 
@@ -121,11 +121,11 @@ def attach_source_to_project(
 ) -> tuple[ProjectSourceRecord, SourceRecord]:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     source = session.get(SourceRecord, payload.source_id)
     if source is None:
-        raise KeyError("source_not_found")
+        raise NotFoundError("Source", payload.source_id)
 
     record = ProjectSourceRecord(
         project_id=project_id,
@@ -136,10 +136,9 @@ def attach_source_to_project(
     )
     session.add(record)
     try:
-        session.commit()
+        session.flush()
     except IntegrityError as exc:
-        session.rollback()
-        raise ValueError("duplicate_project_source") from exc
+        raise DuplicateError("ProjectSource", "Source already attached to project.") from exc
     session.refresh(record)
     return record, source
 
@@ -150,7 +149,7 @@ def list_project_sources(
 ) -> list[tuple[ProjectSourceRecord, SourceRecord]]:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     stmt = (
         select(ProjectSourceRecord, SourceRecord)

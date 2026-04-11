@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from importlib.util import find_spec
-from typing import Any, Callable
+from typing import Any
 
 from harbor.config import HarborSettings, get_settings
 
@@ -25,6 +25,7 @@ MAX_PROJECT_CONTEXT_VALUE_CHARS = 240
 MAX_CHAT_HISTORY_TURNS = 6
 MAX_CHAT_HISTORY_OPERATOR_CHARS = 240
 MAX_CHAT_HISTORY_ASSISTANT_CHARS = 320
+MAX_PROJECT_SOURCES_IN_CHAT_CONTEXT = 6
 TRUNCATION_SUFFIX = " …[truncated]"
 
 
@@ -147,6 +148,55 @@ def _prepare_prior_chat_turns(
         "history_compacted": history_compacted,
     }
 
+def _prepare_project_sources(
+    project_sources: list[Mapping[str, object]] | None,
+) -> tuple[list[dict[str, str]], dict[str, int]]:
+    sources = list(project_sources or [])
+    included_sources = sources[:MAX_PROJECT_SOURCES_IN_CHAT_CONTEXT]
+
+    prepared: list[dict[str, str]] = []
+    for source in included_sources:
+        source_payload = source.get("source")
+        source_mapping = source_payload if isinstance(source_payload, Mapping) else {}
+        title = _collapse_whitespace(source_mapping.get("title") or "(untitled source)")
+        canonical_url = _collapse_whitespace(
+            source_mapping.get("canonical_url") or "(no canonical url)"
+        )
+        note_value = source.get("note")
+        note = ""
+        if note_value not in (None, ""):
+            note = _collapse_whitespace(note_value)
+        prepared.append(
+            {
+                "title": title,
+                "canonical_url": canonical_url,
+                "note": note,
+            }
+        )
+
+    return prepared, {
+        "project_source_count_available": len(sources),
+        "project_source_count_included": len(prepared),
+    }
+
+
+def _project_sources_lines(project_sources: list[dict[str, str]]) -> list[str]:
+    lines = ["Project sources", ""]
+
+    if not project_sources:
+        lines.append("(no accepted project sources available)")
+        return lines
+
+    for index, source in enumerate(project_sources, start=1):
+        lines.append(f"{index}. {source['title']}")
+        lines.append(f"   URL: {source['canonical_url']}")
+        if source["note"]:
+            lines.append(f"   Note: {source['note']}")
+        if index < len(project_sources):
+            lines.append("")
+
+    return lines
+
 
 def build_project_dry_run_input(
     project_context: Mapping[str, object],
@@ -173,8 +223,10 @@ def build_project_chat_turn_input(
     input_text: str,
     *,
     prior_turns: list[Mapping[str, object]] | None = None,
+    project_sources: list[Mapping[str, object]] | None = None,
 ) -> str:
     prepared_turns, history_meta = _prepare_prior_chat_turns(prior_turns)
+    prepared_sources, _ = _prepare_project_sources(project_sources)
     lines = [
         "Harbor project context:",
         f"- project_id: {_context_value(project_context, 'project_id')}",
@@ -183,6 +235,8 @@ def build_project_chat_turn_input(
         f"- status: {_context_value(project_context, 'status')}",
         f"- project_type: {_context_value(project_context, 'project_type')}",
         f"- blueprint_status: {_context_value(project_context, 'blueprint_status')}",
+        "",
+        *_project_sources_lines(prepared_sources),
         "",
     ]
 
@@ -218,6 +272,7 @@ def openai_project_chat_turn_payload(
     project_context: Mapping[str, object],
     input_text: str,
     prior_turns: list[Mapping[str, object]] | None = None,
+    project_sources: list[Mapping[str, object]] | None = None,
     instructions: str | None = None,
     client_factory: ClientFactory | None = None,
 ) -> dict[str, object]:
@@ -225,10 +280,12 @@ def openai_project_chat_turn_payload(
     effective_instructions = instructions or DEFAULT_PROJECT_CHAT_TURN_INSTRUCTIONS
     instructions_source = "custom" if instructions else "default"
     _, history_meta = _prepare_prior_chat_turns(prior_turns)
+    _, source_meta = _prepare_project_sources(project_sources)
     rendered_input_text = build_project_chat_turn_input(
         project_context,
         input_text,
         prior_turns=prior_turns,
+        project_sources=project_sources,
     )
     payload: dict[str, object] = {
         **openai_runtime_payload(settings),
@@ -242,6 +299,7 @@ def openai_project_chat_turn_payload(
             "store": False,
             **history_meta,
         },
+        "request_metadata": source_meta,
         "response_id": None,
         "response_status": None,
         "output_text": None,

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import InvalidPayloadError, NotFoundError
 from harbor.persistence.models import (
     OpenAIProjectChatSessionRecord,
     OpenAIProjectChatTurnRecord,
@@ -33,7 +34,7 @@ class OpenAIProjectChatSessionRead(BaseModel):
         record: OpenAIProjectChatSessionRecord,
         *,
         turns: list[OpenAIProjectChatTurnRecord] | None = None,
-    ) -> "OpenAIProjectChatSessionRead":
+    ) -> OpenAIProjectChatSessionRead:
         turns = turns or []
         last_turn = turns[-1] if turns else None
         return cls(
@@ -74,7 +75,7 @@ class OpenAIProjectChatTurnRead(BaseModel):
     def from_record(
         cls,
         record: OpenAIProjectChatTurnRecord,
-    ) -> "OpenAIProjectChatTurnRead":
+    ) -> OpenAIProjectChatTurnRead:
         return cls(
             openai_project_chat_turn_id=record.openai_project_chat_turn_id,
             openai_project_chat_session_id=record.openai_project_chat_session_id,
@@ -122,11 +123,11 @@ def create_openai_project_chat_session(
     title: str,
 ) -> OpenAIProjectChatSessionRecord:
     if get_project(session, project_id) is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     record = OpenAIProjectChatSessionRecord(project_id=project_id, title=title)
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record
 
@@ -137,7 +138,7 @@ def get_openai_project_chat_session(
     chat_session_id: str,
 ) -> OpenAIProjectChatSessionRecord | None:
     if get_project(session, project_id) is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     stmt = select(OpenAIProjectChatSessionRecord).where(
         OpenAIProjectChatSessionRecord.project_id == project_id,
@@ -152,7 +153,7 @@ def list_openai_project_chat_turns(
     chat_session_id: str,
 ) -> list[OpenAIProjectChatTurnRecord]:
     if get_project(session, project_id) is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     stmt = (
         select(OpenAIProjectChatTurnRecord)
@@ -173,7 +174,7 @@ def list_openai_project_chat_sessions(
     project_id: str,
 ) -> list[OpenAIProjectChatSessionRead]:
     if get_project(session, project_id) is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     sessions_stmt = (
         select(OpenAIProjectChatSessionRecord)
@@ -206,7 +207,7 @@ def ensure_openai_project_chat_session(
     if chat_session_id:
         record = get_openai_project_chat_session(session, project_id, chat_session_id)
         if record is None:
-            raise KeyError("chat_session_not_found")
+            raise NotFoundError("Chat session", chat_session_id)
         return record
 
     return create_openai_project_chat_session(
@@ -223,20 +224,20 @@ def create_openai_project_chat_turn(
     payload: dict[str, object],
 ) -> OpenAIProjectChatTurnRecord:
     if get_project(session, project_id) is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     session_record = get_openai_project_chat_session(session, project_id, chat_session_id)
     if session_record is None:
-        raise KeyError("chat_session_not_found")
+        raise NotFoundError("Chat session", chat_session_id)
 
     request_payload = payload.get("request")
     if not isinstance(request_payload, dict):
-        raise ValueError("invalid_openai_project_chat_turn_payload")
+        raise InvalidPayloadError("Chat turn", "missing or invalid request payload")
 
     input_text = request_payload.get("input_text")
     rendered_input_text = request_payload.get("rendered_input_text")
     if not isinstance(input_text, str) or not isinstance(rendered_input_text, str):
-        raise ValueError("invalid_openai_project_chat_turn_payload")
+        raise InvalidPayloadError("Chat turn", "missing or invalid request payload")
 
     existing_turns = list_openai_project_chat_turns(session, project_id, chat_session_id)
     next_turn_index = len(existing_turns) + 1
@@ -259,7 +260,7 @@ def create_openai_project_chat_turn(
     session_record.updated_at = datetime.now(UTC)
     session.add(record)
     session.add(session_record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     session.refresh(session_record)
     return record

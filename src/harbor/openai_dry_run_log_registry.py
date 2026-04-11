@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import InvalidPayloadError, NotFoundError
 from harbor.persistence.models import OpenAIProjectDryRunLogRecord
 from harbor.project_registry import get_project
 
@@ -31,7 +32,7 @@ class OpenAIProjectDryRunLogRead(BaseModel):
     @classmethod
     def from_record(
         cls, record: OpenAIProjectDryRunLogRecord
-    ) -> "OpenAIProjectDryRunLogRead":
+    ) -> OpenAIProjectDryRunLogRead:
         return cls(
             openai_project_dry_run_log_id=record.openai_project_dry_run_log_id,
             project_id=record.project_id,
@@ -67,16 +68,16 @@ def create_openai_project_dry_run_log(
     payload: dict[str, object],
 ) -> OpenAIProjectDryRunLogRecord:
     if get_project(session, project_id) is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     request_payload = payload.get("request")
     if not isinstance(request_payload, dict):
-        raise ValueError("invalid_openai_project_dry_run_payload")
+        raise InvalidPayloadError("Dry-run log", "missing or invalid request payload")
 
     input_text = request_payload.get("input_text")
     rendered_input_text = request_payload.get("rendered_input_text")
     if not isinstance(input_text, str) or not isinstance(rendered_input_text, str):
-        raise ValueError("invalid_openai_project_dry_run_payload")
+        raise InvalidPayloadError("Dry-run log", "missing or invalid request payload")
 
     record = OpenAIProjectDryRunLogRecord(
         project_id=project_id,
@@ -96,7 +97,7 @@ def create_openai_project_dry_run_log(
         error_message=_optional_text(payload.get("error_message")),
     )
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record
 
@@ -105,7 +106,7 @@ def list_openai_project_dry_run_logs(
     session: Session, project_id: str
 ) -> list[OpenAIProjectDryRunLogRecord]:
     if get_project(session, project_id) is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     stmt = (
         select(OpenAIProjectDryRunLogRecord)

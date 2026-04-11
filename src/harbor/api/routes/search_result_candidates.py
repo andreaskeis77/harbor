@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import NotFoundError
 from harbor.persistence.session import get_db_session
 from harbor.review_queue_registry import (
     CandidateReviewPromotionRequest,
@@ -27,30 +28,6 @@ router = APIRouter(tags=["search_result_candidates"])
 DbSession = Annotated[Session, Depends(get_db_session)]
 
 
-def _translate_key_error(exc: KeyError) -> HTTPException:
-    key = str(exc)
-    if key == "'project_not_found'":
-        return HTTPException(status_code=404, detail="Project not found.")
-    if key == "'search_campaign_not_found'":
-        return HTTPException(status_code=404, detail="Search campaign not found.")
-    if key == "'search_run_not_found'":
-        return HTTPException(status_code=404, detail="Search run not found.")
-    return HTTPException(status_code=404, detail="Search result candidate not found.")
-
-
-def _translate_value_error(exc: ValueError) -> HTTPException:
-    key = str(exc)
-    if key == "candidate_already_promoted_to_review_queue":
-        return HTTPException(
-            status_code=409,
-            detail="Search result candidate already promoted to review queue.",
-        )
-    return HTTPException(
-        status_code=409,
-        detail="Search result candidate is not promotable to review queue.",
-    )
-
-
 @router.post(
     "/projects/{project_id}/search-campaigns/{search_campaign_id}/runs/{search_run_id}/result-candidates",
     response_model=SearchResultCandidateRead,
@@ -63,16 +40,13 @@ def create_search_result_candidate_endpoint(
     payload: SearchResultCandidateCreate,
     session: DbSession,
 ) -> SearchResultCandidateRead:
-    try:
-        record = create_search_result_candidate(
-            session,
-            project_id,
-            search_campaign_id,
-            search_run_id,
-            payload,
-        )
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
+    record = create_search_result_candidate(
+        session,
+        project_id,
+        search_campaign_id,
+        search_run_id,
+        payload,
+    )
     return SearchResultCandidateRead.from_record(record)
 
 
@@ -86,18 +60,15 @@ def list_search_result_candidates_endpoint(
     search_run_id: str,
     session: DbSession,
 ) -> SearchResultCandidateListResponse:
-    try:
-        items = [
-            SearchResultCandidateRead.from_record(record)
-            for record in list_search_result_candidates(
-                session,
-                project_id,
-                search_campaign_id,
-                search_run_id,
-            )
-        ]
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
+    items = [
+        SearchResultCandidateRead.from_record(record)
+        for record in list_search_result_candidates(
+            session,
+            project_id,
+            search_campaign_id,
+            search_run_id,
+        )
+    ]
     return SearchResultCandidateListResponse(items=items)
 
 
@@ -120,7 +91,7 @@ def get_search_result_candidate_endpoint(
         search_result_candidate_id,
     )
     if record is None:
-        raise HTTPException(status_code=404, detail="Search result candidate not found.")
+        raise NotFoundError("Search result candidate", search_result_candidate_id)
     return SearchResultCandidateRead.from_record(record)
 
 
@@ -136,17 +107,14 @@ def update_search_result_candidate_disposition_endpoint(
     payload: SearchResultCandidateDispositionUpdate,
     session: DbSession,
 ) -> SearchResultCandidateRead:
-    try:
-        record = update_search_result_candidate_disposition(
-            session,
-            project_id,
-            search_campaign_id,
-            search_run_id,
-            search_result_candidate_id,
-            payload,
-        )
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
+    record = update_search_result_candidate_disposition(
+        session,
+        project_id,
+        search_campaign_id,
+        search_run_id,
+        search_result_candidate_id,
+        payload,
+    )
     return SearchResultCandidateRead.from_record(record)
 
 
@@ -163,17 +131,12 @@ def promote_search_result_candidate_to_review_endpoint(
     payload: CandidateReviewPromotionRequest,
     session: DbSession,
 ) -> ReviewQueueItemRead:
-    try:
-        record = promote_search_result_candidate_to_review_queue(
-            session,
-            project_id,
-            search_campaign_id,
-            search_run_id,
-            search_result_candidate_id,
-            payload,
-        )
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
-    except ValueError as exc:
-        raise _translate_value_error(exc) from exc
+    record = promote_search_result_candidate_to_review_queue(
+        session,
+        project_id,
+        search_campaign_id,
+        search_run_id,
+        search_result_candidate_id,
+        payload,
+    )
     return ReviewQueueItemRead.from_record(record)

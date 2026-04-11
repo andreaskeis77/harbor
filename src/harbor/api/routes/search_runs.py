@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import NotFoundError
 from harbor.persistence.session import get_db_session
 from harbor.search_run_registry import (
     SearchRunCreate,
@@ -21,15 +22,6 @@ router = APIRouter(tags=["search_runs"])
 DbSession = Annotated[Session, Depends(get_db_session)]
 
 
-def _translate_key_error(exc: KeyError) -> HTTPException:
-    key = str(exc)
-    if key == "'project_not_found'":
-        return HTTPException(status_code=404, detail="Project not found.")
-    if key == "'search_campaign_not_found'":
-        return HTTPException(status_code=404, detail="Search campaign not found.")
-    return HTTPException(status_code=404, detail="Search run not found.")
-
-
 @router.post(
     "/projects/{project_id}/search-campaigns/{search_campaign_id}/runs",
     response_model=SearchRunRead,
@@ -41,10 +33,7 @@ def create_search_run_endpoint(
     payload: SearchRunCreate,
     session: DbSession,
 ) -> SearchRunRead:
-    try:
-        record = create_search_run(session, project_id, search_campaign_id, payload)
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
+    record = create_search_run(session, project_id, search_campaign_id, payload)
     return SearchRunRead.from_record(record)
 
 
@@ -57,13 +46,10 @@ def list_search_runs_endpoint(
     search_campaign_id: str,
     session: DbSession,
 ) -> SearchRunListResponse:
-    try:
-        items = [
-            SearchRunRead.from_record(record)
-            for record in list_search_runs(session, project_id, search_campaign_id)
-        ]
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
+    items = [
+        SearchRunRead.from_record(record)
+        for record in list_search_runs(session, project_id, search_campaign_id)
+    ]
     return SearchRunListResponse(items=items)
 
 
@@ -79,7 +65,7 @@ def get_search_run_endpoint(
 ) -> SearchRunRead:
     record = get_search_run(session, project_id, search_campaign_id, search_run_id)
     if record is None:
-        raise HTTPException(status_code=404, detail="Search run not found.")
+        raise NotFoundError("Search run", search_run_id)
     return SearchRunRead.from_record(record)
 
 
@@ -94,14 +80,11 @@ def update_search_run_status_endpoint(
     payload: SearchRunStatusUpdate,
     session: DbSession,
 ) -> SearchRunRead:
-    try:
-        record = update_search_run_status(
-            session,
-            project_id,
-            search_campaign_id,
-            search_run_id,
-            payload,
-        )
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
+    record = update_search_run_status(
+        session,
+        project_id,
+        search_campaign_id,
+        search_run_id,
+        payload,
+    )
     return SearchRunRead.from_record(record)

@@ -24,7 +24,7 @@ class HandbookVersionRead(BaseModel):
     created_at: datetime
 
     @classmethod
-    def from_record(cls, record: HandbookVersionRecord) -> "HandbookVersionRead":
+    def from_record(cls, record: HandbookVersionRecord) -> HandbookVersionRead:
         return cls(
             handbook_version_id=record.handbook_version_id,
             project_id=record.project_id,
@@ -91,7 +91,7 @@ def create_handbook_version(
         change_note=payload.change_note,
     )
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record
 

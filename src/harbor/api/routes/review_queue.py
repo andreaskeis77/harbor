@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import NotFoundError
 from harbor.persistence.session import get_db_session
 from harbor.review_queue_registry import (
     ReviewQueueItemCreate,
@@ -24,41 +25,6 @@ router = APIRouter(tags=["review_queue"])
 DbSession = Annotated[Session, Depends(get_db_session)]
 
 
-def _translate_key_error(exc: KeyError) -> HTTPException:
-    key = str(exc)
-    if key == "'project_not_found'":
-        return HTTPException(status_code=404, detail="Project not found.")
-    if key == "'source_not_found'":
-        return HTTPException(status_code=404, detail="Source not found.")
-    if key == "'project_source_not_found'":
-        return HTTPException(status_code=404, detail="Project source not found.")
-    if key == "'search_campaign_not_found'":
-        return HTTPException(status_code=404, detail="Search campaign not found.")
-    if key == "'search_run_not_found'":
-        return HTTPException(status_code=404, detail="Search run not found.")
-    if key == "'search_result_candidate_not_found'":
-        return HTTPException(
-            status_code=404,
-            detail="Search result candidate not found.",
-        )
-    return HTTPException(status_code=404, detail="Review queue item not found.")
-
-
-def _translate_value_error(exc: ValueError) -> HTTPException:
-    key = str(exc)
-    if key == "duplicate_source":
-        return HTTPException(status_code=409, detail="Source already exists.")
-    if key == "review_queue_item_already_promoted":
-        return HTTPException(
-            status_code=409,
-            detail="Review queue item already promoted.",
-        )
-    return HTTPException(
-        status_code=409,
-        detail="Review queue item is not promotable to source.",
-    )
-
-
 @router.post(
     "/projects/{project_id}/review-queue-items",
     response_model=ReviewQueueItemRead,
@@ -69,10 +35,7 @@ def create_review_queue_item_endpoint(
     payload: ReviewQueueItemCreate,
     session: DbSession,
 ) -> ReviewQueueItemRead:
-    try:
-        record = create_review_queue_item(session, project_id, payload)
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
+    record = create_review_queue_item(session, project_id, payload)
     return ReviewQueueItemRead.from_record(record)
 
 
@@ -84,13 +47,10 @@ def list_review_queue_items_endpoint(
     project_id: str,
     session: DbSession,
 ) -> ReviewQueueListResponse:
-    try:
-        items = [
-            ReviewQueueItemRead.from_record(record)
-            for record in list_review_queue_items(session, project_id)
-        ]
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
+    items = [
+        ReviewQueueItemRead.from_record(record)
+        for record in list_review_queue_items(session, project_id)
+    ]
     return ReviewQueueListResponse(items=items)
 
 
@@ -105,7 +65,7 @@ def get_review_queue_item_endpoint(
 ) -> ReviewQueueItemRead:
     record = get_review_queue_item(session, project_id, review_queue_item_id)
     if record is None:
-        raise HTTPException(status_code=404, detail="Review queue item not found.")
+        raise NotFoundError("Review queue item", review_queue_item_id)
     return ReviewQueueItemRead.from_record(record)
 
 
@@ -119,15 +79,12 @@ def update_review_queue_item_status_endpoint(
     payload: ReviewQueueStatusUpdate,
     session: DbSession,
 ) -> ReviewQueueItemRead:
-    try:
-        record = update_review_queue_item_status(
-            session,
-            project_id,
-            review_queue_item_id,
-            payload,
-        )
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
+    record = update_review_queue_item_status(
+        session,
+        project_id,
+        review_queue_item_id,
+        payload,
+    )
     return ReviewQueueItemRead.from_record(record)
 
 
@@ -142,15 +99,10 @@ def promote_review_queue_item_to_source_endpoint(
     payload: ReviewQueueSourcePromotionRequest,
     session: DbSession,
 ) -> ReviewQueueItemRead:
-    try:
-        record = promote_review_queue_item_to_source(
-            session,
-            project_id,
-            review_queue_item_id,
-            payload,
-        )
-    except KeyError as exc:
-        raise _translate_key_error(exc) from exc
-    except ValueError as exc:
-        raise _translate_value_error(exc) from exc
+    record = promote_review_queue_item_to_source(
+        session,
+        project_id,
+        review_queue_item_id,
+        payload,
+    )
     return ReviewQueueItemRead.from_record(record)

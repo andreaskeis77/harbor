@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import NotFoundError
 from harbor.persistence.models import SearchCampaignRecord
 from harbor.project_registry import get_project
 
@@ -30,7 +31,7 @@ class SearchCampaignRead(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_record(cls, record: SearchCampaignRecord) -> "SearchCampaignRead":
+    def from_record(cls, record: SearchCampaignRecord) -> SearchCampaignRead:
         return cls(
             search_campaign_id=record.search_campaign_id,
             project_id=record.project_id,
@@ -55,7 +56,7 @@ def create_search_campaign(
 ) -> SearchCampaignRecord:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     record = SearchCampaignRecord(
         project_id=project_id,
@@ -66,7 +67,7 @@ def create_search_campaign(
         note=payload.note,
     )
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record
 
@@ -74,7 +75,7 @@ def create_search_campaign(
 def list_search_campaigns(session: Session, project_id: str) -> list[SearchCampaignRecord]:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     stmt = (
         select(SearchCampaignRecord)

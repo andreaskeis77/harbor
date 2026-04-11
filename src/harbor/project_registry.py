@@ -33,7 +33,7 @@ class ProjectRead(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_record(cls, record: ProjectRecord) -> "ProjectRead":
+    def from_record(cls, record: ProjectRecord) -> ProjectRead:
         return cls(
             project_id=record.project_id,
             title=record.title,
@@ -59,7 +59,7 @@ def create_project(session: Session, payload: ProjectCreate) -> ProjectRecord:
         blueprint_status=payload.blueprint_status,
     )
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record
 

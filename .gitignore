@@ -28,5 +28,12 @@ data/**/*
 !data/artifacts/
 !data/artifacts/.gitkeep
 
+# Coverage artifacts
+.coverage
+htmlcov/
+
+# Lock files
+uv.lock
+
 # Alembic cache
 migrations/versions/__pycache__/

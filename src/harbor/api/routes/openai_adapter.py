@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from harbor.config import get_settings
+from harbor.exceptions import NotFoundError
 from harbor.openai_adapter import (
     openai_probe_payload,
     openai_project_chat_turn_payload,
@@ -31,6 +32,7 @@ from harbor.openai_dry_run_log_registry import (
 )
 from harbor.persistence.session import get_db_session
 from harbor.project_registry import ProjectRead, get_project
+from harbor.source_registry import ProjectSourceRead, list_project_sources
 
 router = APIRouter(prefix="/openai", tags=["openai"])
 DbSession = Annotated[Session, Depends(get_db_session)]
@@ -51,6 +53,18 @@ class OpenAIProjectChatTurnRequest(BaseModel):
     input_text: str = Field(min_length=1, max_length=4000)
     chat_session_id: str | None = Field(default=None, max_length=36)
     instructions: str | None = Field(default=None, max_length=4000)
+
+def _accepted_project_sources_for_chat_context(
+    session: Session,
+    project_id: str,
+) -> list[dict[str, object]]:
+    return [
+        ProjectSourceRead.from_records(project_source_record, source_record).model_dump(
+            mode="json"
+        )
+        for project_source_record, source_record in list_project_sources(session, project_id)
+        if project_source_record.review_status == "accepted"
+    ]
 
 
 @router.get("/runtime")
@@ -76,7 +90,7 @@ def openai_project_dry_run_logs(
 ) -> dict[str, object]:
     project_record = get_project(session, project_id)
     if project_record is None:
-        raise HTTPException(status_code=404, detail="Project not found.")
+        raise NotFoundError("Project", project_id)
 
     items = [
         OpenAIProjectDryRunLogRead.from_record(record).model_dump(mode="json")
@@ -92,7 +106,7 @@ def openai_project_chat_sessions(
 ) -> dict[str, object]:
     project_record = get_project(session, project_id)
     if project_record is None:
-        raise HTTPException(status_code=404, detail="Project not found.")
+        raise NotFoundError("Project", project_id)
 
     items = [
         item.model_dump(mode="json")
@@ -109,19 +123,14 @@ def openai_project_chat_turns(
 ) -> dict[str, object]:
     project_record = get_project(session, project_id)
     if project_record is None:
-        raise HTTPException(status_code=404, detail="Project not found.")
+        raise NotFoundError("Project", project_id)
 
-    try:
-        session_record = ensure_openai_project_chat_session(
-            session,
-            project_id,
-            chat_session_id=chat_session_id,
-            input_text="session lookup",
-        )
-    except KeyError as exc:
-        if str(exc) == "'chat_session_not_found'":
-            raise HTTPException(status_code=404, detail="Chat session not found.") from exc
-        raise
+    session_record = ensure_openai_project_chat_session(
+        session,
+        project_id,
+        chat_session_id=chat_session_id,
+        input_text="session lookup",
+    )
 
     items = [
         OpenAIProjectChatTurnRead.from_record(record).model_dump(mode="json")
@@ -142,7 +151,7 @@ def openai_project_dry_run(
 ) -> dict[str, object]:
     project_record = get_project(session, project_id)
     if project_record is None:
-        raise HTTPException(status_code=404, detail="Project not found.")
+        raise NotFoundError("Project", project_id)
 
     settings = get_settings()
     project_payload = ProjectRead.from_record(project_record).model_dump(mode="json")
@@ -171,19 +180,14 @@ def openai_project_chat_turn(
 ) -> dict[str, object]:
     project_record = get_project(session, project_id)
     if project_record is None:
-        raise HTTPException(status_code=404, detail="Project not found.")
+        raise NotFoundError("Project", project_id)
 
-    try:
-        session_record = ensure_openai_project_chat_session(
-            session,
-            project_id,
-            chat_session_id=request.chat_session_id,
-            input_text=request.input_text,
-        )
-    except KeyError as exc:
-        if str(exc) == "'chat_session_not_found'":
-            raise HTTPException(status_code=404, detail="Chat session not found.") from exc
-        raise
+    session_record = ensure_openai_project_chat_session(
+        session,
+        project_id,
+        chat_session_id=request.chat_session_id,
+        input_text=request.input_text,
+    )
 
     prior_turns = [
         OpenAIProjectChatTurnRead.from_record(record).model_dump(mode="json")
@@ -196,11 +200,13 @@ def openai_project_chat_turn(
 
     settings = get_settings()
     project_payload = ProjectRead.from_record(project_record).model_dump(mode="json")
+    project_sources = _accepted_project_sources_for_chat_context(session, project_id)
     payload = openai_project_chat_turn_payload(
         settings,
         project_context=project_payload,
         input_text=request.input_text,
         prior_turns=prior_turns,
+        project_sources=project_sources,
         instructions=request.instructions,
     )
 

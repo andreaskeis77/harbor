@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy import text
 
 from harbor.config import HarborSettings, get_settings
 from harbor.persistence.session import get_engine
+
+logger = logging.getLogger("harbor.db")
 
 
 def database_status_payload(
@@ -43,7 +47,12 @@ def database_status_payload(
             connection.execute(text("SELECT 1"))
         connectivity = "ok"
         status = "ok"
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
+        logger.warning(
+            "database connectivity check failed: %s: %s",
+            exc.__class__.__name__,
+            exc,
+        )
         connectivity = {
             "status": "error",
             "error_type": exc.__class__.__name__,

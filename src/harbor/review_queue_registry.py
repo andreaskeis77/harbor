@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import DuplicateError, NotFoundError, NotPromotableError
 from harbor.persistence.models import (
     ProjectSourceRecord,
     ReviewQueueItemRecord,
@@ -67,7 +68,7 @@ class ReviewQueueItemRead(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_record(cls, record: ReviewQueueItemRecord) -> "ReviewQueueItemRead":
+    def from_record(cls, record: ReviewQueueItemRecord) -> ReviewQueueItemRead:
         return cls(
             review_queue_item_id=record.review_queue_item_id,
             project_id=record.project_id,
@@ -97,32 +98,32 @@ def create_review_queue_item(
 ) -> ReviewQueueItemRecord:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     if payload.source_id is not None:
         source = session.get(SourceRecord, payload.source_id)
         if source is None:
-            raise KeyError("source_not_found")
+            raise NotFoundError("Source", payload.source_id)
 
     if payload.project_source_id is not None:
         project_source = session.get(ProjectSourceRecord, payload.project_source_id)
         if project_source is None or project_source.project_id != project_id:
-            raise KeyError("project_source_not_found")
+            raise NotFoundError("Project source", payload.project_source_id)
 
     if payload.search_campaign_id is not None:
         campaign = session.get(SearchCampaignRecord, payload.search_campaign_id)
         if campaign is None or campaign.project_id != project_id:
-            raise KeyError("search_campaign_not_found")
+            raise NotFoundError("Search campaign")
 
     if payload.search_run_id is not None:
         search_run = session.get(SearchRunRecord, payload.search_run_id)
         if search_run is None or search_run.project_id != project_id:
-            raise KeyError("search_run_not_found")
+            raise NotFoundError("Search run")
         if (
             payload.search_campaign_id is not None
             and search_run.search_campaign_id != payload.search_campaign_id
         ):
-            raise KeyError("search_run_not_found")
+            raise NotFoundError("Search run")
 
     if payload.search_result_candidate_id is not None:
         candidate = session.get(
@@ -130,14 +131,14 @@ def create_review_queue_item(
             payload.search_result_candidate_id,
         )
         if candidate is None or candidate.project_id != project_id:
-            raise KeyError("search_result_candidate_not_found")
+            raise NotFoundError("Search result candidate")
         if (
             payload.search_campaign_id is not None
             and candidate.search_campaign_id != payload.search_campaign_id
         ):
-            raise KeyError("search_result_candidate_not_found")
+            raise NotFoundError("Search result candidate")
         if payload.search_run_id is not None and candidate.search_run_id != payload.search_run_id:
-            raise KeyError("search_result_candidate_not_found")
+            raise NotFoundError("Search result candidate")
 
     record = ReviewQueueItemRecord(
         project_id=project_id,
@@ -153,7 +154,7 @@ def create_review_queue_item(
         search_result_candidate_id=payload.search_result_candidate_id,
     )
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record
 
@@ -161,7 +162,7 @@ def create_review_queue_item(
 def list_review_queue_items(session: Session, project_id: str) -> list[ReviewQueueItemRecord]:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     stmt = (
         select(ReviewQueueItemRecord)
@@ -214,14 +215,14 @@ def update_review_queue_item_status(
 ) -> ReviewQueueItemRecord:
     record = get_review_queue_item(session, project_id, review_queue_item_id)
     if record is None:
-        raise KeyError("review_queue_item_not_found")
+        raise NotFoundError("Review queue item", review_queue_item_id)
 
     record.status = payload.status
     if payload.note is not None:
         record.note = payload.note
 
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record
 
@@ -236,11 +237,11 @@ def promote_search_result_candidate_to_review_queue(
 ) -> ReviewQueueItemRecord:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     campaign = session.get(SearchCampaignRecord, search_campaign_id)
     if campaign is None or campaign.project_id != project_id:
-        raise KeyError("search_campaign_not_found")
+        raise NotFoundError("Search campaign")
 
     search_run = session.get(SearchRunRecord, search_run_id)
     if (
@@ -248,7 +249,7 @@ def promote_search_result_candidate_to_review_queue(
         or search_run.project_id != project_id
         or search_run.search_campaign_id != search_campaign_id
     ):
-        raise KeyError("search_run_not_found")
+        raise NotFoundError("Search run")
 
     candidate = session.get(SearchResultCandidateRecord, search_result_candidate_id)
     if (
@@ -257,7 +258,7 @@ def promote_search_result_candidate_to_review_queue(
         or candidate.search_campaign_id != search_campaign_id
         or candidate.search_run_id != search_run_id
     ):
-        raise KeyError("search_result_candidate_not_found")
+        raise NotFoundError("Search result candidate")
 
     existing_review_item = get_candidate_review_queue_item(
         session,
@@ -270,7 +271,7 @@ def promote_search_result_candidate_to_review_queue(
         "promoted",
         "accepted",
     }:
-        raise ValueError("candidate_already_promoted_to_review_queue")
+        raise DuplicateError("Review queue item", "Candidate already promoted to review queue.")
 
     review_item = ReviewQueueItemRecord(
         project_id=project_id,
@@ -288,7 +289,7 @@ def promote_search_result_candidate_to_review_queue(
 
     session.add(candidate)
     session.add(review_item)
-    session.commit()
+    session.flush()
     session.refresh(review_item)
     return review_item
 
@@ -301,28 +302,34 @@ def promote_review_queue_item_to_source(
 ) -> ReviewQueueItemRecord:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     review_item = get_review_queue_item(session, project_id, review_queue_item_id)
     if review_item is None:
-        raise KeyError("review_queue_item_not_found")
+        raise NotFoundError("Review queue item", review_queue_item_id)
 
     if review_item.queue_kind != "candidate_review":
-        raise ValueError("review_queue_item_not_promotable")
+        raise NotPromotableError(
+            "Review queue item",
+            "not a candidate_review item or missing required fields",
+        )
 
     if review_item.source_id is not None or review_item.project_source_id is not None:
-        raise ValueError("review_queue_item_already_promoted")
+        raise DuplicateError("Review queue item", "Review queue item already promoted.")
 
     if (
         review_item.search_campaign_id is None
         or review_item.search_run_id is None
         or review_item.search_result_candidate_id is None
     ):
-        raise ValueError("review_queue_item_not_promotable")
+        raise NotPromotableError(
+            "Review queue item",
+            "not a candidate_review item or missing required fields",
+        )
 
     campaign = session.get(SearchCampaignRecord, review_item.search_campaign_id)
     if campaign is None or campaign.project_id != project_id:
-        raise KeyError("search_campaign_not_found")
+        raise NotFoundError("Search campaign")
 
     search_run = session.get(SearchRunRecord, review_item.search_run_id)
     if (
@@ -330,7 +337,7 @@ def promote_review_queue_item_to_source(
         or search_run.project_id != project_id
         or search_run.search_campaign_id != review_item.search_campaign_id
     ):
-        raise KeyError("search_run_not_found")
+        raise NotFoundError("Search run")
 
     candidate = session.get(
         SearchResultCandidateRecord,
@@ -342,13 +349,13 @@ def promote_review_queue_item_to_source(
         or candidate.search_campaign_id != review_item.search_campaign_id
         or candidate.search_run_id != review_item.search_run_id
     ):
-        raise KeyError("search_result_candidate_not_found")
+        raise NotFoundError("Search result candidate")
 
     existing_source = session.execute(
         select(SourceRecord).where(SourceRecord.canonical_url == candidate.url)
     ).scalar_one_or_none()
     if existing_source is not None:
-        raise ValueError("duplicate_source")
+        raise DuplicateError("Source")
 
     source = SourceRecord(
         source_type=payload.source_type,
@@ -383,10 +390,9 @@ def promote_review_queue_item_to_source(
     session.add(candidate)
 
     try:
-        session.commit()
+        session.flush()
     except IntegrityError as exc:
-        session.rollback()
-        raise ValueError("duplicate_source") from exc
+        raise DuplicateError("Source") from exc
 
     session.refresh(review_item)
     return review_item

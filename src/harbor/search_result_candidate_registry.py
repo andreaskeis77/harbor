@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from harbor.exceptions import NotFoundError
 from harbor.persistence.models import (
     SearchCampaignRecord,
     SearchResultCandidateRecord,
@@ -51,7 +52,7 @@ class SearchResultCandidateRead(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_record(cls, record: SearchResultCandidateRecord) -> "SearchResultCandidateRead":
+    def from_record(cls, record: SearchResultCandidateRecord) -> SearchResultCandidateRead:
         return cls(
             search_result_candidate_id=record.search_result_candidate_id,
             project_id=record.project_id,
@@ -106,15 +107,15 @@ def create_search_result_candidate(
 ) -> SearchResultCandidateRecord:
     project = get_project(session, project_id)
     if project is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     campaign = _get_campaign(session, project_id, search_campaign_id)
     if campaign is None:
-        raise KeyError("search_campaign_not_found")
+        raise NotFoundError("Search campaign", search_campaign_id)
 
     search_run = _get_search_run(session, project_id, search_campaign_id, search_run_id)
     if search_run is None:
-        raise KeyError("search_run_not_found")
+        raise NotFoundError("Search run", search_run_id)
 
     record = SearchResultCandidateRecord(
         project_id=project_id,
@@ -130,7 +131,7 @@ def create_search_result_candidate(
         published_at=payload.published_at,
     )
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record
 
@@ -142,13 +143,13 @@ def list_search_result_candidates(
     search_run_id: str,
 ) -> list[SearchResultCandidateRecord]:
     if get_project(session, project_id) is None:
-        raise KeyError("project_not_found")
+        raise NotFoundError("Project", project_id)
 
     if _get_campaign(session, project_id, search_campaign_id) is None:
-        raise KeyError("search_campaign_not_found")
+        raise NotFoundError("Search campaign", search_campaign_id)
 
     if _get_search_run(session, project_id, search_campaign_id, search_run_id) is None:
-        raise KeyError("search_run_not_found")
+        raise NotFoundError("Search run", search_run_id)
 
     stmt = (
         select(SearchResultCandidateRecord)
@@ -197,7 +198,7 @@ def update_search_result_candidate_disposition(
         search_result_candidate_id,
     )
     if record is None:
-        raise KeyError("search_result_candidate_not_found")
+        raise NotFoundError("Search result candidate", search_result_candidate_id)
 
     record.disposition = payload.disposition
     if payload.note is not None:
@@ -205,6 +206,6 @@ def update_search_result_candidate_disposition(
     record.updated_at = _utcnow()
 
     session.add(record)
-    session.commit()
+    session.flush()
     session.refresh(record)
     return record

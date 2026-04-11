@@ -88,3 +88,24 @@ Minimum update set for a meaningful bolt:
 - `docs/PROJECT_STATE.md`
 - `docs/INDEX.md`
 - one `docs/_handoff/HANDOFF_*.md` when handing over a phase or chat
+
+## 2026-04-10 method hardening
+
+### Verified base first
+Every new bolt or recovery attempt starts from a verified repository base. The default is:
+- `git checkout main`
+- `git pull --ff-only origin main`
+
+If the work intentionally continues on an unmerged feature branch, that branch must first be reset to its verified pushed state.
+
+### No reconstruction from failed states
+Do not continue from guessed intermediate files, partially applied ZIPs, or manually repaired local experiments. Return to the verified base and re-cut the bolt cleanly.
+
+### Small clean bolts, no hidden scope mix
+If a bolt is feature-complete but docs/manifests are still missing, finish that documentation work explicitly and visibly. Do not blur a failing product bolt with unrelated local repairs.
+
+### Exact file accountability
+Before validation, confirm the artifact changed exactly the intended repository files and no more.
+
+### Existing fixtures before new harnesses
+Follow the established test fixture pattern for the relevant surface before adding a new test host or runtime path.

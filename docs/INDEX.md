@@ -45,3 +45,25 @@
 
 ## ADRs
 - `docs/adr/README.md`
+
+## 2026-04-10 updates
+
+- `LESSONS_LEARNED_T4_5A_2026-04-10.md`
+- `docs/_handoff/HANDOFF_2026-04-10_T4_5A_to_T4_5B.md`
+- method hardening updates in `ENGINEERING_MANIFEST.md`, `DELIVERY_PROTOCOL.md`, `WORKING_AGREEMENT.md`, and `VALIDATION_PROTOCOL.md`
+
+## 2026-04-11 updates — H1–H4 Hardening Phases
+
+- `LESSONS_LEARNED_H1_2026-04-11.md` — migration consolidation, observability, test infrastructure
+- `LESSONS_LEARNED_H2_2026-04-11.md` — typed exceptions, transaction middleware, coverage gate
+- `LESSONS_LEARNED_H3_2026-04-11.md` — coverage depth, alembic logger fix, expanded lint rules
+- `LESSONS_LEARNED_H4_2026-04-11.md` — validation edge cases, input boundaries, E2E workflow
+- `HARBOR_PROJECT_REPORT_2026-04-11.md` — comprehensive project analysis report (updated)
+- 56 → 116 tests, 96% coverage, 24 permanent manifest rules
+- typed domain exception hierarchy + middleware exception handlers
+- request-scoped transaction middleware (commit-on-success / rollback-on-error)
+- structured request logging with request-id propagation
+- consolidated linear migration chain (10 migrations, 3 integrity tests)
+- expanded Ruff rules: E, F, I, B, UP, SIM, PIE, LOG, RUF
+- centralized test fixtures (`tests/conftest.py`)
+- stale artifact cleanup (`config/.env.example`, orphaned `alembic/` directory)
