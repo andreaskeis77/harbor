@@ -1,7 +1,7 @@
 # Project State
 
 ## Current phase
-T5.0B — source citation in assistant responses
+T5.1A — handbook context in chat
 
 ## Confirmed completed
 
@@ -43,6 +43,7 @@ T5.0B — source citation in assistant responses
 - T4.5A project-source-grounded chat baseline
 - T4.5B source attribution / source visibility in chat
 - T5.0A enriched source context in chat prompt
+- T5.0B source citation in assistant responses
 
 ## Current runtime posture
 
@@ -80,6 +81,7 @@ Harbor now has:
 - **117 tests, 96% coverage** (T4.5B)
 - **119 tests, 96% coverage** (T5.0A)
 - **123 tests, 96% coverage** (T5.0B)
+- **129 tests, 96% coverage** (T5.1A)
 - **validation edge-case tests for all review-queue registry branches**
 - **Pydantic input-constraint boundary tests (422 rejection)**
 - **E2E workflow lifecycle test (project → campaign → run → candidate → review → source)**
@@ -87,6 +89,7 @@ Harbor now has:
 - **source attribution visible in chat UI** (compact badge in history, collapsible detail in inspector)
 - **enriched source context in chat prompt** (relevance, trust_tier, review_status rendered per source)
 - **source citation in assistant responses** (citation instruction, `[N]` extraction, inline UI badges)
+- **handbook context in chat prompt** (current handbook version injected, truncated at 2000 chars)
 
 ## Current proof surfaces
 
@@ -121,17 +124,18 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-T5.0B — source citation in assistant responses (in progress)
+T5.1A — handbook context in chat (in progress)
 
 Scope:
 
-- citation instruction appended to system prompt when sources are present
-- rendered source section includes "Cite sources by number" instruction
-- `_extract_source_citations()` extracts `[N]` references from assistant output
-- `cited_sources` field in chat turn payload (computed from output, not persisted)
-- UI: inline citation badges (`<span class="citation-ref">`) with hover title in assistant messages
-- 4 new unit tests, enriched assertions on 4 existing integration tests
-- 123 tests, 96% coverage, quality gates green
+- load current handbook version for the project during chat turn construction
+- inject handbook content as knowledge layer in the chat prompt (between project context and sources)
+- `_prepare_handbook_context()` with truncation at `MAX_HANDBOOK_CHARS = 2000`
+- `_handbook_context_lines()` renders handbook section with placeholder when absent
+- handbook metadata in `request_metadata` (`handbook_available`, `handbook_chars`, `handbook_truncated`)
+- no new persistence, no UI changes
+- 6 new unit tests, enriched assertions on 2 existing tests
+- 129 tests, 96% coverage, quality gates green
 
 ## Intentionally not yet in scope
 

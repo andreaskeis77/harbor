@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from harbor.config import get_settings
 from harbor.exceptions import NotFoundError
+from harbor.handbook_registry import get_current_handbook
 from harbor.openai_adapter import (
     openai_probe_payload,
     openai_project_chat_turn_payload,
@@ -201,12 +202,15 @@ def openai_project_chat_turn(
     settings = get_settings()
     project_payload = ProjectRead.from_record(project_record).model_dump(mode="json")
     project_sources = _accepted_project_sources_for_chat_context(session, project_id)
+    handbook_record = get_current_handbook(session, project_id)
+    handbook_markdown = handbook_record.handbook_markdown if handbook_record else None
     payload = openai_project_chat_turn_payload(
         settings,
         project_context=project_payload,
         input_text=request.input_text,
         prior_turns=prior_turns,
         project_sources=project_sources,
+        handbook_markdown=handbook_markdown,
         instructions=request.instructions,
     )
 
