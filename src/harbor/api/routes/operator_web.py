@@ -413,6 +413,40 @@ td {
   display: grid;
   gap: 8px;
 }
+.chat-source-attribution-badge {
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  border-left: 2px solid #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-source-attribution-list {
+  display: grid;
+  gap: 10px;
+}
+.chat-source-attribution-item {
+  padding: 8px 10px;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  background: #0f172a;
+}
+.chat-source-attribution-title {
+  font-weight: 600;
+  color: #e5e7eb;
+}
+.chat-source-attribution-url {
+  font-size: 0.85rem;
+  color: #60a5fa;
+  word-break: break-all;
+}
+.chat-source-attribution-note {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
 .chat-session-summary {
   margin-top: 0;
 }
@@ -2323,10 +2357,37 @@ const renderChatTurnInspector = () => {
       )}</div>
     </div>
   `;
+  const inspectorSources = Array.isArray(turn.source_attribution) ? turn.source_attribution : [];
+  const sourceDetailHtml = inspectorSources.length
+    ? inspectorSources.map((s, i) => `
+        <div class="chat-source-attribution-item">
+          <div class="chat-source-attribution-title">${safeText(`${i + 1}. ${s.title}`)}</div>
+          <div class="chat-source-attribution-url">${safeText(s.canonical_url)}</div>
+          ${s.note ? `<div class="chat-source-attribution-note">${safeText(s.note)}</div>` : ""}
+        </div>
+      `).join("")
+    : '<div class="empty">No source attribution for this turn.</div>';
+
   detail.innerHTML = `
     <div class="chat-turn-detail">
       <div class="response-label">Created</div>
       <div class="response-value">${safeText(formatDateTime(turn.created_at))}</div>
+    </div>
+    <div class="chat-turn-compare-row">
+      <details class="chat-collapsible" data-chat-collapsible="chat-content"${
+        inspectorSources.length ? " open" : ""
+      }>
+        <summary>
+          <span class="chat-collapsible-summary">
+            <span class="chat-collapsible-label">Source attribution (${
+              inspectorSources.length
+            })</span>
+          </span>
+        </summary>
+        <div class="chat-collapsible-body chat-source-attribution-list">
+          ${sourceDetailHtml}
+        </div>
+      </details>
     </div>
     <div class="chat-turn-compare-row">
       ${renderCollapsibleTextBlock(
@@ -2421,6 +2482,15 @@ const renderChatHistory = () => {
       assistantText ? `Chars: ${String(assistantText).length}` : "",
     ].filter(Boolean);
 
+    const sourceAttr = Array.isArray(turn.source_attribution) ? turn.source_attribution : [];
+    const sourcesBadge = sourceAttr.length
+      ? `<div class="chat-source-attribution-badge">${safeText(
+          sourceAttr.length === 1
+            ? "1 source"
+            : `${sourceAttr.length} sources`,
+        )}: ${safeText(sourceAttr.map((s) => s.title).join(", "))}</div>`
+      : "";
+
     fragments.push(`
       <article class="chat-turn-block" data-chat-turn-block="persisted-chat">
         <div class="chat-turn-block-header">
@@ -2438,6 +2508,7 @@ const renderChatHistory = () => {
               turn.request_input_text,
               { collapseLimit: 220 },
             )}
+            ${sourcesBadge}
           </section>
           <section class="chat-message ${assistantClass}">
             <div class="chat-message-header">
