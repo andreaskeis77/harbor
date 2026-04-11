@@ -483,6 +483,20 @@ td {
   background: #7f1d1d;
   color: #fca5a5;
 }
+.draft-handbook-result {
+  margin-top: 8px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+}
+.draft-handbook-result.success {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+.draft-handbook-result.error {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
 .chat-session-summary {
   margin-top: 0;
 }
@@ -2466,6 +2480,35 @@ const renderChatTurnInspector = () => {
         { collapseLimit: 320 },
       )}
     </div>
+    ${turn.status === "completed" && turn.output_text ? `
+    <div class="chat-turn-compare-row">
+      <details class="chat-collapsible" data-chat-collapsible="chat-content">
+        <summary>
+          <span class="chat-collapsible-summary">
+            <span class="chat-collapsible-label">Draft as handbook</span>
+            <span class="chat-collapsible-preview">
+              Save assistant output as a new handbook version
+            </span>
+          </span>
+        </summary>
+        <div class="chat-collapsible-body">
+          <div class="form-field">
+            <label class="form-label"
+              for="draft-handbook-note">Change note (optional)</label>
+            <input type="text" id="draft-handbook-note"
+              class="form-input"
+              placeholder="Drafted from chat turn ${turn.turn_index}"
+              maxlength="500" />
+          </div>
+          <button type="button" id="draft-handbook-btn"
+            class="button button-sm">
+            Save as handbook draft
+          </button>
+          <div id="draft-handbook-result"></div>
+        </div>
+      </details>
+    </div>
+    ` : ""}
   `;
 };
 
@@ -2968,6 +3011,51 @@ if (proposeSourceForm) {
     }
   });
 }
+
+document.addEventListener("click", async (event) => {
+  const btn = event.target.closest("#draft-handbook-btn");
+  if (!btn) return;
+  const turn = chatHistory.find(
+    (t) => t.openai_project_chat_turn_id === currentTurnId,
+  );
+  if (!turn || !turn.output_text) return;
+  const projectId = turn.project_id;
+  const noteInput = byId("draft-handbook-note");
+  const changeNote = noteInput?.value?.trim() || null;
+  const resultDiv = byId("draft-handbook-result");
+  const body = { handbook_markdown: turn.output_text };
+  if (changeNote) body.change_note = changeNote;
+  btn.disabled = true;
+  try {
+    const ep = `${apiBase}/openai/projects/` +
+      `${encodeURIComponent(projectId)}/draft-handbook`;
+    const opts = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    };
+    const response = await fetch(ep, opts);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    if (resultDiv) {
+      const v = safeText(`v${data.version_number}`);
+      resultDiv.innerHTML =
+        `<div class="draft-handbook-result success">` +
+        `Handbook ${v} created.</div>`;
+    }
+  } catch (err) {
+    btn.disabled = false;
+    if (resultDiv) {
+      const m = safeText(String(err.message || err));
+      resultDiv.innerHTML =
+        `<div class="draft-handbook-result error">` +
+        `${m}</div>`;
+    }
+  }
+});
 
 clearChatHistory("Loading Harbor projects...");
 renderDefaultInstructionsPreview();

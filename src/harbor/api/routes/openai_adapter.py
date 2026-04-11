@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session
 
 from harbor.config import get_settings
 from harbor.exceptions import NotFoundError
-from harbor.handbook_registry import get_current_handbook
+from harbor.handbook_registry import (
+    HandbookVersionRead,
+    HandbookVersionWrite,
+    create_handbook_version,
+    get_current_handbook,
+)
 from harbor.openai_adapter import (
     openai_probe_payload,
     openai_project_chat_turn_payload,
@@ -67,6 +72,12 @@ class ProposeSourceRequest(BaseModel):
     canonical_url: str = Field(min_length=1, max_length=1000)
     title: str | None = Field(default=None, max_length=300)
     note: str | None = Field(default=None, max_length=1000)
+
+
+class DraftHandbookRequest(BaseModel):
+    handbook_markdown: str = Field(min_length=1, max_length=20000)
+    change_note: str | None = Field(default=None, max_length=500)
+
 
 def _accepted_project_sources_for_chat_context(
     session: Session,
@@ -276,3 +287,24 @@ def openai_project_propose_source(
         ),
     )
     return ProjectSourceRead.from_records(project_source_record, source).model_dump(mode="json")
+
+
+@router.post("/projects/{project_id}/draft-handbook")
+def openai_project_draft_handbook(
+    project_id: str,
+    request: DraftHandbookRequest,
+    session: DbSession,
+) -> dict[str, object]:
+    project_record = get_project(session, project_id)
+    if project_record is None:
+        raise NotFoundError("Project", project_id)
+
+    handbook_record = create_handbook_version(
+        session,
+        project_id,
+        HandbookVersionWrite(
+            handbook_markdown=request.handbook_markdown,
+            change_note=request.change_note or "Drafted from chat assistant output",
+        ),
+    )
+    return HandbookVersionRead.from_record(handbook_record).model_dump(mode="json")
