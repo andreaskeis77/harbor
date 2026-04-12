@@ -16,10 +16,15 @@ from harbor.automation_task_registry import (
     start_automation_task_observer,
 )
 from harbor.handbook_registry import compute_handbook_freshness
-from harbor.persistence.models import AutomationScheduleRecord, ProjectRecord
+from harbor.persistence.models import (
+    AutomationScheduleRecord,
+    ProjectRecord,
+    ProjectSourceRecord,
+)
 from harbor.workflow_summary_registry import get_workflow_summary
 
 RESULT_SUMMARY_MAX = 2000
+STALE_SOURCE_THRESHOLD_DAYS = 7
 
 
 def _serialize(payload: dict[str, Any]) -> str:
@@ -37,10 +42,63 @@ def _run_handbook_freshness_check(session: Session, project_id: str) -> str:
     return _serialize(counts.model_dump())
 
 
+def _run_stale_source_sweep(session: Session) -> str:
+    now = datetime.now(UTC)
+    threshold = now - timedelta(days=STALE_SOURCE_THRESHOLD_DAYS)
+    candidates = list(
+        session.execute(
+            select(
+                ProjectSourceRecord.project_id,
+                ProjectSourceRecord.created_at,
+            ).where(ProjectSourceRecord.review_status == "candidate")
+        ).all()
+    )
+    total_candidate_count = len(candidates)
+    stale_by_project: dict[str, int] = {}
+    oldest_age_days = 0
+    stale_count = 0
+    for project_id, created_at in candidates:
+        # SQLite strips tzinfo on read — treat naive timestamps as UTC.
+        created_utc = (
+            created_at if created_at.tzinfo else created_at.replace(tzinfo=UTC)
+        )
+        age_days = (now - created_utc).days
+        if created_utc < threshold:
+            stale_count += 1
+            stale_by_project[project_id] = stale_by_project.get(project_id, 0) + 1
+            if age_days > oldest_age_days:
+                oldest_age_days = age_days
+    return _serialize(
+        {
+            "threshold_days": STALE_SOURCE_THRESHOLD_DAYS,
+            "stale_count": stale_count,
+            "total_candidate_count": total_candidate_count,
+            "oldest_age_days": oldest_age_days,
+            "stale_by_project": stale_by_project,
+        }
+    )
+
+
 SCHEDULE_HANDLERS: dict[str, Callable[[Session, str], str]] = {
     "snapshot_workflow_summary": _run_snapshot_workflow_summary,
     "handbook_freshness_check": _run_handbook_freshness_check,
 }
+
+# Global handlers run once per tick (not per project). Their tasks are
+# recorded with project_id=None. Keeping per-project and global in separate
+# registries makes the fan-out semantics explicit at the call-site instead
+# of forcing every handler to case-split on an optional project_id.
+GLOBAL_SCHEDULE_HANDLERS: dict[str, Callable[[Session], str]] = {
+    "stale_source_sweep": _run_stale_source_sweep,
+}
+
+
+def is_known_task_kind(task_kind: str) -> bool:
+    return task_kind in SCHEDULE_HANDLERS or task_kind in GLOBAL_SCHEDULE_HANDLERS
+
+
+def all_known_task_kinds() -> list[str]:
+    return sorted({*SCHEDULE_HANDLERS.keys(), *GLOBAL_SCHEDULE_HANDLERS.keys()})
 
 
 class AutomationScheduleRead(BaseModel):
@@ -183,6 +241,29 @@ def execute_scheduled_handler(
     return task_id
 
 
+def execute_global_scheduled_handler(
+    session: Session,
+    task_kind: str,
+) -> str:
+    handler = GLOBAL_SCHEDULE_HANDLERS[task_kind]
+    task_id = start_automation_task_observer(
+        AutomationTaskCreate(
+            project_id=None,
+            task_kind=task_kind,
+            trigger_source="scheduled",
+        ),
+    )
+    try:
+        result_summary = handler(session)
+    except Exception as exc:
+        session.rollback()
+        fail_automation_task_observer(task_id, f"{type(exc).__name__}: {exc}")
+        raise
+    mark_automation_task_succeeded(session, task_id, result_summary=result_summary)
+    session.commit()
+    return task_id
+
+
 def scheduler_tick(session: Session) -> SchedulerTickResponse:
     now = datetime.now(UTC)
     runs: list[SchedulerTickRun] = []
@@ -211,7 +292,59 @@ def scheduler_tick(session: Session) -> SchedulerTickResponse:
             next_run_at = next_run_at.replace(tzinfo=UTC)
         if next_run_at is not None and next_run_at > now:
             continue
-        if schedule.task_kind not in SCHEDULE_HANDLERS:
+
+        if schedule.task_kind in GLOBAL_SCHEDULE_HANDLERS:
+            try:
+                task_id = execute_global_scheduled_handler(
+                    session, schedule.task_kind
+                )
+                runs.append(
+                    SchedulerTickRun(
+                        task_kind=schedule.task_kind,
+                        project_id="",
+                        status="succeeded",
+                        automation_task_id=task_id,
+                    )
+                )
+            except Exception as exc:
+                runs.append(
+                    SchedulerTickRun(
+                        task_kind=schedule.task_kind,
+                        project_id="",
+                        status="failed",
+                        automation_task_id=None,
+                        error=f"{type(exc).__name__}: {exc}",
+                    )
+                )
+        elif schedule.task_kind in SCHEDULE_HANDLERS:
+            for project_id in project_ids:
+                try:
+                    task_id = execute_scheduled_handler(
+                        session, project_id, schedule.task_kind
+                    )
+                    runs.append(
+                        SchedulerTickRun(
+                            task_kind=schedule.task_kind,
+                            project_id=project_id,
+                            status="succeeded",
+                            automation_task_id=task_id,
+                        )
+                    )
+                except Exception as exc:
+                    # execute_scheduled_handler already rolled back and
+                    # recorded the failure via the side-channel observer.
+                    # Keep iterating so one unhealthy project does not block
+                    # the rest of the tick.
+                    runs.append(
+                        SchedulerTickRun(
+                            task_kind=schedule.task_kind,
+                            project_id=project_id,
+                            status="failed",
+                            automation_task_id=None,
+                            error=f"{type(exc).__name__}: {exc}",
+                        )
+                    )
+        else:
             # Unknown handler key — mark as skipped so a later deploy can fix it.
             runs.append(
                 SchedulerTickRun(
@@ -223,33 +356,6 @@ def scheduler_tick(session: Session) -> SchedulerTickResponse:
                 )
             )
             continue
-
-        for project_id in project_ids:
-            try:
-                task_id = execute_scheduled_handler(
-                    session, project_id, schedule.task_kind
-                )
-                runs.append(
-                    SchedulerTickRun(
-                        task_kind=schedule.task_kind,
-                        project_id=project_id,
-                        status="succeeded",
-                        automation_task_id=task_id,
-                    )
-                )
-            except Exception as exc:
-                # execute_scheduled_handler already rolled back and recorded
-                # the failure via the side-channel observer. Keep iterating so
-                # one unhealthy project does not block the rest of the tick.
-                runs.append(
-                    SchedulerTickRun(
-                        task_kind=schedule.task_kind,
-                        project_id=project_id,
-                        status="failed",
-                        automation_task_id=None,
-                        error=f"{type(exc).__name__}: {exc}",
-                    )
-                )
 
         record = session.get(
             AutomationScheduleRecord, schedule.automation_schedule_id

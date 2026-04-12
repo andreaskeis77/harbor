@@ -196,3 +196,145 @@ def test_scheduler_tick_records_per_project_failures_and_continues(
     assert len(tasks_a) == 1
     assert tasks_a[0]["status"] == "failed"
     assert tasks_a[0]["trigger_source"] == "scheduled"
+
+
+def _attach_candidate_source(
+    client: TestClient, project_id: str, url: str
+) -> dict:
+    source = client.post(
+        "/api/v1/sources",
+        json={
+            "source_type": "web_page",
+            "title": "S",
+            "canonical_url": url,
+            "content_type": "text/html",
+            "trust_tier": "candidate",
+        },
+    ).json()
+    attached = client.post(
+        f"/api/v1/projects/{project_id}/sources",
+        json={
+            "source_id": source["source_id"],
+            "relevance": "high",
+            "review_status": "candidate",
+        },
+    ).json()
+    return attached
+
+
+def test_scheduler_put_accepts_global_handler_task_kind(client: TestClient) -> None:
+    response = client.put(
+        "/api/v1/scheduler/schedules/stale_source_sweep",
+        json={"interval_seconds": 3600, "enabled": True},
+    )
+    assert response.status_code == 200
+    assert response.json()["task_kind"] == "stale_source_sweep"
+
+
+def test_scheduler_tick_runs_global_handler_once_with_null_project(
+    client: TestClient,
+) -> None:
+    _create_project(client, "Proj A")
+    _create_project(client, "Proj B")
+
+    client.put(
+        "/api/v1/scheduler/schedules/stale_source_sweep",
+        json={"interval_seconds": 3600, "enabled": True},
+    )
+
+    response = client.post("/api/v1/scheduler/tick")
+    assert response.status_code == 200
+    runs = response.json()["runs"]
+    # Global handler runs ONCE per tick regardless of project count.
+    assert len(runs) == 1, runs
+    assert runs[0]["task_kind"] == "stale_source_sweep"
+    assert runs[0]["project_id"] == ""
+    assert runs[0]["status"] == "succeeded"
+    assert runs[0]["automation_task_id"] is not None
+
+
+def test_scheduler_tick_global_and_per_project_coexist(client: TestClient) -> None:
+    project_a = _create_project(client, "Proj A")
+    project_b = _create_project(client, "Proj B")
+
+    client.put(
+        "/api/v1/scheduler/schedules/stale_source_sweep",
+        json={"interval_seconds": 3600, "enabled": True},
+    )
+    client.put(
+        "/api/v1/scheduler/schedules/snapshot_workflow_summary",
+        json={"interval_seconds": 3600, "enabled": True},
+    )
+
+    response = client.post("/api/v1/scheduler/tick")
+    runs = response.json()["runs"]
+    # 1 global + 2 projects * 1 per-project handler = 3 runs
+    assert len(runs) == 3, runs
+
+    kinds_seen = {r["task_kind"] for r in runs}
+    assert kinds_seen == {"stale_source_sweep", "snapshot_workflow_summary"}
+
+    global_runs = [r for r in runs if r["task_kind"] == "stale_source_sweep"]
+    assert len(global_runs) == 1
+    assert global_runs[0]["project_id"] == ""
+
+    per_project_runs = [
+        r for r in runs if r["task_kind"] == "snapshot_workflow_summary"
+    ]
+    assert {r["project_id"] for r in per_project_runs} == {
+        project_a["project_id"],
+        project_b["project_id"],
+    }
+
+
+def test_stale_source_sweep_handler_summarizes_candidate_ages(
+    client: TestClient,
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import select as sa_select
+
+    from harbor.config import get_settings
+    from harbor.persistence.models import ProjectSourceRecord
+    from harbor.persistence.session import build_engine
+    from harbor.scheduler import _run_stale_source_sweep
+
+    project_a = _create_project(client, "Stale A")
+    project_b = _create_project(client, "Stale B")
+
+    # Two candidate sources in project A, one in project B.
+    _attach_candidate_source(client, project_a["project_id"], "https://example.com/a1")
+    _attach_candidate_source(client, project_a["project_id"], "https://example.com/a2")
+    _attach_candidate_source(client, project_b["project_id"], "https://example.com/b1")
+
+    # Backdate the two project-A records to older than the 7-day threshold.
+    engine = build_engine(get_settings())
+    assert engine is not None
+    from sqlalchemy.orm import Session as OrmSession
+
+    with OrmSession(engine) as session:
+        records = list(
+            session.execute(
+                sa_select(ProjectSourceRecord).where(
+                    ProjectSourceRecord.project_id == project_a["project_id"],
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(records) == 2
+        old_time = datetime.now(UTC) - timedelta(days=30)
+        for r in records:
+            r.created_at = old_time
+        session.commit()
+
+        result_json = _run_stale_source_sweep(session)
+
+    import json as _json
+
+    summary = _json.loads(result_json)
+    assert summary["threshold_days"] == 7
+    assert summary["total_candidate_count"] == 3
+    assert summary["stale_count"] == 2
+    assert summary["oldest_age_days"] >= 29
+    assert summary["stale_by_project"] == {project_a["project_id"]: 2}

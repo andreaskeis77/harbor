@@ -8,12 +8,13 @@ from sqlalchemy.orm import Session
 from harbor.exceptions import InvalidPayloadError, NotFoundError
 from harbor.persistence.session import get_db_session
 from harbor.scheduler import (
-    SCHEDULE_HANDLERS,
     AutomationScheduleListResponse,
     AutomationSchedulePatch,
     AutomationScheduleRead,
     AutomationScheduleWrite,
     SchedulerTickResponse,
+    all_known_task_kinds,
+    is_known_task_kind,
     list_schedules,
     patch_schedule,
     scheduler_tick,
@@ -42,8 +43,8 @@ def upsert_schedule_endpoint(
     payload: AutomationScheduleWrite,
     session: DbSession,
 ) -> AutomationScheduleRead:
-    if task_kind not in SCHEDULE_HANDLERS:
-        allowed = ", ".join(sorted(SCHEDULE_HANDLERS))
+    if not is_known_task_kind(task_kind):
+        allowed = ", ".join(all_known_task_kinds())
         raise InvalidPayloadError(
             "AutomationSchedule",
             f"task_kind must be one of: {allowed}",

@@ -426,8 +426,12 @@ def test_operator_scheduler_page_renders(client: TestClient) -> None:
     assert "data-scheduler-tick-button" in response.text
     assert "data-scheduler-registered-handlers" in response.text
     assert 'data-scheduler-default-interval="3600"' in response.text
-    # Both registered handlers must appear as rows with control markers.
-    for task_kind in ("snapshot_workflow_summary", "handbook_freshness_check"):
+    # All registered handlers (per-project + global) must appear as rows.
+    for task_kind in (
+        "snapshot_workflow_summary",
+        "handbook_freshness_check",
+        "stale_source_sweep",
+    ):
         assert f'data-scheduler-row="{task_kind}"' in response.text
         assert f'data-scheduler-enabled-toggle="{task_kind}"' in response.text
         assert f'data-scheduler-interval-input="{task_kind}"' in response.text
