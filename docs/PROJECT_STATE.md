@@ -59,6 +59,7 @@ Next: planning — deeper UX consolidation (C.3/C.4) or third call-site / automa
 - T6.0B side-channel observer records rolled-back failures
 - T6.1 `propose-source` instrumented through the automation task observer
 - C.3 unified toast/status primitive (replaces 5 scattered inline mounts)
+- C.4 cross-project pending-actions queue (API + operator page)
 
 ## Current runtime posture
 
@@ -102,6 +103,7 @@ Harbor now has:
 - **172 tests, 96% coverage** (T6.0B — previous session added 37 tests)
 - **175 tests, 96% coverage** (T6.1 — observer pattern validated on second call-site)
 - **177 tests, 96% coverage** (C.3 — unified toast/status primitive)
+- **183 tests, 96% coverage** (C.4 — cross-project pending-actions queue)
 - **12 Alembic migrations** (automation_task_registry added in T6.0A)
 - **12 ORM models** (AutomationTaskRecord added in T6.0A)
 - **51 API endpoints** (+2 read-only automation task endpoints)
@@ -139,6 +141,8 @@ Harbor now has:
 - `/api/v1/openai/projects/{project_id}/draft-handbook`
 - `/api/v1/projects/{project_id}/automation-tasks`
 - `/api/v1/automation-tasks/{automation_task_id}`
+- `/api/v1/pending-actions`
+- `/operator/pending-actions`
 
 ## Validation rule
 

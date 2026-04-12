@@ -114,6 +114,7 @@ def _projects_page() -> HTMLResponse:
       >
         Reload projects
       </button>
+      <a href="/operator/pending-actions">Pending actions</a>
       <a href="/chat">Chat</a>
       <a href="/healthz">Health</a>
       <a href="/runtime">Runtime</a>
@@ -1017,6 +1018,64 @@ def _chat_page() -> HTMLResponse:
     )
 
 
+def _pending_actions_page() -> HTMLResponse:
+    body = """
+<div class="page" id="operator-shell" data-operator-shell="pending-actions">
+  <header class="page-header">
+    <div>
+      <h1>Pending Actions</h1>
+      <p class="page-subtitle">
+        Cross-project view of open review-queue items. Click a row to jump
+        into the owning project.
+      </p>
+    </div>
+    <div class="actions">
+      <a href="/operator/projects">Projects</a>
+      <button
+        type="button"
+        class="action-button secondary"
+        id="pending-actions-reload-button"
+        data-action="reload-pending-actions"
+      >
+        Reload
+      </button>
+    </div>
+  </header>
+
+  <section class="section-card" data-section-key="pending-actions-list">
+    <h2>Open review-queue items</h2>
+    <p class="action-note" data-pending-actions-note>
+      Items with status <code class="inline">open</code>, most recent first.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Project</th>
+            <th>Title</th>
+            <th>Kind</th>
+            <th>Priority</th>
+            <th>Created</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody id="pending-actions-table-body" data-pending-actions="open-items">
+          <tr>
+            <td colspan="6" class="empty">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+"""
+    return _render_document(
+        title="Harbor Operator - Pending Actions",
+        body=body,
+        bootstrap_json=_bootstrap_payload("pending-actions"),
+    )
+
+
 @router.get("/chat", include_in_schema=False)
 def chat_page() -> HTMLResponse:
     return _chat_page()
@@ -1030,6 +1089,11 @@ def operator_root() -> RedirectResponse:
 @router.get("/operator/projects", include_in_schema=False)
 def operator_projects_page() -> HTMLResponse:
     return _projects_page()
+
+
+@router.get("/operator/pending-actions", include_in_schema=False)
+def operator_pending_actions_page() -> HTMLResponse:
+    return _pending_actions_page()
 
 
 @router.get("/operator/projects/{project_id}", include_in_schema=False)
