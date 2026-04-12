@@ -49,12 +49,22 @@ def create_review_queue_item_endpoint(
 def list_review_queue_items_endpoint(
     project_id: str,
     session: DbSession,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> ReviewQueueListResponse:
-    items = [
-        ReviewQueueItemRead.from_record(record)
-        for record in list_review_queue_items(session, project_id)
-    ]
-    return ReviewQueueListResponse(items=items)
+    from harbor.pagination import resolve_pagination
+
+    params = resolve_pagination(limit, offset)
+    records, total = list_review_queue_items(
+        session, project_id, limit=params.limit, offset=params.offset
+    )
+    items = [ReviewQueueItemRead.from_record(r) for r in records]
+    return ReviewQueueListResponse(
+        items=items,
+        total=total,
+        limit=params.limit,
+        offset=params.offset,
+    )
 
 
 @router.get(

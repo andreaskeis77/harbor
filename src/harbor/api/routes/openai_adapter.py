@@ -151,7 +151,14 @@ def openai_project_chat_turns(
     project_id: str,
     chat_session_id: str,
     session: DbSession,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> dict[str, object]:
+    from harbor.openai_chat_session_registry import (
+        list_openai_project_chat_turns_paginated,
+    )
+    from harbor.pagination import resolve_pagination
+
     project_record = get_project(session, project_id)
     if project_record is None:
         raise NotFoundError("Project", project_id)
@@ -162,16 +169,24 @@ def openai_project_chat_turns(
         chat_session_id=chat_session_id,
         input_text="session lookup",
     )
-
+    params = resolve_pagination(limit, offset)
+    records, total = list_openai_project_chat_turns_paginated(
+        session,
+        project_id,
+        session_record.openai_project_chat_session_id,
+        limit=params.limit,
+        offset=params.offset,
+    )
     items = [
-        OpenAIProjectChatTurnRead.from_record(record).model_dump(mode="json")
-        for record in list_openai_project_chat_turns(
-            session,
-            project_id,
-            session_record.openai_project_chat_session_id,
-        )
+        OpenAIProjectChatTurnRead.from_record(r).model_dump(mode="json")
+        for r in records
     ]
-    return OpenAIProjectChatTurnListResponse(items=items).model_dump(mode="json")
+    return OpenAIProjectChatTurnListResponse(
+        items=items,
+        total=total,
+        limit=params.limit,
+        offset=params.offset,
+    ).model_dump(mode="json")
 
 
 @router.post("/projects/{project_id}/dry-run")

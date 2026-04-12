@@ -128,7 +128,8 @@ def test_list_orders_by_created_at_desc(session: Session, project: ProjectRecord
             trigger_source="webhook",
         ),
     )
-    items = list_automation_tasks_for_project(session, project.project_id)
+    items, total = list_automation_tasks_for_project(session, project.project_id)
+    assert total == 2
     ids = [item.automation_task_id for item in items]
     assert first.automation_task_id in ids
     assert second.automation_task_id in ids

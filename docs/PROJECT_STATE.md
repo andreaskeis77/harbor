@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-T7.3 — optional in-process scheduler tick loop landed (feature-flagged `HARBOR_SCHEDULER_EMBEDDED`, default off, lifespan-managed)
-**Phase P1 complete** (6/6 bolts: T6.5, C.7, T7.0, T7.1, T7.2, T7.3). Next: select Phase P2 bolt.
+U1 — server-side pagination primitive landed (`limit`/`offset`/`total` on automation-tasks, review-queue-items, search-result-candidates, chat-turns)
+Phase P2 in progress. Next: U2 full-text search
 
 ## Confirmed completed
 
@@ -71,6 +71,7 @@ T7.3 — optional in-process scheduler tick loop landed (feature-flagged `HARBOR
 - T7.1 `fetch_source_content` per-project scheduler handler (httpx-based, 10s timeout + 2MiB cap, 5 web_page sources/tick, never-fetched-first priority, writes SourceSnapshotRecord even on error)
 - T7.2 `source_content_staleness_check` per-project driver (non-mutating survey: total_web_page_sources / never_fetched / stale / fresh / oldest_stale_age_days against 14-day threshold)
 - T7.3 optional in-process scheduler tick loop (`EmbeddedSchedulerLoop`, off by default, feature-flag `HARBOR_SCHEDULER_EMBEDDED` + interval config; lifespan-managed start/stop)
+- U1 server-side pagination primitive (`harbor.pagination` with DEFAULT_LIMIT=50/MAX_LIMIT=200; `limit`/`offset`/`total` on automation-tasks, review-queue-items, search-result-candidates, chat-turns, scheduler/recent-tasks)
 
 ## Current runtime posture
 

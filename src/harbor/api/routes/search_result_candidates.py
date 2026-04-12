@@ -59,17 +59,27 @@ def list_search_result_candidates_endpoint(
     search_campaign_id: str,
     search_run_id: str,
     session: DbSession,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> SearchResultCandidateListResponse:
-    items = [
-        SearchResultCandidateRead.from_record(record)
-        for record in list_search_result_candidates(
-            session,
-            project_id,
-            search_campaign_id,
-            search_run_id,
-        )
-    ]
-    return SearchResultCandidateListResponse(items=items)
+    from harbor.pagination import resolve_pagination
+
+    params = resolve_pagination(limit, offset)
+    records, total = list_search_result_candidates(
+        session,
+        project_id,
+        search_campaign_id,
+        search_run_id,
+        limit=params.limit,
+        offset=params.offset,
+    )
+    items = [SearchResultCandidateRead.from_record(r) for r in records]
+    return SearchResultCandidateListResponse(
+        items=items,
+        total=total,
+        limit=params.limit,
+        offset=params.offset,
+    )
 
 
 @router.get(

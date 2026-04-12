@@ -20,7 +20,7 @@ def test_list_automation_tasks_empty_for_new_project(client: TestClient) -> None
     project = _create_project(client)
     response = client.get(f"/api/v1/projects/{project['project_id']}/automation-tasks")
     assert response.status_code == 200
-    assert response.json() == {"items": []}
+    assert response.json()["items"] == []
 
 
 def test_list_automation_tasks_unknown_project_returns_404(client: TestClient) -> None:
