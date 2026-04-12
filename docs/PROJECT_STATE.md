@@ -1,8 +1,7 @@
 # Project State
 
 ## Current phase
-Phase P3 in progress — **content activation**: T7 fetched content begins flowing into operator surfaces and chat grounding.
-Phase P3 complete — content activation landed end to end. Next phase TBD.
+Phase P4 complete — **refresh & error recovery**: operators can trigger manual fetches, inspect snapshot history inline, and read staleness + fetch-error signals on the overview.
 
 ## Confirmed completed
 
@@ -81,6 +80,10 @@ Phase P3 complete — content activation landed end to end. Next phase TBD.
 - P3.2 snapshot visibility in operator UI (new "Latest snapshot" column on project-sources table with inline lazy-loading `<details>` that fetches `.../snapshots/latest` and renders fetched_at, http_status, content_hash preview, and truncated extracted_text)
 - P3.3 snapshot content in chat grounding (chat-turn rendered_input_text now embeds an up-to-600-char excerpt of the latest successful snapshot per accepted project source; failed fetches are skipped; `project_source_snapshot_count_included`/`_truncated` reported in request_metadata)
 - P3.4 staleness signal in overview (`overview.totals.project_sources_stale_count` + per-project `stale_snapshot_count` in projects_summary; 14-day threshold; never-fetched web_page sources count as stale; new "Stale snapshots" column on /operator/overview)
+- P4.1 manual fetch-now endpoint (`POST /projects/{id}/project-sources/{ps_id}/fetch-now` synchronously fetches the URL via the same httpx helper as the scheduler and writes a SourceSnapshotRecord including error cases; 422 for non-web_page or URL-less sources)
+- P4.2 snapshot history in operator UI (inline details on project-sources rows now renders up to 10 most recent snapshots via the list endpoint, newest emphasized)
+- P4.3 fetch-error signal in overview (`overview.totals.project_sources_fetch_error_count` + per-project `fetch_error_count`; counts project-sources whose latest snapshot has non-null `fetch_error`; new "Fetch errors" column on /operator/overview)
+- P4.4 Fetch-now operator button (project-sources row action calls P4.1 endpoint and reloads project detail; only rendered for web_page sources with a canonical URL)
 
 ## Current runtime posture
 

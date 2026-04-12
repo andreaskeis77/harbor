@@ -904,6 +904,13 @@ const renderProjectSourceActions = (item) => {
         `Reset</button>`,
     );
   }
+  if (item.source && item.source.source_type === "web_page" && item.source.canonical_url) {
+    buttons.push(
+      `<button type="button" class="source-review-action"` +
+        ` data-action="source-fetch-now"` +
+        ` data-project-source-id="${id}">Fetch now</button>`,
+    );
+  }
   return buttons.join(" ");
 };
 
@@ -1571,6 +1578,17 @@ document.addEventListener("click", async (event) => {
       button,
       () => postJson(url, { note: "Accepted from operator web shell." }),
       "Review queue item promoted to source.",
+    );
+    return;
+  }
+
+  if (button.dataset.action === "source-fetch-now") {
+    const projectSourceId = encodeURIComponent(button.dataset.projectSourceId);
+    const url = `${projectBase}/project-sources/${projectSourceId}/fetch-now`;
+    await runOperatorAction(
+      button,
+      () => postJson(url, {}),
+      "Snapshot fetched.",
     );
     return;
   }
