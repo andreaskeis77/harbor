@@ -188,19 +188,21 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-C.3/C.4/T6.2 complete. Observer pattern now validated on three call-sites
-(`draft-handbook`, `propose-source`, `snapshot_workflow_summary`), the last
-of which is the first non-mutating, health-observation-style task — the
-shape that a periodic scheduler will eventually trigger.
+Phases P3 (content activation) and P4 (refresh & error recovery) complete.
+Snapshot content flows into chat grounding, staleness + fetch-error signals
+are on the overview, operators can trigger manual fetches and inspect
+snapshot history inline.
 
 Candidate next bolts:
-- **T6.3** — second non-mutating automation handler (e.g. periodic
-  handbook-freshness check) so the dispatcher abstraction is justified
-  by a second real need, not speculation.
-- **T6.4** — minimal scheduler primitive once at least two handlers exist.
-- **C.5** — automation task filter/search controls in the C.2 panel.
+- **P5 cite-back** — attach `snapshot_id` to chat attributions so citations
+  link to the exact snapshot content; closes the P3.3 → operator-UI loop.
+- **P5-alt** — cross-project source dedup via `content_hash`.
+- **UX polish** — bulk fetch-now, fetch-error inline details on overview,
+  snapshot-diff column.
+- **P6** — automated search execution (still explicitly out-of-scope until
+  the operator feedback loop on snapshots is closed).
 
-See `docs/_handoff/HANDOFF_2026-04-12_T6_0B_to_next.md` for the prior handoff.
+See `docs/_handoff/HANDOFF_2026-04-12_P4_to_next.md` for the current handoff.
 
 ## Intentionally not yet in scope
 
