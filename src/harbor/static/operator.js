@@ -2113,6 +2113,7 @@ const renderOverviewTotals = (totals) => {
     ["Automation tasks", totals.automation_tasks],
     ["Chat turns", totals.chat_turns],
     ["Stale snapshots", totals.project_sources_stale_count],
+    ["Fetch errors", totals.project_sources_fetch_error_count],
   ];
   grid.innerHTML = cards
     .map(
@@ -2129,7 +2130,7 @@ const renderOverviewProjects = (rows) => {
   const body = byId("overview-projects-table-body");
   if (!body) return;
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="6" class="empty">No projects yet.</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" class="empty">No projects yet.</td></tr>';
     return;
   }
   body.innerHTML = rows
@@ -2146,6 +2147,7 @@ const renderOverviewProjects = (rows) => {
               : "v" + r.latest_handbook_version_number,
           )}</td>
           <td>${safeText(r.stale_snapshot_count)}</td>
+          <td>${safeText(r.fetch_error_count)}</td>
         </tr>`,
     )
     .join("");

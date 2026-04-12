@@ -32,6 +32,7 @@ class OverviewTotals(BaseModel):
     chat_turns: int
     open_review_queue_items: int
     project_sources_stale_count: int
+    project_sources_fetch_error_count: int
 
 
 class OverviewRecentTask(BaseModel):
@@ -52,6 +53,7 @@ class OverviewProjectSummary(BaseModel):
     open_review_count: int
     latest_handbook_version_number: int | None
     stale_snapshot_count: int
+    fetch_error_count: int
 
 
 class OverviewResponse(BaseModel):
@@ -94,6 +96,37 @@ def _stale_project_sources_subquery(threshold: datetime):
     )
 
 
+def _fetch_error_project_sources_subquery():
+    latest_fetched = (
+        select(
+            SourceSnapshotRecord.project_source_id.label("psid"),
+            func.max(SourceSnapshotRecord.fetched_at).label("max_fetched"),
+        )
+        .group_by(SourceSnapshotRecord.project_source_id)
+        .subquery()
+    )
+    return (
+        select(
+            ProjectSourceRecord.project_id.label("pid"),
+            ProjectSourceRecord.project_source_id.label("psid"),
+        )
+        .join(
+            latest_fetched,
+            ProjectSourceRecord.project_source_id == latest_fetched.c.psid,
+        )
+        .join(
+            SourceSnapshotRecord,
+            (
+                SourceSnapshotRecord.project_source_id
+                == ProjectSourceRecord.project_source_id
+            )
+            & (SourceSnapshotRecord.fetched_at == latest_fetched.c.max_fetched),
+        )
+        .where(SourceSnapshotRecord.fetch_error.is_not(None))
+        .subquery()
+    )
+
+
 def build_overview(session: Session) -> OverviewResponse:
     open_review_count = int(
         session.execute(
@@ -110,6 +143,12 @@ def build_overview(session: Session) -> OverviewResponse:
     total_stale = int(
         session.execute(select(func.count()).select_from(stale_subq)).scalar_one()
     )
+    fetch_error_subq = _fetch_error_project_sources_subquery()
+    total_fetch_errors = int(
+        session.execute(
+            select(func.count()).select_from(fetch_error_subq)
+        ).scalar_one()
+    )
 
     totals = OverviewTotals(
         projects=_count(session, ProjectRecord),
@@ -120,6 +159,7 @@ def build_overview(session: Session) -> OverviewResponse:
         chat_turns=_count(session, OpenAIProjectChatTurnRecord),
         open_review_queue_items=open_review_count,
         project_sources_stale_count=total_stale,
+        project_sources_fetch_error_count=total_fetch_errors,
     )
 
     recent = (
@@ -159,6 +199,7 @@ def build_overview(session: Session) -> OverviewResponse:
     open_review_counts: dict[str, int] = {}
     latest_handbook_version: dict[str, int] = {}
     stale_snapshot_counts: dict[str, int] = {}
+    fetch_error_counts: dict[str, int] = {}
 
     if project_ids:
         for pid, cnt in session.execute(
@@ -201,6 +242,13 @@ def build_overview(session: Session) -> OverviewResponse:
         ).all():
             stale_snapshot_counts[pid] = int(cnt)
 
+        for pid, cnt in session.execute(
+            select(fetch_error_subq.c.pid, func.count(fetch_error_subq.c.psid))
+            .where(fetch_error_subq.c.pid.in_(project_ids))
+            .group_by(fetch_error_subq.c.pid)
+        ).all():
+            fetch_error_counts[pid] = int(cnt)
+
     projects_summary = [
         OverviewProjectSummary(
             project_id=p.project_id,
@@ -210,6 +258,7 @@ def build_overview(session: Session) -> OverviewResponse:
             open_review_count=open_review_counts.get(p.project_id, 0),
             latest_handbook_version_number=latest_handbook_version.get(p.project_id),
             stale_snapshot_count=stale_snapshot_counts.get(p.project_id, 0),
+            fetch_error_count=fetch_error_counts.get(p.project_id, 0),
         )
         for p in projects
     ]
