@@ -20,8 +20,10 @@ def test_project_detail_project_sources_table_has_snapshot_column(
     assert 'colspan="8"' in html
 
 
-def test_operator_js_has_snapshot_loader(client: TestClient) -> None:
+def test_operator_js_has_snapshot_history_loader(client: TestClient) -> None:
     js = client.get("/static/operator.js").text
     assert "loadProjectSourceSnapshot" in js
     assert "project-source-snapshot" in js
-    assert "/snapshots/latest" in js
+    # P4.2: history loader fetches the list endpoint (not just /latest)
+    assert "renderSnapshotEntry" in js
+    assert "Snapshot history" in js

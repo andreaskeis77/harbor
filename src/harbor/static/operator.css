@@ -682,6 +682,21 @@ table.sortable th.sortable-header.sort-desc::after {
   color: #b91c1c;
   margin: 4px 0;
 }
+.project-source-snapshot-entry {
+  border-top: 1px dashed #e2e8f0;
+  padding: 6px 0;
+}
+.project-source-snapshot-entry:first-of-type {
+  border-top: none;
+}
+.project-source-snapshot-entry.is-latest .project-source-snapshot-meta {
+  font-weight: 600;
+  color: #0f172a;
+}
+.project-source-snapshot-count {
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+}
 .project-source-snapshot-preview {
   background: #f8fafc;
   color: #0f172a;
