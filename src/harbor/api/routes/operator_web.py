@@ -1176,6 +1176,33 @@ def _scheduler_page() -> HTMLResponse:
     </div>
   </header>
 
+  <section class="section-card" data-section-key="scheduler-recent-runs">
+    <h2>Recent scheduled runs</h2>
+    <p class="action-note">
+      Last scheduled automation tasks, newest first. Shows up to 50 entries.
+      Global handler runs render with project <code class="inline">(global)</code>.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Started</th>
+            <th>Handler</th>
+            <th>Project</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="scheduler-recent-tasks-body" data-scheduler-recent-tasks>
+          <tr>
+            <td colspan="6" class="empty">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="section-card" data-section-key="scheduler-handlers">
     <h2>Handlers</h2>
     <p class="action-note">

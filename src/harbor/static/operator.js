@@ -1702,6 +1702,76 @@ const saveSchedulerRow = async (taskKind) => {
   }
 };
 
+const formatSchedulerDuration = (startedAt, completedAt) => {
+  if (!startedAt || !completedAt) {
+    return "—";
+  }
+  const start = new Date(startedAt).getTime();
+  const end = new Date(completedAt).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end < start) {
+    return "—";
+  }
+  const ms = end - start;
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  return `${(ms / 1000).toFixed(2)}s`;
+};
+
+const truncate = (value, max) => {
+  if (!value) {
+    return "";
+  }
+  if (value.length <= max) {
+    return value;
+  }
+  return `${value.slice(0, max - 1)}…`;
+};
+
+const loadSchedulerRecentTasks = async () => {
+  const body = byId("scheduler-recent-tasks-body");
+  if (!body) {
+    return;
+  }
+  try {
+    const payload = await fetchJson(`${apiBase}/scheduler/recent-tasks?limit=50`);
+    const items = payload.items || [];
+    if (items.length === 0) {
+      body.innerHTML = `<tr><td colspan="6" class="empty">No scheduled runs yet.</td></tr>`;
+      return;
+    }
+    body.innerHTML = items
+      .map((item) => {
+        const projectCell = item.project_id
+          ? escapeHtml(item.project_id)
+          : `<code class="inline">(global)</code>`;
+        const note = item.status === "failed"
+          ? escapeHtml(truncate(item.error_message || "", 120))
+          : escapeHtml(truncate(item.result_summary || "", 120));
+        return `
+      <tr>
+        <td>${formatDateTime(item.started_at || item.created_at)}</td>
+        <td><code class="inline">${escapeHtml(item.task_kind)}</code></td>
+        <td>${projectCell}</td>
+        <td>
+          <span class="badge automation-task-status-${escapeHtml(item.status)}">
+            ${escapeHtml(item.status)}
+          </span>
+        </td>
+        <td>${escapeHtml(
+          formatSchedulerDuration(item.started_at, item.completed_at),
+        )}</td>
+        <td>${note}</td>
+      </tr>`;
+      })
+      .join("");
+  } catch (error) {
+    body.innerHTML = `<tr><td colspan="6" class="empty">Error: ${escapeHtml(
+      error.message,
+    )}</td></tr>`;
+  }
+};
+
 const runSchedulerTick = async () => {
   const button = byId("scheduler-tick-button");
   if (button) {
@@ -1718,6 +1788,7 @@ const runSchedulerTick = async () => {
       { kind: failed > 0 ? "error" : "success" },
     );
     await loadSchedulerPage();
+    await loadSchedulerRecentTasks();
   } catch (error) {
     showToast(error.message, { kind: "error" });
   } finally {
@@ -1757,6 +1828,7 @@ const initSchedulerPage = () => {
     });
   });
   loadSchedulerPage();
+  loadSchedulerRecentTasks();
 };
 
 initSectionCollapsibles();

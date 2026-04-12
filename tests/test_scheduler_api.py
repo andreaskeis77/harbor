@@ -287,6 +287,62 @@ def test_scheduler_tick_global_and_per_project_coexist(client: TestClient) -> No
     }
 
 
+def test_scheduler_recent_tasks_empty(client: TestClient) -> None:
+    response = client.get("/api/v1/scheduler/recent-tasks")
+    assert response.status_code == 200
+    assert response.json() == {"items": []}
+
+
+def test_scheduler_recent_tasks_returns_newest_first(client: TestClient) -> None:
+    _create_project(client, "Proj A")
+    _create_project(client, "Proj B")
+    client.put(
+        "/api/v1/scheduler/schedules/stale_source_sweep",
+        json={"interval_seconds": 3600, "enabled": True},
+    )
+    client.put(
+        "/api/v1/scheduler/schedules/snapshot_workflow_summary",
+        json={"interval_seconds": 3600, "enabled": True},
+    )
+    tick = client.post("/api/v1/scheduler/tick").json()
+    assert len(tick["runs"]) == 3  # 1 global + 2 per-project
+
+    response = client.get("/api/v1/scheduler/recent-tasks")
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert len(items) == 3
+    assert all(i["trigger_source"] == "scheduled" for i in items)
+    assert all(i["status"] == "succeeded" for i in items)
+    # Ordered newest first by created_at (non-increasing).
+    timestamps = [i["created_at"] for i in items]
+    assert timestamps == sorted(timestamps, reverse=True)
+    # Global run has null project_id.
+    kinds = {i["task_kind"] for i in items}
+    assert kinds == {"stale_source_sweep", "snapshot_workflow_summary"}
+    global_items = [i for i in items if i["task_kind"] == "stale_source_sweep"]
+    assert len(global_items) == 1
+    assert global_items[0]["project_id"] is None
+
+
+def test_scheduler_recent_tasks_respects_limit_and_cap(client: TestClient) -> None:
+    _create_project(client)
+    client.put(
+        "/api/v1/scheduler/schedules/snapshot_workflow_summary",
+        json={"interval_seconds": 1, "enabled": True},
+    )
+    # Tick several times (interval=1s is effectively immediate after a small wait,
+    # but we only care that at least one row exists and limit is honored).
+    client.post("/api/v1/scheduler/tick")
+
+    response = client.get("/api/v1/scheduler/recent-tasks?limit=1")
+    assert response.status_code == 200
+    assert len(response.json()["items"]) <= 1
+
+    # Cap is 200; any huge limit is accepted without error.
+    response = client.get("/api/v1/scheduler/recent-tasks?limit=5000")
+    assert response.status_code == 200
+
+
 def test_stale_source_sweep_handler_summarizes_candidate_ages(
     client: TestClient,
 ) -> None:

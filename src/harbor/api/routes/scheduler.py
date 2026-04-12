@@ -5,6 +5,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from harbor.automation_task_registry import (
+    AutomationTaskListResponse,
+    AutomationTaskRead,
+    list_recent_scheduled_tasks,
+)
 from harbor.exceptions import InvalidPayloadError, NotFoundError
 from harbor.persistence.session import get_db_session
 from harbor.scheduler import (
@@ -71,3 +76,14 @@ def patch_schedule_endpoint(
 @router.post("/scheduler/tick", response_model=SchedulerTickResponse)
 def scheduler_tick_endpoint(session: DbSession) -> SchedulerTickResponse:
     return scheduler_tick(session)
+
+
+@router.get("/scheduler/recent-tasks", response_model=AutomationTaskListResponse)
+def list_recent_scheduled_tasks_endpoint(
+    session: DbSession,
+    limit: int = 50,
+) -> AutomationTaskListResponse:
+    records = list_recent_scheduled_tasks(session, limit=limit)
+    return AutomationTaskListResponse(
+        items=[AutomationTaskRead.from_record(r) for r in records],
+    )

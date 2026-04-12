@@ -188,6 +188,27 @@ def list_automation_tasks_for_project(
     return list(session.execute(stmt).scalars().all())
 
 
+RECENT_SCHEDULED_TASKS_LIMIT_CAP = 200
+RECENT_SCHEDULED_TASKS_LIMIT_DEFAULT = 50
+
+
+def list_recent_scheduled_tasks(
+    session: Session,
+    limit: int = RECENT_SCHEDULED_TASKS_LIMIT_DEFAULT,
+) -> list[AutomationTaskRecord]:
+    capped = max(1, min(limit, RECENT_SCHEDULED_TASKS_LIMIT_CAP))
+    stmt = (
+        select(AutomationTaskRecord)
+        .where(AutomationTaskRecord.trigger_source == "scheduled")
+        .order_by(
+            AutomationTaskRecord.created_at.desc(),
+            AutomationTaskRecord.automation_task_id.desc(),
+        )
+        .limit(capped)
+    )
+    return list(session.execute(stmt).scalars().all())
+
+
 def _resolve_factory(
     session_factory: sessionmaker[Session] | None,
 ) -> sessionmaker[Session]:
