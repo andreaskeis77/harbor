@@ -69,6 +69,19 @@ def test_operator_project_detail_contains_action_markers(client: TestClient) -> 
     assert "/promote-to-source" in response.text
 
 
+def test_operator_project_detail_contains_handbook_versions_markers(
+    client: TestClient,
+) -> None:
+    project = create_project(client)
+
+    response = client.get(f"/operator/projects/{project['project_id']}")
+    assert response.status_code == 200
+    assert 'data-handbook-versions="project-detail"' in response.text
+    assert 'id="handbook-versions-table-body"' in response.text
+    assert "Handbook Versions" in response.text
+    assert "/handbook/versions" in response.text
+
+
 def test_operator_project_detail_contains_source_review_markers(
     client: TestClient,
 ) -> None:

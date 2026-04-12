@@ -862,6 +862,7 @@ const setProjectDetailLoadingState = () => {
   setTableBodyMessage("candidates-table-body", 7, "Loading...");
   setTableBodyMessage("review-queue-table-body", 7, "Loading...");
   setTableBodyMessage("project-sources-table-body", 7, "Loading...");
+  setTableBodyMessage("handbook-versions-table-body", 4, "Loading...");
   setTableBodyMessage("lineage-table-body", 6, "Loading...");
   setTableBodyMessage("openai-dry-run-history-body", 6, "Loading...");
   currentCampaigns = [];
@@ -878,6 +879,7 @@ const setProjectDetailErrorState = () => {
   setTableBodyMessage("candidates-table-body", 7, "Load failed.");
   setTableBodyMessage("review-queue-table-body", 7, "Load failed.");
   setTableBodyMessage("project-sources-table-body", 7, "Load failed.");
+  setTableBodyMessage("handbook-versions-table-body", 4, "Load failed.");
   setTableBodyMessage("lineage-table-body", 6, "Load failed.");
   setTableBodyMessage("openai-dry-run-history-body", 6, "Load failed.");
   currentCampaigns = [];
@@ -1407,6 +1409,34 @@ const renderProjectSources = (items) => {
     .join("");
 };
 
+const renderHandbookVersions = (items) => {
+  const body = byId("handbook-versions-table-body");
+  if (!body) {
+    return;
+  }
+  if (!items.length) {
+    body.innerHTML = emptyRow(4);
+    return;
+  }
+  body.innerHTML = items
+    .map(
+      (item) => `
+        <tr data-handbook-version-id="${encodeURIComponent(item.handbook_version_id)}">
+          <td>v${safeText(item.version_number)}</td>
+          <td>${formatTimestamp(item.created_at)}</td>
+          <td>${item.change_note ? safeText(item.change_note) : textFallback}</td>
+          <td>
+            <details class="handbook-version-details">
+              <summary>View markdown (${safeText(item.handbook_markdown.length)} chars)</summary>
+              <pre class="handbook-version-markdown">${safeText(item.handbook_markdown)}</pre>
+            </details>
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
+};
+
 const renderLineage = (items) => {
   const body = byId("lineage-table-body");
   if (!body) {
@@ -1504,6 +1534,7 @@ const loadProjectDetailPage = async () => {
     const campaignsPromise = fetchJson(`${projectBase}/search-campaigns`);
     const reviewQueuePromise = fetchJson(`${projectBase}/review-queue-items`);
     const projectSourcesPromise = fetchJson(`${projectBase}/sources`);
+    const handbookVersionsPromise = fetchJson(`${projectBase}/handbook/versions`);
     const dryRunLogsPromise = fetchJson(
       `${apiBase}/openai/projects/${encodeURIComponent(projectId)}/dry-run-logs`,
     );
@@ -1514,6 +1545,7 @@ const loadProjectDetailPage = async () => {
       campaignsPayload,
       reviewQueuePayload,
       projectSourcesPayload,
+      handbookVersionsPayload,
       dryRunLogsPayload,
     ] = await Promise.all([
       projectPromise,
@@ -1521,6 +1553,7 @@ const loadProjectDetailPage = async () => {
       campaignsPromise,
       reviewQueuePromise,
       projectSourcesPromise,
+      handbookVersionsPromise,
       dryRunLogsPromise,
     ]);
 
@@ -1537,6 +1570,7 @@ const loadProjectDetailPage = async () => {
     renderCampaigns(campaignsPayload.items);
     renderReviewQueue(reviewQueuePayload.items);
     renderProjectSources(projectSourcesPayload.items);
+    renderHandbookVersions(handbookVersionsPayload.items);
     renderLineage(summary.lineage_items);
     renderOpenAIDryRunHistory(dryRunLogsPayload.items);
 
@@ -3730,6 +3764,27 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
         <tbody id="project-sources-table-body" data-source-review-actions="true">
           <tr>
             <td colspan="7" class="empty">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section-card" data-handbook-versions="project-detail">
+    <h2>Handbook Versions</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Version</th>
+            <th>Created</th>
+            <th>Change note</th>
+            <th>Handbook markdown</th>
+          </tr>
+        </thead>
+        <tbody id="handbook-versions-table-body">
+          <tr>
+            <td colspan="4" class="empty">Loading...</td>
           </tr>
         </tbody>
       </table>
