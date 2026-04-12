@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-C.7 — scheduler tick-outcome surface landed (recent scheduled runs list on `/operator/scheduler`, auto-reloads after tick)
-Phase P1 in progress. Next: T7.0 source_snapshot model
+T7.0 — source snapshot model + migration landed (storage surface for T7.1 fetch handler)
+Phase P1 in progress. Next: T7.1 fetch_source_content handler
 
 ## Confirmed completed
 
@@ -67,6 +67,7 @@ Phase P1 in progress. Next: T7.0 source_snapshot model
 - C.6 operator scheduler page (`/operator/scheduler`: enable/interval/save/one-click tick)
 - T6.5 first project-less automation driver (`stale_source_sweep` via new `GLOBAL_SCHEDULE_HANDLERS` registry; runs once per tick with project_id=None)
 - C.7 scheduler tick-outcome surface (`GET /scheduler/recent-tasks` + "Recent scheduled runs" table on `/operator/scheduler`)
+- T7.0 source_snapshot model + migration + registry CRUD (storage for T7.1 fetch handler; FK to project_source_registry, fetched_at/http_status/content_hash/extracted_text/fetch_error)
 
 ## Current runtime posture
 

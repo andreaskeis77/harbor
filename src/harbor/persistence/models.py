@@ -549,3 +549,42 @@ class AutomationTaskRecord(Base):
         default=utcnow,
         onupdate=utcnow,
     )
+
+
+def default_source_snapshot_id() -> str:
+    return str(uuid.uuid4())
+
+
+class SourceSnapshotRecord(Base):
+    __tablename__ = "source_snapshot"
+
+    source_snapshot_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_source_snapshot_id,
+    )
+    project_source_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("project_source_registry.project_source_id"),
+        nullable=False,
+    )
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    http_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    extracted_text: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    fetch_error: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )
