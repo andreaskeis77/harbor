@@ -37,3 +37,4 @@ uv.lock
 
 # Alembic cache
 migrations/versions/__pycache__/
+.claude/

@@ -602,3 +602,33 @@ td {
     transform: translateY(-6px);
   }
 }
+table.sortable th.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 18px;
+}
+table.sortable th.sortable-header:hover {
+  background: #eef2ff;
+}
+table.sortable th.sortable-header::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.25;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid currentColor;
+}
+table.sortable th.sortable-header.sort-asc::after {
+  opacity: 0.9;
+  border-bottom: 5px solid currentColor;
+  border-top: none;
+}
+table.sortable th.sortable-header.sort-desc::after {
+  opacity: 0.9;
+  border-top: 5px solid currentColor;
+  border-bottom: none;
+}

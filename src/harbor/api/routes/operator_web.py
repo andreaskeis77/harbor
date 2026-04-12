@@ -162,15 +162,15 @@ def _projects_page() -> HTMLResponse:
       review queue, and project sources.
     </p>
     <div class="table-wrap">
-      <table>
+      <table class="sortable" id="projects-table">
         <thead>
           <tr>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Type</th>
-            <th>Blueprint</th>
-            <th>Updated</th>
-            <th>Description</th>
+            <th data-sort-type="text">Title</th>
+            <th data-sort-type="text">Status</th>
+            <th data-sort-type="text">Type</th>
+            <th data-sort-type="text">Blueprint</th>
+            <th data-sort-type="date">Updated</th>
+            <th data-sort-type="text">Description</th>
           </tr>
         </thead>
         <tbody id="projects-table-body">
@@ -289,15 +289,15 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
       </span>
     </div>
     <div class="table-wrap">
-      <table>
+      <table class="sortable" id="automation-tasks-table">
         <thead>
           <tr>
-            <th>Kind</th>
-            <th>Trigger</th>
-            <th>Status</th>
-            <th>Started</th>
-            <th>Completed</th>
-            <th>Result / Error</th>
+            <th data-sort-type="text">Kind</th>
+            <th data-sort-type="text">Trigger</th>
+            <th data-sort-type="text">Status</th>
+            <th data-sort-type="date">Started</th>
+            <th data-sort-type="date">Completed</th>
+            <th data-sort-disable="1">Result / Error</th>
           </tr>
         </thead>
         <tbody id="automation-tasks-table-body">
@@ -612,16 +612,16 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
   <section class="section-card" data-section-key="candidates">
     <h2>Result Candidates</h2>
     <div class="table-wrap">
-      <table>
+      <table class="sortable" id="candidates-table">
         <thead>
           <tr>
-            <th>Title</th>
-            <th>Disposition</th>
-            <th>Domain</th>
-            <th>Rank</th>
-            <th>Updated</th>
-            <th>Snippet</th>
-            <th>Action</th>
+            <th data-sort-type="text">Title</th>
+            <th data-sort-type="text">Disposition</th>
+            <th data-sort-type="text">Domain</th>
+            <th data-sort-type="number">Rank</th>
+            <th data-sort-type="date">Updated</th>
+            <th data-sort-disable="1">Snippet</th>
+            <th data-sort-disable="1">Action</th>
           </tr>
         </thead>
         <tbody id="candidates-table-body">
@@ -636,16 +636,16 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
   <section class="section-card" data-section-key="review-queue">
     <h2>Review Queue</h2>
     <div class="table-wrap">
-      <table>
+      <table class="sortable" id="review-queue-table">
         <thead>
           <tr>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Priority</th>
-            <th>Kind</th>
-            <th>Candidate ID</th>
-            <th>Updated</th>
-            <th>Action</th>
+            <th data-sort-type="text">Title</th>
+            <th data-sort-type="text">Status</th>
+            <th data-sort-type="text">Priority</th>
+            <th data-sort-type="text">Kind</th>
+            <th data-sort-type="text">Candidate ID</th>
+            <th data-sort-type="date">Updated</th>
+            <th data-sort-disable="1">Action</th>
           </tr>
         </thead>
         <tbody id="review-queue-table-body">
@@ -660,16 +660,16 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
   <section class="section-card" data-section-key="project-sources">
     <h2>Project Sources</h2>
     <div class="table-wrap">
-      <table>
+      <table class="sortable" id="project-sources-table">
         <thead>
           <tr>
-            <th>Title</th>
-            <th>Review</th>
-            <th>Relevance</th>
-            <th>Trust tier</th>
-            <th>Project source ID</th>
-            <th>Canonical URL</th>
-            <th>Actions</th>
+            <th data-sort-type="text">Title</th>
+            <th data-sort-type="text">Review</th>
+            <th data-sort-type="text">Relevance</th>
+            <th data-sort-type="text">Trust tier</th>
+            <th data-sort-type="text">Project source ID</th>
+            <th data-sort-type="text">Canonical URL</th>
+            <th data-sort-disable="1">Actions</th>
           </tr>
         </thead>
         <tbody id="project-sources-table-body" data-source-review-actions="true">

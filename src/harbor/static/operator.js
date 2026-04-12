@@ -1831,7 +1831,157 @@ const initSchedulerPage = () => {
   loadSchedulerRecentTasks();
 };
 
+// ---------------------------------------------------------------------------
+// Sortable tables (U3)
+//
+// Any <table class="sortable"> gets clickable <th> headers. State is
+// persisted per table-id under localStorage key
+// `harbor.sortable.<tableId>` as JSON {col, dir}. A MutationObserver on
+// the tbody re-applies the active sort after each render.
+// ---------------------------------------------------------------------------
+const SORTABLE_STORAGE_PREFIX = "harbor.sortable.";
+
+const readSortState = (tableId) => {
+  try {
+    const raw = localStorage.getItem(SORTABLE_STORAGE_PREFIX + tableId);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      parsed &&
+      typeof parsed.col === "number" &&
+      (parsed.dir === "asc" || parsed.dir === "desc")
+    ) {
+      return parsed;
+    }
+  } catch {
+    /* noop */
+  }
+  return null;
+};
+
+const writeSortState = (tableId, state) => {
+  try {
+    if (state === null) {
+      localStorage.removeItem(SORTABLE_STORAGE_PREFIX + tableId);
+    } else {
+      localStorage.setItem(
+        SORTABLE_STORAGE_PREFIX + tableId,
+        JSON.stringify(state),
+      );
+    }
+  } catch {
+    /* storage disabled */
+  }
+};
+
+const extractSortKey = (cell, type) => {
+  const raw =
+    cell && cell.dataset && cell.dataset.sortValue !== undefined
+      ? cell.dataset.sortValue
+      : (cell ? cell.textContent.trim() : "");
+  if (type === "number") {
+    const parsed = parseFloat(raw);
+    return Number.isNaN(parsed) ? -Infinity : parsed;
+  }
+  if (type === "date") {
+    const parsed = Date.parse(raw);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return raw.toLowerCase();
+};
+
+const _sortableReapplyGuard = new WeakSet();
+
+const applyTableSort = (table) => {
+  const tbody = table.tBodies[0];
+  if (!tbody) return;
+  const tableId = table.id;
+  if (!tableId) return;
+  const state = readSortState(tableId);
+  const headers = Array.from(table.tHead?.rows?.[0]?.cells || []);
+
+  headers.forEach((th, idx) => {
+    th.classList.remove("sort-asc", "sort-desc");
+    if (state && state.col === idx) {
+      th.classList.add(state.dir === "asc" ? "sort-asc" : "sort-desc");
+    }
+  });
+
+  if (!state) return;
+  const header = headers[state.col];
+  if (!header) return;
+  const type = header.dataset.sortType || "text";
+
+  const rows = Array.from(tbody.rows).filter(
+    (r) => !r.classList.contains("empty") && r.cells.length > state.col,
+  );
+  if (rows.length < 2) return;
+
+  rows.sort((a, b) => {
+    const av = extractSortKey(a.cells[state.col], type);
+    const bv = extractSortKey(b.cells[state.col], type);
+    if (av < bv) return state.dir === "asc" ? -1 : 1;
+    if (av > bv) return state.dir === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  _sortableReapplyGuard.add(tbody);
+  rows.forEach((r) => tbody.appendChild(r));
+  // Release guard in next microtask so our own DOM writes don't re-trigger.
+  Promise.resolve().then(() => _sortableReapplyGuard.delete(tbody));
+};
+
+const initSortableTable = (table) => {
+  if (table.dataset.sortableWired === "1") return;
+  table.dataset.sortableWired = "1";
+  const headers = Array.from(table.tHead?.rows?.[0]?.cells || []);
+  const tableId = table.id;
+  if (!tableId) return;
+
+  headers.forEach((th, idx) => {
+    if (th.dataset.sortDisable === "1") return;
+    th.classList.add("sortable-header");
+    th.setAttribute("role", "button");
+    th.setAttribute("tabindex", "0");
+    const click = () => {
+      const current = readSortState(tableId);
+      let next;
+      if (!current || current.col !== idx) {
+        next = { col: idx, dir: "asc" };
+      } else if (current.dir === "asc") {
+        next = { col: idx, dir: "desc" };
+      } else {
+        next = null;
+      }
+      writeSortState(tableId, next);
+      applyTableSort(table);
+    };
+    th.addEventListener("click", click);
+    th.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        click();
+      }
+    });
+  });
+
+  const tbody = table.tBodies[0];
+  if (tbody) {
+    const observer = new MutationObserver(() => {
+      if (_sortableReapplyGuard.has(tbody)) return;
+      applyTableSort(table);
+    });
+    observer.observe(tbody, { childList: true });
+  }
+  applyTableSort(table);
+};
+
+const initSortableTables = () => {
+  document.querySelectorAll("table.sortable").forEach(initSortableTable);
+};
+
 initSectionCollapsibles();
+initSortableTables();
 
 if (bootstrap.page === "projects") {
   loadProjectsPage();
