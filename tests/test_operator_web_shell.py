@@ -90,6 +90,21 @@ def test_operator_project_detail_contains_source_review_markers(
     assert 'data-source-review-actions="true"' in response.text
 
 
+def test_chat_static_script_is_served(client: TestClient) -> None:
+    response = client.get("/static/chat.js")
+    assert response.status_code == 200
+    body = response.text
+    assert "harbor-chat-bootstrap" in body
+    assert "loadChatProjects" in body
+    assert "renderChatRetryPanel" in body
+
+
+def test_chat_page_references_external_script(client: TestClient) -> None:
+    response = client.get("/chat")
+    assert response.status_code == 200
+    assert '/static/chat.js' in response.text
+
+
 def test_operator_static_script_is_served(client: TestClient) -> None:
     response = client.get("/static/operator.js")
     assert response.status_code == 200
