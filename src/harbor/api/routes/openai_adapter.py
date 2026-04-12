@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 
 from harbor.automation_task_registry import (
     AutomationTaskCreate,
-    create_automation_task,
-    mark_automation_task_running,
+    fail_automation_task_observer,
     mark_automation_task_succeeded,
+    start_automation_task_observer,
 )
 from harbor.config import get_settings
 from harbor.exceptions import NotFoundError
@@ -305,27 +305,31 @@ def openai_project_draft_handbook(
     if project_record is None:
         raise NotFoundError("Project", project_id)
 
-    task_record = create_automation_task(
-        session,
+    task_id = start_automation_task_observer(
         AutomationTaskCreate(
             project_id=project_id,
             task_kind="draft_handbook",
             trigger_source="manual",
         ),
     )
-    mark_automation_task_running(session, task_record.automation_task_id)
-
-    handbook_record = create_handbook_version(
-        session,
-        project_id,
-        HandbookVersionWrite(
-            handbook_markdown=request.handbook_markdown,
-            change_note=request.change_note or "Drafted from chat assistant output",
-        ),
-    )
+    try:
+        handbook_record = create_handbook_version(
+            session,
+            project_id,
+            HandbookVersionWrite(
+                handbook_markdown=request.handbook_markdown,
+                change_note=request.change_note or "Drafted from chat assistant output",
+            ),
+        )
+    except Exception as exc:
+        # Release the request session's write locks so the side-channel
+        # observer can record the failure even on SQLite (single-writer).
+        session.rollback()
+        fail_automation_task_observer(task_id, f"{type(exc).__name__}: {exc}")
+        raise
     mark_automation_task_succeeded(
         session,
-        task_record.automation_task_id,
+        task_id,
         result_summary=f"handbook_version_id={handbook_record.handbook_version_id}",
     )
     return HandbookVersionRead.from_record(handbook_record).model_dump(mode="json")
