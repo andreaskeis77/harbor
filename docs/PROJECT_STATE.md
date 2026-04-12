@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-T6.1 — `propose-source` instrumented through side-channel observer
-Next: planning — deeper UX consolidation (C.3/C.4) or third call-site / automation driver (T6.2)
+T6.2 — workflow-summary snapshot as first non-mutating automation driver
+Next: planning — second automation driver (stale-review sweep, periodic handbook-freshness checks) or scheduler primitive (T6.3+)
 
 ## Confirmed completed
 
@@ -60,6 +60,7 @@ Next: planning — deeper UX consolidation (C.3/C.4) or third call-site / automa
 - T6.1 `propose-source` instrumented through the automation task observer
 - C.3 unified toast/status primitive (replaces 5 scattered inline mounts)
 - C.4 cross-project pending-actions queue (API + operator page)
+- T6.2 workflow-summary snapshot automation driver (first non-mutating observer call-site)
 
 ## Current runtime posture
 
@@ -104,6 +105,7 @@ Harbor now has:
 - **175 tests, 96% coverage** (T6.1 — observer pattern validated on second call-site)
 - **177 tests, 96% coverage** (C.3 — unified toast/status primitive)
 - **183 tests, 96% coverage** (C.4 — cross-project pending-actions queue)
+- **186 tests, 96% coverage** (T6.2 — workflow-summary snapshot automation driver)
 - **12 Alembic migrations** (automation_task_registry added in T6.0A)
 - **12 ORM models** (AutomationTaskRecord added in T6.0A)
 - **51 API endpoints** (+2 read-only automation task endpoints)
@@ -142,6 +144,7 @@ Harbor now has:
 - `/api/v1/projects/{project_id}/automation-tasks`
 - `/api/v1/automation-tasks/{automation_task_id}`
 - `/api/v1/pending-actions`
+- `/api/v1/projects/{project_id}/snapshot-summary`
 - `/operator/pending-actions`
 
 ## Validation rule
@@ -161,10 +164,17 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-T6.1 complete — observer pattern now validated on two call-sites (`draft-handbook`, `propose-source`). Deciding between:
-- **C.3** — unified status/toast feedback, replacing the scattered `data-*-status` mounts
-- **C.4** — review queue as a central pending-actions view
-- **T6.2** — first real automation driver (e.g. scheduled search run) on top of the proven observer baseline
+C.3/C.4/T6.2 complete. Observer pattern now validated on three call-sites
+(`draft-handbook`, `propose-source`, `snapshot_workflow_summary`), the last
+of which is the first non-mutating, health-observation-style task — the
+shape that a periodic scheduler will eventually trigger.
+
+Candidate next bolts:
+- **T6.3** — second non-mutating automation handler (e.g. periodic
+  handbook-freshness check) so the dispatcher abstraction is justified
+  by a second real need, not speculation.
+- **T6.4** — minimal scheduler primitive once at least two handlers exist.
+- **C.5** — automation task filter/search controls in the C.2 panel.
 
 See `docs/_handoff/HANDOFF_2026-04-12_T6_0B_to_next.md` for the prior handoff.
 
