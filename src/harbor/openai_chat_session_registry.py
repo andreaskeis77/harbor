@@ -110,6 +110,9 @@ class OpenAIProjectChatSessionListResponse(BaseModel):
 
 class OpenAIProjectChatTurnListResponse(BaseModel):
     items: list[OpenAIProjectChatTurnRead]
+    total: int = 0
+    limit: int = 0
+    offset: int = 0
 
 
 def _optional_text(value: Any) -> str | None:
@@ -184,6 +187,35 @@ def list_openai_project_chat_turns(
         )
     )
     return list(session.execute(stmt).scalars().all())
+
+
+def list_openai_project_chat_turns_paginated(
+    session: Session,
+    project_id: str,
+    chat_session_id: str,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[list[OpenAIProjectChatTurnRecord], int]:
+    from harbor.pagination import apply_page, count_total, resolve_pagination
+
+    if get_project(session, project_id) is None:
+        raise NotFoundError("Project", project_id)
+
+    params = resolve_pagination(limit, offset)
+    base = (
+        select(OpenAIProjectChatTurnRecord)
+        .where(
+            OpenAIProjectChatTurnRecord.project_id == project_id,
+            OpenAIProjectChatTurnRecord.openai_project_chat_session_id == chat_session_id,
+        )
+        .order_by(
+            OpenAIProjectChatTurnRecord.turn_index.asc(),
+            OpenAIProjectChatTurnRecord.created_at.asc(),
+        )
+    )
+    total = count_total(session, base)
+    records = list(session.execute(apply_page(base, params)).scalars().all())
+    return records, total
 
 
 def list_openai_project_chat_sessions(

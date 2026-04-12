@@ -24,12 +24,22 @@ DbSession = Annotated[Session, Depends(get_db_session)]
 def list_project_automation_tasks_endpoint(
     project_id: str,
     session: DbSession,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> AutomationTaskListResponse:
-    items = [
-        AutomationTaskRead.from_record(record)
-        for record in list_automation_tasks_for_project(session, project_id)
-    ]
-    return AutomationTaskListResponse(items=items)
+    from harbor.pagination import resolve_pagination
+
+    params = resolve_pagination(limit, offset)
+    records, total = list_automation_tasks_for_project(
+        session, project_id, limit=params.limit, offset=params.offset
+    )
+    items = [AutomationTaskRead.from_record(r) for r in records]
+    return AutomationTaskListResponse(
+        items=items,
+        total=total,
+        limit=params.limit,
+        offset=params.offset,
+    )
 
 
 @router.get(

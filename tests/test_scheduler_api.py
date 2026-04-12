@@ -290,7 +290,9 @@ def test_scheduler_tick_global_and_per_project_coexist(client: TestClient) -> No
 def test_scheduler_recent_tasks_empty(client: TestClient) -> None:
     response = client.get("/api/v1/scheduler/recent-tasks")
     assert response.status_code == 200
-    assert response.json() == {"items": []}
+    payload = response.json()
+    assert payload["items"] == []
+    assert payload["total"] == 0
 
 
 def test_scheduler_recent_tasks_returns_newest_first(client: TestClient) -> None:

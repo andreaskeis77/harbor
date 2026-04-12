@@ -83,7 +83,10 @@ def list_recent_scheduled_tasks_endpoint(
     session: DbSession,
     limit: int = 50,
 ) -> AutomationTaskListResponse:
-    records = list_recent_scheduled_tasks(session, limit=limit)
+    records, total = list_recent_scheduled_tasks(session, limit=limit)
     return AutomationTaskListResponse(
         items=[AutomationTaskRead.from_record(r) for r in records],
+        total=total,
+        limit=len(records),
+        offset=0,
     )

@@ -73,6 +73,9 @@ class SearchResultCandidateRead(BaseModel):
 
 class SearchResultCandidateListResponse(BaseModel):
     items: list[SearchResultCandidateRead]
+    total: int = 0
+    limit: int = 0
+    offset: int = 0
 
 
 def _get_campaign(
@@ -141,7 +144,11 @@ def list_search_result_candidates(
     project_id: str,
     search_campaign_id: str,
     search_run_id: str,
-) -> list[SearchResultCandidateRecord]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[list[SearchResultCandidateRecord], int]:
+    from harbor.pagination import apply_page, count_total, resolve_pagination
+
     if get_project(session, project_id) is None:
         raise NotFoundError("Project", project_id)
 
@@ -151,7 +158,8 @@ def list_search_result_candidates(
     if _get_search_run(session, project_id, search_campaign_id, search_run_id) is None:
         raise NotFoundError("Search run", search_run_id)
 
-    stmt = (
+    params = resolve_pagination(limit, offset)
+    base = (
         select(SearchResultCandidateRecord)
         .where(SearchResultCandidateRecord.project_id == project_id)
         .where(SearchResultCandidateRecord.search_campaign_id == search_campaign_id)
@@ -162,7 +170,9 @@ def list_search_result_candidates(
             SearchResultCandidateRecord.search_result_candidate_id.desc(),
         )
     )
-    return list(session.execute(stmt).scalars().all())
+    total = count_total(session, base)
+    records = list(session.execute(apply_page(base, params)).scalars().all())
+    return records, total
 
 
 def get_search_result_candidate(

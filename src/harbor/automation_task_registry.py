@@ -63,6 +63,9 @@ class AutomationTaskRead(BaseModel):
 
 class AutomationTaskListResponse(BaseModel):
     items: list[AutomationTaskRead]
+    total: int = 0
+    limit: int = 0
+    offset: int = 0
 
 
 def create_automation_task(
@@ -173,11 +176,16 @@ def get_automation_task(
 def list_automation_tasks_for_project(
     session: Session,
     project_id: str,
-) -> list[AutomationTaskRecord]:
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[list[AutomationTaskRecord], int]:
+    from harbor.pagination import apply_page, count_total, resolve_pagination
+
     project = get_project(session, project_id)
     if project is None:
         raise NotFoundError("Project", project_id)
-    stmt = (
+    params = resolve_pagination(limit, offset)
+    base = (
         select(AutomationTaskRecord)
         .where(AutomationTaskRecord.project_id == project_id)
         .order_by(
@@ -185,7 +193,9 @@ def list_automation_tasks_for_project(
             AutomationTaskRecord.automation_task_id.desc(),
         )
     )
-    return list(session.execute(stmt).scalars().all())
+    total = count_total(session, base)
+    records = list(session.execute(apply_page(base, params)).scalars().all())
+    return records, total
 
 
 RECENT_SCHEDULED_TASKS_LIMIT_CAP = 200
@@ -195,18 +205,26 @@ RECENT_SCHEDULED_TASKS_LIMIT_DEFAULT = 50
 def list_recent_scheduled_tasks(
     session: Session,
     limit: int = RECENT_SCHEDULED_TASKS_LIMIT_DEFAULT,
-) -> list[AutomationTaskRecord]:
+) -> tuple[list[AutomationTaskRecord], int]:
     capped = max(1, min(limit, RECENT_SCHEDULED_TASKS_LIMIT_CAP))
-    stmt = (
+    base = (
         select(AutomationTaskRecord)
         .where(AutomationTaskRecord.trigger_source == "scheduled")
         .order_by(
             AutomationTaskRecord.created_at.desc(),
             AutomationTaskRecord.automation_task_id.desc(),
         )
-        .limit(capped)
     )
-    return list(session.execute(stmt).scalars().all())
+    from sqlalchemy import func as sa_func
+    from sqlalchemy import select as sa_select
+
+    total = int(
+        session.execute(
+            sa_select(sa_func.count()).select_from(base.subquery())
+        ).scalar_one()
+    )
+    records = list(session.execute(base.limit(capped)).scalars().all())
+    return records, total
 
 
 def _resolve_factory(

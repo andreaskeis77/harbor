@@ -90,6 +90,9 @@ class ReviewQueueItemRead(BaseModel):
 
 class ReviewQueueListResponse(BaseModel):
     items: list[ReviewQueueItemRead]
+    total: int = 0
+    limit: int = 0
+    offset: int = 0
 
 
 class PendingActionRead(BaseModel):
@@ -217,12 +220,19 @@ def list_pending_actions(
     return [(item, project) for item, project in session.execute(stmt).all()]
 
 
-def list_review_queue_items(session: Session, project_id: str) -> list[ReviewQueueItemRecord]:
+def list_review_queue_items(
+    session: Session,
+    project_id: str,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> tuple[list[ReviewQueueItemRecord], int]:
+    from harbor.pagination import apply_page, count_total, resolve_pagination
+
     project = get_project(session, project_id)
     if project is None:
         raise NotFoundError("Project", project_id)
-
-    stmt = (
+    params = resolve_pagination(limit, offset)
+    base = (
         select(ReviewQueueItemRecord)
         .where(ReviewQueueItemRecord.project_id == project_id)
         .order_by(
@@ -230,7 +240,9 @@ def list_review_queue_items(session: Session, project_id: str) -> list[ReviewQue
             ReviewQueueItemRecord.review_queue_item_id.desc(),
         )
     )
-    return list(session.execute(stmt).scalars().all())
+    total = count_total(session, base)
+    records = list(session.execute(apply_page(base, params)).scalars().all())
+    return records, total
 
 
 def get_review_queue_item(
