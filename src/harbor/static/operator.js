@@ -931,7 +931,7 @@ const renderProjectSources = (items) => {
               class="project-source-snapshot"
               data-snapshot-for="${encodeURIComponent(item.project_source_id)}"
             >
-              <summary>Latest snapshot</summary>
+              <summary>Snapshot history</summary>
               <div class="project-source-snapshot-body">
                 <span class="muted">Loading snapshot...</span>
               </div>
@@ -956,34 +956,48 @@ const renderProjectSources = (items) => {
   });
 };
 
+const renderSnapshotEntry = (snapshot, index) => {
+  const preview = (snapshot.extracted_text || "").slice(0, 500);
+  const truncated = (snapshot.extracted_text || "").length > 500;
+  const errorLine = snapshot.fetch_error
+    ? `<div class="project-source-snapshot-error">Error: ${safeText(snapshot.fetch_error)}</div>`
+    : "";
+  const previewBlock = preview
+    ? `<pre class="project-source-snapshot-preview">${safeText(preview)}${truncated ? "\n…" : ""}</pre>`
+    : "";
+  return `<div class="project-source-snapshot-entry${index === 0 ? " is-latest" : ""}">
+    <div class="project-source-snapshot-meta">
+      ${formatTimestamp(snapshot.fetched_at)}
+      &middot; HTTP ${escapeHtml(String(snapshot.http_status ?? "-"))}
+      &middot; hash ${inlineCode((snapshot.content_hash || "").slice(0, 12) || "-")}
+    </div>
+    ${errorLine}
+    ${previewBlock}
+  </div>`;
+};
+
 const loadProjectSourceSnapshot = async (container, projectSourceId) => {
   const body = container.querySelector(".project-source-snapshot-body");
   if (!currentProject) return;
   try {
     const url =
       `${apiBase}/projects/${encodeURIComponent(currentProject.project_id)}` +
-      `/project-sources/${encodeURIComponent(projectSourceId)}/snapshots/latest`;
+      `/project-sources/${encodeURIComponent(projectSourceId)}/snapshots`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
-    if (payload === null) {
+    const items = (payload && payload.items) || [];
+    if (!items.length) {
       body.innerHTML = `<span class="empty">No snapshot yet.</span>`;
       container.dataset.loaded = "1";
       return;
     }
-    const preview = (payload.extracted_text || "").slice(0, 500);
-    const truncated = (payload.extracted_text || "").length > 500;
-    const errorLine = payload.fetch_error
-      ? `<div class="project-source-snapshot-error">Error: ${safeText(payload.fetch_error)}</div>`
-      : "";
+    const capped = items.slice(0, 10);
     body.innerHTML =
-      `<div class="project-source-snapshot-meta">
-         ${formatTimestamp(payload.fetched_at)}
-         &middot; HTTP ${escapeHtml(String(payload.http_status ?? "-"))}
-         &middot; hash ${inlineCode((payload.content_hash || "").slice(0, 12) || "-")}
-       </div>
-       ${errorLine}
-       <pre class="project-source-snapshot-preview">${safeText(preview)}${truncated ? "\n…" : ""}</pre>`;
+      `<div class="project-source-snapshot-count muted">
+         Showing ${capped.length} of ${items.length} snapshot${items.length === 1 ? "" : "s"}
+       </div>` +
+      capped.map(renderSnapshotEntry).join("");
     container.dataset.loaded = "1";
   } catch (err) {
     body.innerHTML = `<span class="empty">Snapshot load failed: ${escapeHtml(err.message || "unknown")}</span>`;
