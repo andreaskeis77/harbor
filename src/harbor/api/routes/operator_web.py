@@ -1095,11 +1095,12 @@ def _overview_page() -> HTMLResponse:
             <th data-sort-type="number">Sources</th>
             <th data-sort-type="number">Open review</th>
             <th data-sort-type="number">Latest handbook</th>
+            <th data-sort-type="number">Stale snapshots</th>
           </tr>
         </thead>
         <tbody id="overview-projects-table-body">
           <tr>
-            <td colspan="5" class="empty">Loading...</td>
+            <td colspan="6" class="empty">Loading...</td>
           </tr>
         </tbody>
       </table>

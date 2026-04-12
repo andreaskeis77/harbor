@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from harbor.persistence.models import (
@@ -11,11 +13,14 @@ from harbor.persistence.models import (
     ProjectRecord,
     ProjectSourceRecord,
     ReviewQueueItemRecord,
+    SourceRecord,
+    SourceSnapshotRecord,
 )
 
 PROJECTS_SUMMARY_LIMIT = 20
 RECENT_TASKS_LIMIT = 10
 OPEN_REVIEW_STATUSES: tuple[str, ...] = ("open", "pending")
+SNAPSHOT_STALENESS_THRESHOLD_DAYS = 14
 
 
 class OverviewTotals(BaseModel):
@@ -26,6 +31,7 @@ class OverviewTotals(BaseModel):
     automation_tasks: int
     chat_turns: int
     open_review_queue_items: int
+    project_sources_stale_count: int
 
 
 class OverviewRecentTask(BaseModel):
@@ -45,6 +51,7 @@ class OverviewProjectSummary(BaseModel):
     source_count: int
     open_review_count: int
     latest_handbook_version_number: int | None
+    stale_snapshot_count: int
 
 
 class OverviewResponse(BaseModel):
@@ -57,6 +64,36 @@ def _count(session: Session, model) -> int:
     return int(session.execute(select(func.count()).select_from(model)).scalar_one())
 
 
+def _stale_project_sources_subquery(threshold: datetime):
+    return (
+        select(
+            ProjectSourceRecord.project_id.label("pid"),
+            ProjectSourceRecord.project_source_id.label("psid"),
+        )
+        .join(SourceRecord, ProjectSourceRecord.source_id == SourceRecord.source_id)
+        .outerjoin(
+            SourceSnapshotRecord,
+            ProjectSourceRecord.project_source_id
+            == SourceSnapshotRecord.project_source_id,
+        )
+        .where(
+            SourceRecord.source_type == "web_page",
+            SourceRecord.canonical_url.is_not(None),
+        )
+        .group_by(
+            ProjectSourceRecord.project_source_id,
+            ProjectSourceRecord.project_id,
+        )
+        .having(
+            or_(
+                func.max(SourceSnapshotRecord.fetched_at).is_(None),
+                func.max(SourceSnapshotRecord.fetched_at) < threshold,
+            )
+        )
+        .subquery()
+    )
+
+
 def build_overview(session: Session) -> OverviewResponse:
     open_review_count = int(
         session.execute(
@@ -64,6 +101,14 @@ def build_overview(session: Session) -> OverviewResponse:
                 ReviewQueueItemRecord.status.in_(OPEN_REVIEW_STATUSES),
             )
         ).scalar_one()
+    )
+
+    stale_threshold = datetime.now(UTC) - timedelta(
+        days=SNAPSHOT_STALENESS_THRESHOLD_DAYS
+    )
+    stale_subq = _stale_project_sources_subquery(stale_threshold)
+    total_stale = int(
+        session.execute(select(func.count()).select_from(stale_subq)).scalar_one()
     )
 
     totals = OverviewTotals(
@@ -74,6 +119,7 @@ def build_overview(session: Session) -> OverviewResponse:
         automation_tasks=_count(session, AutomationTaskRecord),
         chat_turns=_count(session, OpenAIProjectChatTurnRecord),
         open_review_queue_items=open_review_count,
+        project_sources_stale_count=total_stale,
     )
 
     recent = (
@@ -112,6 +158,7 @@ def build_overview(session: Session) -> OverviewResponse:
     source_counts: dict[str, int] = {}
     open_review_counts: dict[str, int] = {}
     latest_handbook_version: dict[str, int] = {}
+    stale_snapshot_counts: dict[str, int] = {}
 
     if project_ids:
         for pid, cnt in session.execute(
@@ -147,6 +194,13 @@ def build_overview(session: Session) -> OverviewResponse:
         ).all():
             latest_handbook_version[pid] = int(version)
 
+        for pid, cnt in session.execute(
+            select(stale_subq.c.pid, func.count(stale_subq.c.psid))
+            .where(stale_subq.c.pid.in_(project_ids))
+            .group_by(stale_subq.c.pid)
+        ).all():
+            stale_snapshot_counts[pid] = int(cnt)
+
     projects_summary = [
         OverviewProjectSummary(
             project_id=p.project_id,
@@ -155,6 +209,7 @@ def build_overview(session: Session) -> OverviewResponse:
             source_count=source_counts.get(p.project_id, 0),
             open_review_count=open_review_counts.get(p.project_id, 0),
             latest_handbook_version_number=latest_handbook_version.get(p.project_id),
+            stale_snapshot_count=stale_snapshot_counts.get(p.project_id, 0),
         )
         for p in projects
     ]
