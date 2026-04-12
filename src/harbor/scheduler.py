@@ -15,16 +15,25 @@ from harbor.automation_task_registry import (
     mark_automation_task_succeeded,
     start_automation_task_observer,
 )
+from harbor.content_fetcher import fetch_url
 from harbor.handbook_registry import compute_handbook_freshness
 from harbor.persistence.models import (
     AutomationScheduleRecord,
     ProjectRecord,
     ProjectSourceRecord,
+    SourceRecord,
+)
+from harbor.source_snapshot_registry import (
+    SourceSnapshotCreate,
+    create_source_snapshot,
+    get_latest_snapshot,
 )
 from harbor.workflow_summary_registry import get_workflow_summary
 
 RESULT_SUMMARY_MAX = 2000
 STALE_SOURCE_THRESHOLD_DAYS = 7
+FETCH_SOURCE_CONTENT_PER_TICK = 5
+EXTRACTED_TEXT_MAX_CHARS = 20000
 
 
 def _serialize(payload: dict[str, Any]) -> str:
@@ -79,9 +88,83 @@ def _run_stale_source_sweep(session: Session) -> str:
     )
 
 
+def _decode_body(body: bytes | None) -> str | None:
+    if body is None:
+        return None
+    try:
+        text = body.decode("utf-8", errors="replace")
+    except (UnicodeDecodeError, AttributeError):
+        return None
+    return text[:EXTRACTED_TEXT_MAX_CHARS]
+
+
+def _pick_sources_to_fetch(
+    session: Session,
+    project_id: str,
+    limit: int,
+) -> list[tuple[ProjectSourceRecord, SourceRecord]]:
+    """Return up to `limit` (project_source, source) pairs prioritizing
+    never-fetched, then oldest-fetched sources for the project."""
+    stmt = (
+        select(ProjectSourceRecord, SourceRecord)
+        .join(SourceRecord, ProjectSourceRecord.source_id == SourceRecord.source_id)
+        .where(
+            ProjectSourceRecord.project_id == project_id,
+            SourceRecord.source_type == "web_page",
+            SourceRecord.canonical_url.is_not(None),
+        )
+    )
+    rows = list(session.execute(stmt).all())
+    def _age_key(pair: tuple[ProjectSourceRecord, SourceRecord]):
+        ps, _ = pair
+        latest = get_latest_snapshot(session, ps.project_source_id)
+        if latest is None:
+            return (0, ps.created_at)
+        return (1, latest.fetched_at)
+    rows.sort(key=_age_key)
+    return rows[:limit]
+
+
+def _run_fetch_source_content(session: Session, project_id: str) -> str:
+    picks = _pick_sources_to_fetch(session, project_id, FETCH_SOURCE_CONTENT_PER_TICK)
+    fetched = 0
+    errors = 0
+    statuses: dict[str, int] = {}
+    for project_source, source in picks:
+        url = source.canonical_url
+        if url is None:
+            continue
+        result = fetch_url(url)
+        snapshot_payload = SourceSnapshotCreate(
+            project_source_id=project_source.project_source_id,
+            http_status=result.http_status,
+            content_hash=result.content_hash(),
+            extracted_text=_decode_body(result.body),
+            fetch_error=result.error,
+        )
+        create_source_snapshot(session, snapshot_payload)
+        if result.error is not None:
+            errors += 1
+        else:
+            fetched += 1
+            status_bucket = f"{result.http_status // 100}xx" if result.http_status else "unknown"
+            statuses[status_bucket] = statuses.get(status_bucket, 0) + 1
+    return _serialize(
+        {
+            "project_id": project_id,
+            "considered": len(picks),
+            "fetched": fetched,
+            "errors": errors,
+            "status_buckets": statuses,
+            "per_tick_limit": FETCH_SOURCE_CONTENT_PER_TICK,
+        }
+    )
+
+
 SCHEDULE_HANDLERS: dict[str, Callable[[Session, str], str]] = {
     "snapshot_workflow_summary": _run_snapshot_workflow_summary,
     "handbook_freshness_check": _run_handbook_freshness_check,
+    "fetch_source_content": _run_fetch_source_content,
 }
 
 # Global handlers run once per tick (not per project). Their tasks are
