@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-T6.3 — handbook-freshness-check as second non-mutating automation driver (N=2 justifies a dispatcher in T6.4)
-Next: T6.4 (minimal scheduler primitive + handler registry)
+T6.4 — minimal scheduler primitive landed (schedule table + handler registry + POST /scheduler/tick, NO background thread)
+Next: planning — operator UX over the scheduler surface, or first genuinely project-less automation driver
 
 ## Confirmed completed
 
@@ -63,6 +63,7 @@ Next: T6.4 (minimal scheduler primitive + handler registry)
 - T6.2 workflow-summary snapshot automation driver (first non-mutating observer call-site)
 - C.5 automation task kind/status filter controls on project-detail task log (localStorage-persisted)
 - T6.3 handbook-freshness-check automation driver (second non-mutating observer call-site)
+- T6.4 minimal scheduler primitive (schedule table, handler registry, externally-triggered tick)
 
 ## Current runtime posture
 
