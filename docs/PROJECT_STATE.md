@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-U2 — cross-entity search primitive landed (`GET /api/v1/search?q=...` across projects/sources/handbook/chat-turns with snippets + kind/project_id filters)
-Phase P2 in progress. Next: U3 sortable tables
+U3 — sortable operator tables landed (click-to-sort headers, asc/desc/clear tri-state, localStorage-persisted per table)
+Phase P2 in progress. Next: U4 bulk actions on review-queue
 
 ## Confirmed completed
 
@@ -73,6 +73,7 @@ Phase P2 in progress. Next: U3 sortable tables
 - T7.3 optional in-process scheduler tick loop (`EmbeddedSchedulerLoop`, off by default, feature-flag `HARBOR_SCHEDULER_EMBEDDED` + interval config; lifespan-managed start/stop)
 - U1 server-side pagination primitive (`harbor.pagination` with DEFAULT_LIMIT=50/MAX_LIMIT=200; `limit`/`offset`/`total` on automation-tasks, review-queue-items, search-result-candidates, chat-turns, scheduler/recent-tasks)
 - U2 cross-entity search primitive (`GET /api/v1/search?q=&project_id=&kinds=`: ILIKE across project title/desc, source title/url, handbook markdown/change_note, chat turn input/output; returns kind/record_id/project_id/title/snippet/matched_field with per-kind cap of 25)
+- U3 sortable operator tables (generic `table.sortable` module with click-to-sort thead, asc/desc/clear tri-state, text/number/date coercion via `data-sort-type`, MutationObserver re-apply on re-render, localStorage-persisted per table; applied to projects, automation-tasks, candidates, review-queue, project-sources)
 
 ## Current runtime posture
 
