@@ -10,6 +10,7 @@ from harbor.api.middleware import register_middleware
 from harbor.api.routes.automation_tasks import router as automation_tasks_router
 from harbor.api.routes.db import router as db_router
 from harbor.api.routes.handbook import router as handbook_router
+from harbor.api.routes.handbook_freshness import router as handbook_freshness_router
 from harbor.api.routes.health import router as health_router
 from harbor.api.routes.openai_adapter import router as openai_adapter_router
 from harbor.api.routes.operator_web import router as operator_web_router
@@ -47,6 +48,7 @@ def create_app(settings: HarborSettings | None = None) -> FastAPI:
     app.include_router(search_result_candidates_router, prefix=settings.api_v1_prefix)
     app.include_router(review_queue_router, prefix=settings.api_v1_prefix)
     app.include_router(workflow_summary_router, prefix=settings.api_v1_prefix)
+    app.include_router(handbook_freshness_router, prefix=settings.api_v1_prefix)
     app.include_router(openai_adapter_router, prefix=settings.api_v1_prefix)
     app.include_router(automation_tasks_router, prefix=settings.api_v1_prefix)
 

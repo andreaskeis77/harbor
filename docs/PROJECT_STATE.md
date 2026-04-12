@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-C.5 — automation task filter/search controls on the project-detail task log
-Next: T6.3 (second non-mutating automation driver — handbook freshness check), then T6.4 (minimal scheduler primitive)
+T6.3 — handbook-freshness-check as second non-mutating automation driver (N=2 justifies a dispatcher in T6.4)
+Next: T6.4 (minimal scheduler primitive + handler registry)
 
 ## Confirmed completed
 
@@ -62,6 +62,7 @@ Next: T6.3 (second non-mutating automation driver — handbook freshness check),
 - C.4 cross-project pending-actions queue (API + operator page)
 - T6.2 workflow-summary snapshot automation driver (first non-mutating observer call-site)
 - C.5 automation task kind/status filter controls on project-detail task log (localStorage-persisted)
+- T6.3 handbook-freshness-check automation driver (second non-mutating observer call-site)
 
 ## Current runtime posture
 
