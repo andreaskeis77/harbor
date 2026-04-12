@@ -6,6 +6,9 @@ from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from harbor.config import get_settings
+from harbor.scheduler import SCHEDULE_HANDLERS
+
+SCHEDULER_DEFAULT_INTERVAL_SECONDS = 3600
 
 router = APIRouter(tags=["operator_web"])
 
@@ -115,6 +118,7 @@ def _projects_page() -> HTMLResponse:
         Reload projects
       </button>
       <a href="/operator/pending-actions">Pending actions</a>
+      <a href="/operator/scheduler">Scheduler</a>
       <a href="/chat">Chat</a>
       <a href="/healthz">Health</a>
       <a href="/runtime">Runtime</a>
@@ -1104,6 +1108,112 @@ def _pending_actions_page() -> HTMLResponse:
     )
 
 
+def _scheduler_page() -> HTMLResponse:
+    handler_keys = sorted(SCHEDULE_HANDLERS.keys())
+    handler_rows = "\n".join(
+        f"""
+          <tr data-scheduler-row="{key}">
+            <td><code class="inline">{key}</code></td>
+            <td>
+              <label class="scheduler-toggle">
+                <input
+                  type="checkbox"
+                  data-scheduler-enabled-toggle="{key}"
+                  data-scheduler-task-kind="{key}"
+                />
+                <span data-scheduler-enabled-label="{key}">disabled</span>
+              </label>
+            </td>
+            <td>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value="{SCHEDULER_DEFAULT_INTERVAL_SECONDS}"
+                data-scheduler-interval-input="{key}"
+                data-scheduler-task-kind="{key}"
+              />
+            </td>
+            <td data-scheduler-last-run-at="{key}">&mdash;</td>
+            <td data-scheduler-next-run-at="{key}">&mdash;</td>
+            <td>
+              <button
+                type="button"
+                class="action-button secondary"
+                data-scheduler-save-button="{key}"
+                data-scheduler-task-kind="{key}"
+              >Save</button>
+            </td>
+          </tr>"""
+        for key in handler_keys
+    )
+    registered_json = json.dumps(handler_keys).replace("</", "<\\/")
+    default_interval = SCHEDULER_DEFAULT_INTERVAL_SECONDS
+    body = f"""
+<div class="page" id="operator-shell" data-operator-shell="scheduler">
+  <header class="page-header">
+    <div>
+      <h1>Scheduler</h1>
+      <p class="page-subtitle">
+        Registered automation handlers. Enable a handler, set an interval,
+        and trigger a tick on demand. Schedules fan out across all projects.
+      </p>
+    </div>
+    <div class="actions">
+      <a href="/operator/projects">Projects</a>
+      <button
+        type="button"
+        class="action-button secondary"
+        id="scheduler-reload-button"
+        data-action="reload-scheduler"
+      >Reload</button>
+      <button
+        type="button"
+        class="action-button"
+        id="scheduler-tick-button"
+        data-scheduler-tick-button
+      >Run tick now</button>
+    </div>
+  </header>
+
+  <section class="section-card" data-section-key="scheduler-handlers">
+    <h2>Handlers</h2>
+    <p class="action-note">
+      Handlers listed below are registered in <code class="inline">SCHEDULE_HANDLERS</code>.
+      Saving creates or updates the schedule row; unsaved handlers are not ticked.
+      Default interval is {default_interval} seconds.
+    </p>
+    <div
+      class="table-wrap"
+      data-scheduler-registered-handlers='{registered_json}'
+      data-scheduler-default-interval="{default_interval}"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>Handler</th>
+            <th>Enabled</th>
+            <th>Interval (seconds)</th>
+            <th>Last run</th>
+            <th>Next run</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="scheduler-table-body" data-scheduler-table>
+{handler_rows}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+"""
+    return _render_document(
+        title="Harbor Operator - Scheduler",
+        body=body,
+        bootstrap_json=_bootstrap_payload("scheduler"),
+    )
+
+
 @router.get("/chat", include_in_schema=False)
 def chat_page() -> HTMLResponse:
     return _chat_page()
@@ -1122,6 +1232,11 @@ def operator_projects_page() -> HTMLResponse:
 @router.get("/operator/pending-actions", include_in_schema=False)
 def operator_pending_actions_page() -> HTMLResponse:
     return _pending_actions_page()
+
+
+@router.get("/operator/scheduler", include_in_schema=False)
+def operator_scheduler_page() -> HTMLResponse:
+    return _scheduler_page()
 
 
 @router.get("/operator/projects/{project_id}", include_in_schema=False)

@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-T6.4 — minimal scheduler primitive landed (schedule table + handler registry + POST /scheduler/tick, NO background thread)
-Next: planning — operator UX over the scheduler surface, or first genuinely project-less automation driver
+C.6 — operator UX for scheduler landed (/operator/scheduler page: per-handler enable/interval + one-click tick)
+Next: planning — T6.5 first genuinely project-less automation driver, or C.7 tick-outcome surface
 
 ## Confirmed completed
 
@@ -64,6 +64,7 @@ Next: planning — operator UX over the scheduler surface, or first genuinely pr
 - C.5 automation task kind/status filter controls on project-detail task log (localStorage-persisted)
 - T6.3 handbook-freshness-check automation driver (second non-mutating observer call-site)
 - T6.4 minimal scheduler primitive (schedule table, handler registry, externally-triggered tick)
+- C.6 operator scheduler page (`/operator/scheduler`: enable/interval/save/one-click tick)
 
 ## Current runtime posture
 
@@ -149,6 +150,7 @@ Harbor now has:
 - `/api/v1/pending-actions`
 - `/api/v1/projects/{project_id}/snapshot-summary`
 - `/operator/pending-actions`
+- `/operator/scheduler`
 
 ## Validation rule
 
