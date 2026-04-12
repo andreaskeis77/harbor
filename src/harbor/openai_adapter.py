@@ -27,6 +27,7 @@ MAX_CHAT_HISTORY_OPERATOR_CHARS = 240
 MAX_CHAT_HISTORY_ASSISTANT_CHARS = 320
 MAX_PROJECT_SOURCES_IN_CHAT_CONTEXT = 6
 MAX_HANDBOOK_CHARS = 2000
+MAX_SNAPSHOT_EXCERPT_CHARS = 600
 TRUNCATION_SUFFIX = " …[truncated]"
 
 SOURCE_CITATION_INSTRUCTION = (
@@ -161,6 +162,8 @@ def _prepare_project_sources(
     included_sources = sources[:MAX_PROJECT_SOURCES_IN_CHAT_CONTEXT]
 
     prepared: list[dict[str, str]] = []
+    snapshot_count_included = 0
+    snapshot_count_truncated = 0
     for source in included_sources:
         source_payload = source.get("source")
         source_mapping = source_payload if isinstance(source_payload, Mapping) else {}
@@ -194,11 +197,28 @@ def _prepare_project_sources(
         if review_status is not None:
             entry["review_status"] = str(review_status)
 
+        snapshot_excerpt_value = source.get("snapshot_excerpt")
+        if snapshot_excerpt_value not in (None, ""):
+            excerpt, was_truncated = _truncate_text(
+                snapshot_excerpt_value,
+                max_chars=MAX_SNAPSHOT_EXCERPT_CHARS,
+            )
+            if excerpt:
+                entry["snapshot_excerpt"] = excerpt
+                snapshot_count_included += 1
+                if was_truncated:
+                    snapshot_count_truncated += 1
+                snapshot_fetched_at = source.get("snapshot_fetched_at")
+                if snapshot_fetched_at is not None:
+                    entry["snapshot_fetched_at"] = str(snapshot_fetched_at)
+
         prepared.append(entry)
 
     return prepared, {
         "project_source_count_available": len(sources),
         "project_source_count_included": len(prepared),
+        "project_source_snapshot_count_included": snapshot_count_included,
+        "project_source_snapshot_count_truncated": snapshot_count_truncated,
     }
 
 
@@ -223,6 +243,12 @@ def _project_sources_lines(project_sources: list[dict[str, str]]) -> list[str]:
             lines.append(f"   [{', '.join(meta_parts)}]")
         if source["note"]:
             lines.append(f"   Note: {source['note']}")
+        if source.get("snapshot_excerpt"):
+            fetched = source.get("snapshot_fetched_at")
+            label = f"Snapshot ({fetched})" if fetched else "Snapshot"
+            lines.append(f"   {label}:")
+            for snapshot_line in source["snapshot_excerpt"].splitlines() or [""]:
+                lines.append(f"     {snapshot_line}")
         if index < len(project_sources):
             lines.append("")
 
