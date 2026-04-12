@@ -51,6 +51,31 @@ def test_operator_pages_contain_unified_toast_container(client: TestClient) -> N
     assert 'data-action-status' not in detail_response.text
 
 
+def test_operator_pending_actions_page_renders(client: TestClient) -> None:
+    response = client.get("/operator/pending-actions")
+    assert response.status_code == 200
+    assert 'data-operator-shell="pending-actions"' in response.text
+    assert 'id="pending-actions-table-body"' in response.text
+    assert 'data-pending-actions="open-items"' in response.text
+    assert 'id="pending-actions-reload-button"' in response.text
+    assert 'id="harbor-toasts"' in response.text
+    assert '"page": "pending-actions"' in response.text
+
+
+def test_operator_projects_page_links_to_pending_actions(client: TestClient) -> None:
+    response = client.get("/operator/projects")
+    assert response.status_code == 200
+    assert 'href="/operator/pending-actions"' in response.text
+
+
+def test_operator_js_registers_pending_actions_page(client: TestClient) -> None:
+    response = client.get("/static/operator.js")
+    assert response.status_code == 200
+    body = response.text
+    assert "loadPendingActionsPage" in body
+    assert "pending-actions-table-body" in body
+
+
 def test_operator_js_exposes_toast_primitive(client: TestClient) -> None:
     response = client.get("/static/operator.js")
     assert response.status_code == 200

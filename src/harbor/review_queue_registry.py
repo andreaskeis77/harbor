@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from harbor.exceptions import DuplicateError, NotFoundError, NotPromotableError
 from harbor.persistence.models import (
+    ProjectRecord,
     ProjectSourceRecord,
     ReviewQueueItemRecord,
     SearchCampaignRecord,
@@ -91,6 +92,40 @@ class ReviewQueueListResponse(BaseModel):
     items: list[ReviewQueueItemRead]
 
 
+class PendingActionRead(BaseModel):
+    review_queue_item_id: str
+    project_id: str
+    project_title: str
+    title: str
+    queue_kind: str
+    status: str
+    priority: str
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_row(
+        cls,
+        item: ReviewQueueItemRecord,
+        project: ProjectRecord,
+    ) -> PendingActionRead:
+        return cls(
+            review_queue_item_id=item.review_queue_item_id,
+            project_id=item.project_id,
+            project_title=project.title,
+            title=item.title,
+            queue_kind=item.queue_kind,
+            status=item.status,
+            priority=item.priority,
+            created_at=item.created_at,
+            updated_at=item.updated_at,
+        )
+
+
+class PendingActionsListResponse(BaseModel):
+    items: list[PendingActionRead]
+
+
 def create_review_queue_item(
     session: Session,
     project_id: str,
@@ -157,6 +192,29 @@ def create_review_queue_item(
     session.flush()
     session.refresh(record)
     return record
+
+
+PENDING_REVIEW_QUEUE_STATUSES: frozenset[str] = frozenset({"open"})
+
+
+def list_pending_actions(
+    session: Session,
+) -> list[tuple[ReviewQueueItemRecord, ProjectRecord]]:
+    """Aggregate open review-queue items across all projects.
+
+    Used by the cross-project pending-actions surface. Ordered by
+    created_at desc so the freshest work surfaces first.
+    """
+    stmt = (
+        select(ReviewQueueItemRecord, ProjectRecord)
+        .join(ProjectRecord, ProjectRecord.project_id == ReviewQueueItemRecord.project_id)
+        .where(ReviewQueueItemRecord.status.in_(PENDING_REVIEW_QUEUE_STATUSES))
+        .order_by(
+            ReviewQueueItemRecord.created_at.desc(),
+            ReviewQueueItemRecord.review_queue_item_id.desc(),
+        )
+    )
+    return [(item, project) for item, project in session.execute(stmt).all()]
 
 
 def list_review_queue_items(session: Session, project_id: str) -> list[ReviewQueueItemRecord]:

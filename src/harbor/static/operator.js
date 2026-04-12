@@ -1413,6 +1413,59 @@ const initSectionCollapsibles = () => {
   });
 };
 
+const renderPendingActionsTable = (items) => {
+  const body = byId("pending-actions-table-body");
+  if (!body) {
+    return;
+  }
+  if (!items.length) {
+    body.innerHTML = emptyRow(6, "No open review-queue items across projects.");
+    return;
+  }
+  body.innerHTML = items
+    .map((item) => {
+      const projectLink = (
+        `<a href="/operator/projects/${escapeHtml(item.project_id)}">` +
+        `${safeText(item.project_title)}</a>`
+      );
+      return (
+        `<tr data-pending-action-id="${escapeHtml(item.review_queue_item_id)}">` +
+        `<td>${projectLink}</td>` +
+        `<td>${safeText(item.title)}</td>` +
+        `<td>${safeText(item.queue_kind)}</td>` +
+        `<td>${safeText(item.priority)}</td>` +
+        `<td>${formatDateTime(item.created_at)}</td>` +
+        `<td>${formatDateTime(item.updated_at)}</td>` +
+        "</tr>"
+      );
+    })
+    .join("");
+};
+
+const loadPendingActionsPage = async () => {
+  const body = byId("pending-actions-table-body");
+  if (body) {
+    body.innerHTML = emptyRow(6, "Loading...");
+  }
+  try {
+    const payload = await fetchJson(`${apiBase}/pending-actions`);
+    renderPendingActionsTable(payload.items || []);
+    showToast(`${(payload.items || []).length} pending action(s) loaded.`, {
+      kind: "success",
+    });
+  } catch (error) {
+    if (body) {
+      body.innerHTML = emptyRow(6, "Load failed.");
+    }
+    showToast(error.message, { kind: "error" });
+  }
+};
+
+const reloadPendingActionsButton = byId("pending-actions-reload-button");
+if (reloadPendingActionsButton) {
+  reloadPendingActionsButton.addEventListener("click", loadPendingActionsPage);
+}
+
 initSectionCollapsibles();
 
 if (bootstrap.page === "projects") {
@@ -1420,4 +1473,7 @@ if (bootstrap.page === "projects") {
 }
 if (bootstrap.page === "project-detail") {
   loadProjectDetailPage();
+}
+if (bootstrap.page === "pending-actions") {
+  loadPendingActionsPage();
 }

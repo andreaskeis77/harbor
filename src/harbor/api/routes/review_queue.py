@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from harbor.exceptions import NotFoundError
 from harbor.persistence.session import get_db_session
 from harbor.review_queue_registry import (
+    PendingActionRead,
+    PendingActionsListResponse,
     ReviewQueueItemCreate,
     ReviewQueueItemRead,
     ReviewQueueListResponse,
@@ -15,6 +17,7 @@ from harbor.review_queue_registry import (
     ReviewQueueStatusUpdate,
     create_review_queue_item,
     get_review_queue_item,
+    list_pending_actions,
     list_review_queue_items,
     promote_review_queue_item_to_source,
     update_review_queue_item_status,
@@ -86,6 +89,18 @@ def update_review_queue_item_status_endpoint(
         payload,
     )
     return ReviewQueueItemRead.from_record(record)
+
+
+@router.get(
+    "/pending-actions",
+    response_model=PendingActionsListResponse,
+)
+def list_pending_actions_endpoint(session: DbSession) -> PendingActionsListResponse:
+    items = [
+        PendingActionRead.from_row(item, project)
+        for item, project in list_pending_actions(session)
+    ]
+    return PendingActionsListResponse(items=items)
 
 
 @router.post(
