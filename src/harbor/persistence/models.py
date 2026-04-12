@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from harbor.persistence.base import Base
@@ -468,6 +468,48 @@ class OpenAIProjectDryRunLogRecord(Base):
 
 def default_automation_task_id() -> str:
     return str(uuid.uuid4())
+
+
+def default_automation_schedule_id() -> str:
+    return str(uuid.uuid4())
+
+
+class AutomationScheduleRecord(Base):
+    __tablename__ = "automation_schedule"
+    __table_args__ = (
+        UniqueConstraint(
+            "task_kind",
+            name="uq_automation_schedule_task_kind",
+        ),
+    )
+
+    automation_schedule_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_automation_schedule_id,
+    )
+    task_kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    interval_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    last_run_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    next_run_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )
 
 
 class AutomationTaskRecord(Base):
