@@ -432,6 +432,7 @@ def test_operator_scheduler_page_renders(client: TestClient) -> None:
         "handbook_freshness_check",
         "stale_source_sweep",
         "fetch_source_content",
+        "source_content_staleness_check",
     ):
         assert f'data-scheduler-row="{task_kind}"' in response.text
         assert f'data-scheduler-enabled-toggle="{task_kind}"' in response.text

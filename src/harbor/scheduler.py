@@ -34,6 +34,7 @@ RESULT_SUMMARY_MAX = 2000
 STALE_SOURCE_THRESHOLD_DAYS = 7
 FETCH_SOURCE_CONTENT_PER_TICK = 5
 EXTRACTED_TEXT_MAX_CHARS = 20000
+SOURCE_CONTENT_STALENESS_THRESHOLD_DAYS = 14
 
 
 def _serialize(payload: dict[str, Any]) -> str:
@@ -161,10 +162,59 @@ def _run_fetch_source_content(session: Session, project_id: str) -> str:
     )
 
 
+def _run_source_content_staleness_check(session: Session, project_id: str) -> str:
+    now = datetime.now(UTC)
+    threshold = now - timedelta(days=SOURCE_CONTENT_STALENESS_THRESHOLD_DAYS)
+    stmt = (
+        select(ProjectSourceRecord)
+        .join(SourceRecord, ProjectSourceRecord.source_id == SourceRecord.source_id)
+        .where(
+            ProjectSourceRecord.project_id == project_id,
+            SourceRecord.source_type == "web_page",
+            SourceRecord.canonical_url.is_not(None),
+        )
+    )
+    project_sources = list(session.execute(stmt).scalars().all())
+    total = len(project_sources)
+    never_fetched = 0
+    stale = 0
+    fresh = 0
+    oldest_age_days = 0
+    for ps in project_sources:
+        latest = get_latest_snapshot(session, ps.project_source_id)
+        if latest is None:
+            never_fetched += 1
+            continue
+        fetched_utc = (
+            latest.fetched_at
+            if latest.fetched_at.tzinfo
+            else latest.fetched_at.replace(tzinfo=UTC)
+        )
+        age_days = (now - fetched_utc).days
+        if fetched_utc < threshold:
+            stale += 1
+            if age_days > oldest_age_days:
+                oldest_age_days = age_days
+        else:
+            fresh += 1
+    return _serialize(
+        {
+            "project_id": project_id,
+            "threshold_days": SOURCE_CONTENT_STALENESS_THRESHOLD_DAYS,
+            "total_web_page_sources": total,
+            "never_fetched": never_fetched,
+            "stale": stale,
+            "fresh": fresh,
+            "oldest_stale_age_days": oldest_age_days,
+        }
+    )
+
+
 SCHEDULE_HANDLERS: dict[str, Callable[[Session, str], str]] = {
     "snapshot_workflow_summary": _run_snapshot_workflow_summary,
     "handbook_freshness_check": _run_handbook_freshness_check,
     "fetch_source_content": _run_fetch_source_content,
+    "source_content_staleness_check": _run_source_content_staleness_check,
 }
 
 # Global handlers run once per tick (not per project). Their tasks are
