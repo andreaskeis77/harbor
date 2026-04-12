@@ -2,7 +2,7 @@
 
 ## Current phase
 Phase P3 in progress — **content activation**: T7 fetched content begins flowing into operator surfaces and chat grounding.
-P3.1 + P3.2 landed. Next: P3.3 snapshot content in chat grounding.
+P3.1 + P3.2 + P3.3 landed. Next: P3.4 staleness signal in overview.
 
 ## Confirmed completed
 
@@ -79,6 +79,7 @@ P3.1 + P3.2 landed. Next: P3.3 snapshot content in chat grounding.
 - U6 handbook version diff viewer (`GET /projects/{id}/handbook/versions/{target}/diff?base_handbook_version_id=`: stdlib `difflib.unified_diff` against prior version by default, explicit base override supported; returns diff_text + stats{added_lines,removed_lines}; operator project-detail renders inline "Diff vs previous" `<details>` per handbook row)
 - P3.1 source-snapshot read API (`GET /projects/{project_id}/project-sources/{project_source_id}/snapshots` + `.../snapshots/latest`; cross-project access 404s; list ordered newest-first; latest returns null when no snapshot exists)
 - P3.2 snapshot visibility in operator UI (new "Latest snapshot" column on project-sources table with inline lazy-loading `<details>` that fetches `.../snapshots/latest` and renders fetched_at, http_status, content_hash preview, and truncated extracted_text)
+- P3.3 snapshot content in chat grounding (chat-turn rendered_input_text now embeds an up-to-600-char excerpt of the latest successful snapshot per accepted project source; failed fetches are skipped; `project_source_snapshot_count_included`/`_truncated` reported in request_metadata)
 
 ## Current runtime posture
 

@@ -52,6 +52,7 @@ from harbor.source_registry import (
     create_source,
     list_project_sources,
 )
+from harbor.source_snapshot_registry import get_latest_snapshot
 
 router = APIRouter(prefix="/openai", tags=["openai"])
 DbSession = Annotated[Session, Depends(get_db_session)]
@@ -89,13 +90,25 @@ def _accepted_project_sources_for_chat_context(
     session: Session,
     project_id: str,
 ) -> list[dict[str, object]]:
-    return [
-        ProjectSourceRead.from_records(project_source_record, source_record).model_dump(
-            mode="json"
+    result: list[dict[str, object]] = []
+    for project_source_record, source_record in list_project_sources(session, project_id):
+        if project_source_record.review_status != "accepted":
+            continue
+        payload = ProjectSourceRead.from_records(
+            project_source_record, source_record
+        ).model_dump(mode="json")
+        snapshot = get_latest_snapshot(
+            session, project_source_record.project_source_id
         )
-        for project_source_record, source_record in list_project_sources(session, project_id)
-        if project_source_record.review_status == "accepted"
-    ]
+        if (
+            snapshot is not None
+            and snapshot.http_status == 200
+            and (snapshot.extracted_text or "").strip()
+        ):
+            payload["snapshot_excerpt"] = snapshot.extracted_text
+            payload["snapshot_fetched_at"] = snapshot.fetched_at.isoformat()
+        result.append(payload)
+    return result
 
 
 @router.get("/runtime")
