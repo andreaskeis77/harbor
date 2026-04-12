@@ -1584,6 +1584,181 @@ if (reloadPendingActionsButton) {
   reloadPendingActionsButton.addEventListener("click", loadPendingActionsPage);
 }
 
+const sendJson = async (url, method, payload) => {
+  const response = await fetch(url, {
+    method,
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response));
+  }
+  return response.json();
+};
+
+const applySchedulerRowState = (row, record) => {
+  const taskKind = row.getAttribute("data-scheduler-row");
+  const toggle = row.querySelector(
+    `[data-scheduler-enabled-toggle="${taskKind}"]`,
+  );
+  const label = row.querySelector(
+    `[data-scheduler-enabled-label="${taskKind}"]`,
+  );
+  const intervalInput = row.querySelector(
+    `[data-scheduler-interval-input="${taskKind}"]`,
+  );
+  const lastRunCell = row.querySelector(
+    `[data-scheduler-last-run-at="${taskKind}"]`,
+  );
+  const nextRunCell = row.querySelector(
+    `[data-scheduler-next-run-at="${taskKind}"]`,
+  );
+  if (record) {
+    if (toggle) {
+      toggle.checked = Boolean(record.enabled);
+    }
+    if (label) {
+      label.textContent = record.enabled ? "enabled" : "disabled";
+    }
+    if (intervalInput) {
+      intervalInput.value = String(record.interval_seconds);
+    }
+    if (lastRunCell) {
+      lastRunCell.innerHTML = formatDateTime(record.last_run_at);
+    }
+    if (nextRunCell) {
+      nextRunCell.innerHTML = formatDateTime(record.next_run_at);
+    }
+  } else {
+    if (toggle) {
+      toggle.checked = false;
+    }
+    if (label) {
+      label.textContent = "not scheduled";
+    }
+    if (lastRunCell) {
+      lastRunCell.innerHTML = textFallback;
+    }
+    if (nextRunCell) {
+      nextRunCell.innerHTML = textFallback;
+    }
+  }
+};
+
+const loadSchedulerPage = async () => {
+  try {
+    const payload = await fetchJson(`${apiBase}/scheduler/schedules`);
+    const byKind = new Map();
+    (payload.items || []).forEach((item) => {
+      byKind.set(item.task_kind, item);
+    });
+    const rows = document.querySelectorAll("[data-scheduler-row]");
+    rows.forEach((row) => {
+      const taskKind = row.getAttribute("data-scheduler-row");
+      applySchedulerRowState(row, byKind.get(taskKind) || null);
+    });
+    showToast(`${(payload.items || []).length} schedule(s) loaded.`, {
+      kind: "success",
+    });
+  } catch (error) {
+    showToast(error.message, { kind: "error" });
+  }
+};
+
+const saveSchedulerRow = async (taskKind) => {
+  const row = document.querySelector(`[data-scheduler-row="${taskKind}"]`);
+  if (!row) {
+    return;
+  }
+  const toggle = row.querySelector(
+    `[data-scheduler-enabled-toggle="${taskKind}"]`,
+  );
+  const intervalInput = row.querySelector(
+    `[data-scheduler-interval-input="${taskKind}"]`,
+  );
+  if (!toggle || !intervalInput) {
+    return;
+  }
+  const intervalSeconds = Number.parseInt(intervalInput.value, 10);
+  if (Number.isNaN(intervalSeconds) || intervalSeconds < 1) {
+    showToast("Interval must be a positive integer (seconds).", {
+      kind: "error",
+    });
+    return;
+  }
+  try {
+    const record = await sendJson(
+      `${apiBase}/scheduler/schedules/${encodeURIComponent(taskKind)}`,
+      "PUT",
+      { interval_seconds: intervalSeconds, enabled: toggle.checked },
+    );
+    applySchedulerRowState(row, record);
+    showToast(`Schedule saved: ${taskKind}`, { kind: "success" });
+  } catch (error) {
+    showToast(error.message, { kind: "error" });
+  }
+};
+
+const runSchedulerTick = async () => {
+  const button = byId("scheduler-tick-button");
+  if (button) {
+    button.disabled = true;
+  }
+  try {
+    const payload = await sendJson(`${apiBase}/scheduler/tick`, "POST", {});
+    const runs = payload.runs || [];
+    const succeeded = runs.filter((r) => r.status === "succeeded").length;
+    const failed = runs.filter((r) => r.status === "failed").length;
+    const skipped = runs.filter((r) => r.status === "skipped").length;
+    showToast(
+      `Tick: ${succeeded} succeeded, ${failed} failed, ${skipped} skipped.`,
+      { kind: failed > 0 ? "error" : "success" },
+    );
+    await loadSchedulerPage();
+  } catch (error) {
+    showToast(error.message, { kind: "error" });
+  } finally {
+    if (button) {
+      button.disabled = false;
+    }
+  }
+};
+
+const initSchedulerPage = () => {
+  const reloadButton = byId("scheduler-reload-button");
+  if (reloadButton) {
+    reloadButton.addEventListener("click", loadSchedulerPage);
+  }
+  const tickButton = byId("scheduler-tick-button");
+  if (tickButton) {
+    tickButton.addEventListener("click", runSchedulerTick);
+  }
+  document.querySelectorAll("[data-scheduler-save-button]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const taskKind = button.getAttribute("data-scheduler-task-kind");
+      if (taskKind) {
+        saveSchedulerRow(taskKind);
+      }
+    });
+  });
+  document.querySelectorAll("[data-scheduler-enabled-toggle]").forEach((toggle) => {
+    toggle.addEventListener("change", () => {
+      const taskKind = toggle.getAttribute("data-scheduler-task-kind");
+      const row = document.querySelector(`[data-scheduler-row="${taskKind}"]`);
+      const label = row
+        ? row.querySelector(`[data-scheduler-enabled-label="${taskKind}"]`)
+        : null;
+      if (label) {
+        label.textContent = toggle.checked ? "enabled" : "disabled";
+      }
+    });
+  });
+  loadSchedulerPage();
+};
+
 initSectionCollapsibles();
 
 if (bootstrap.page === "projects") {
@@ -1595,4 +1770,7 @@ if (bootstrap.page === "project-detail") {
 }
 if (bootstrap.page === "pending-actions") {
   loadPendingActionsPage();
+}
+if (bootstrap.page === "scheduler") {
+  initSchedulerPage();
 }

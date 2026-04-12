@@ -412,3 +412,41 @@ def test_chat_page_contains_shell_and_markers(client: TestClient) -> None:
     assert 'data-chat-turn-compare-note="selected-turn"' in response.text
     assert 'data-chat-collapsible-support="chat-content"' in response.text
     assert 'id="chat-send-button"' in response.text
+
+
+def test_operator_scheduler_page_renders(client: TestClient) -> None:
+    response = client.get("/operator/scheduler")
+    assert response.status_code == 200
+    assert 'data-operator-shell="scheduler"' in response.text
+    assert 'id="harbor-toasts"' in response.text
+    assert '"page": "scheduler"' in response.text
+    assert 'id="scheduler-table-body"' in response.text
+    assert 'id="scheduler-reload-button"' in response.text
+    assert 'id="scheduler-tick-button"' in response.text
+    assert "data-scheduler-tick-button" in response.text
+    assert "data-scheduler-registered-handlers" in response.text
+    assert 'data-scheduler-default-interval="3600"' in response.text
+    # Both registered handlers must appear as rows with control markers.
+    for task_kind in ("snapshot_workflow_summary", "handbook_freshness_check"):
+        assert f'data-scheduler-row="{task_kind}"' in response.text
+        assert f'data-scheduler-enabled-toggle="{task_kind}"' in response.text
+        assert f'data-scheduler-interval-input="{task_kind}"' in response.text
+        assert f'data-scheduler-save-button="{task_kind}"' in response.text
+
+
+def test_operator_projects_page_links_to_scheduler(client: TestClient) -> None:
+    response = client.get("/operator/projects")
+    assert response.status_code == 200
+    assert 'href="/operator/scheduler"' in response.text
+
+
+def test_operator_js_registers_scheduler_page(client: TestClient) -> None:
+    response = client.get("/static/operator.js")
+    assert response.status_code == 200
+    body = response.text
+    assert "initSchedulerPage" in body
+    assert "loadSchedulerPage" in body
+    assert "runSchedulerTick" in body
+    assert "saveSchedulerRow" in body
+    assert '/scheduler/schedules' in body
+    assert '/scheduler/tick' in body
