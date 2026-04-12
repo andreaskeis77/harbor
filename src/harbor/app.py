@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -23,6 +24,7 @@ from harbor.api.routes.search_runs import router as search_runs_router
 from harbor.api.routes.sources import router as sources_router
 from harbor.api.routes.workflow_summary import router as workflow_summary_router
 from harbor.config import HarborSettings, get_settings
+from harbor.scheduler_embedded import EmbeddedSchedulerLoop
 
 logger = logging.getLogger("harbor.app")
 
@@ -32,7 +34,28 @@ _STATIC_DIR = Path(__file__).resolve().parent / "static"
 def create_app(settings: HarborSettings | None = None) -> FastAPI:
     settings = settings or get_settings()
 
-    app = FastAPI(title=settings.app_name, version=settings.version)
+    embedded_loop: EmbeddedSchedulerLoop | None = None
+    if settings.scheduler_embedded:
+        embedded_loop = EmbeddedSchedulerLoop(
+            interval_seconds=settings.scheduler_embedded_interval_seconds,
+        )
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        if embedded_loop is not None:
+            embedded_loop.start()
+        try:
+            yield
+        finally:
+            if embedded_loop is not None:
+                await embedded_loop.stop()
+
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.version,
+        lifespan=lifespan,
+    )
+    app.state.embedded_scheduler = embedded_loop
 
     register_middleware(app, log_level=settings.log_level)
 
