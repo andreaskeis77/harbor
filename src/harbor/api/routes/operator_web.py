@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from harbor.config import get_settings
-from harbor.scheduler import SCHEDULE_HANDLERS
+from harbor.scheduler import all_known_task_kinds
 
 SCHEDULER_DEFAULT_INTERVAL_SECONDS = 3600
 
@@ -1109,7 +1109,7 @@ def _pending_actions_page() -> HTMLResponse:
 
 
 def _scheduler_page() -> HTMLResponse:
-    handler_keys = sorted(SCHEDULE_HANDLERS.keys())
+    handler_keys = all_known_task_kinds()
     handler_rows = "\n".join(
         f"""
           <tr data-scheduler-row="{key}">

@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-C.6 — operator UX for scheduler landed (/operator/scheduler page: per-handler enable/interval + one-click tick)
-Next: planning — T6.5 first genuinely project-less automation driver, or C.7 tick-outcome surface
+T6.5 — first genuinely project-less automation driver landed (`stale_source_sweep` + `GLOBAL_SCHEDULE_HANDLERS` registry)
+Phase P1 in progress. Next: C.7 tick-outcome surface
 
 ## Confirmed completed
 
@@ -65,6 +65,7 @@ Next: planning — T6.5 first genuinely project-less automation driver, or C.7 t
 - T6.3 handbook-freshness-check automation driver (second non-mutating observer call-site)
 - T6.4 minimal scheduler primitive (schedule table, handler registry, externally-triggered tick)
 - C.6 operator scheduler page (`/operator/scheduler`: enable/interval/save/one-click tick)
+- T6.5 first project-less automation driver (`stale_source_sweep` via new `GLOBAL_SCHEDULE_HANDLERS` registry; runs once per tick with project_id=None)
 
 ## Current runtime posture
 
