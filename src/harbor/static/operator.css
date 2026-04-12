@@ -468,3 +468,24 @@ td {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+.section-card[data-section-key] > h2 {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-card[data-section-key] > h2::before {
+  content: "\25BE";
+  display: inline-block;
+  font-size: 0.8em;
+  color: #6b7280;
+  transition: transform 0.15s ease;
+}
+.section-card[data-section-key].is-collapsed > h2::before {
+  transform: rotate(-90deg);
+}
+.section-card[data-section-key].is-collapsed > *:not(h2) {
+  display: none;
+}

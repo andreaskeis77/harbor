@@ -1303,6 +1303,44 @@ document.addEventListener("click", async (event) => {
   }
 });
 
+const SECTION_STORAGE_PREFIX = "harbor.operator.section.";
+
+const initSectionCollapsibles = () => {
+  const sections = document.querySelectorAll(
+    "section.section-card[data-section-key]",
+  );
+  sections.forEach((section) => {
+    const key = section.getAttribute("data-section-key");
+    const storageKey = `${SECTION_STORAGE_PREFIX}${key}`;
+    let stored = null;
+    try {
+      stored = window.localStorage.getItem(storageKey);
+    } catch (err) {
+      stored = null;
+    }
+    if (stored === "collapsed") {
+      section.classList.add("is-collapsed");
+    }
+    const heading = section.querySelector(":scope > h2");
+    if (!heading) {
+      return;
+    }
+    heading.addEventListener("click", () => {
+      const collapsed = section.classList.toggle("is-collapsed");
+      try {
+        window.localStorage.setItem(
+          storageKey,
+          collapsed ? "collapsed" : "expanded",
+        );
+      } catch (err) {
+        /* storage unavailable — state is still toggled in-memory */
+      }
+    });
+  });
+};
+
+initSectionCollapsibles();
+
 if (bootstrap.page === "projects") {
   loadProjectsPage();
 }
