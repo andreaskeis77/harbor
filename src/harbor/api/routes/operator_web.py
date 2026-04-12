@@ -669,12 +669,13 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
             <th data-sort-type="text">Trust tier</th>
             <th data-sort-type="text">Project source ID</th>
             <th data-sort-type="text">Canonical URL</th>
+            <th data-sort-disable="1">Latest snapshot</th>
             <th data-sort-disable="1">Actions</th>
           </tr>
         </thead>
         <tbody id="project-sources-table-body" data-source-review-actions="true">
           <tr>
-            <td colspan="7" class="empty">Loading...</td>
+            <td colspan="8" class="empty">Loading...</td>
           </tr>
         </tbody>
       </table>
