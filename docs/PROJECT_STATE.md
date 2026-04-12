@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-U5 — operator overview dashboard landed (`GET /api/v1/overview` + `/operator/overview` page with totals, projects summary, recent automation tasks)
-Phase P2 in progress. Next: U6 handbook diff viewer (final P2 bolt)
+U6 — handbook version diff viewer landed (`GET .../handbook/versions/{id}/diff` + inline "Diff vs previous" toggle per row on project-detail)
+**Phase P2 complete** (U1-U6 all merged). Next: open P3 scope planning.
 
 ## Confirmed completed
 
@@ -76,6 +76,7 @@ Phase P2 in progress. Next: U6 handbook diff viewer (final P2 bolt)
 - U3 sortable operator tables (generic `table.sortable` module with click-to-sort thead, asc/desc/clear tri-state, text/number/date coercion via `data-sort-type`, MutationObserver re-apply on re-render, localStorage-persisted per table; applied to projects, automation-tasks, candidates, review-queue, project-sources)
 - U4 bulk review-queue status endpoint (`POST /projects/{id}/review-queue-items/bulk-status` accepting up to 200 ids; partial-success response with `updated` + `failed[review_queue_item_id,error]`; deduplicates ids and 404s on unknown project)
 - U5 operator overview dashboard (`GET /api/v1/overview` returns totals/recent_automation_tasks[10]/projects_summary[20]; new `/operator/overview` page renders totals grid + sortable per-project table + recent tasks table)
+- U6 handbook version diff viewer (`GET /projects/{id}/handbook/versions/{target}/diff?base_handbook_version_id=`: stdlib `difflib.unified_diff` against prior version by default, explicit base override supported; returns diff_text + stats{added_lines,removed_lines}; operator project-detail renders inline "Diff vs previous" `<details>` per handbook row)
 
 ## Current runtime posture
 
