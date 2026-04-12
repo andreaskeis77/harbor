@@ -18,11 +18,18 @@ Harbor should grow in this order:
 
 Completed through:
 - T5.2A — operator action: draft handbook entry from chat
+- H5.0A / H5.0B — source-review workflow + handbook version history in the operator web shell
+- H5.1A / H5.1B / H5.1C — operator/chat JS and CSS extracted to static assets
+- T6.0A — automation task registry (observability baseline)
+- T6.0B — side-channel observer (failures survive rollback)
+- C.1 — collapsible operator section-cards (localStorage-persisted)
+- C.2 — automation task log surface on project-detail
 
-T5 is feature-complete as originally scoped.
+T5 is feature-complete; H5 hardening is done; T6 observability baseline is in place; UX consolidation has two of four bolts delivered.
 
 Next:
-- Planning phase: T5 hardening (H5) or T6 automation baseline
+- **T6.1** — second automation call-site through the observer pattern, or
+- **C.3 / C.4** — remaining UX consolidation bolts (unified status feedback, review queue consolidation)
 
 ## Phase roadmap
 
@@ -86,23 +93,34 @@ Delivered:
 Only after operator surfaces are complete:
 - search campaign execution automation
 - background task infrastructure
-- monitoring/observability for automated workflows
+- monitoring/observability for automated workflows (**T6.0A / T6.0B delivered the observability baseline**)
 - stricter agent patterns
+
+Delivered so far:
+- T6.0A: `automation_task_registry` + migration + API + `draft-handbook` instrumented as the first call-site
+- T6.0B: side-channel observer so failures survive rollback; `session.rollback()` in the failure path releases SQLite write locks
+
+Open in T6:
+- T6.1: second call-site (e.g. `propose-source` from chat) to validate the observer pattern generalizes
+- T6.2+: actual automation drivers (scheduler, executor) on top of the observability baseline
 
 ## Candidate intermediate phases
 
-### H5 — T5 hardening
-Before T6, harden the T5 deliverables:
-- stale doc catch-up
-- operator_web.py structural cleanup (CSS/JS extraction)
-- handbook version history in operator web shell
-- source review workflow in web shell
+### H5 — T5 hardening (COMPLETE)
+Delivered:
+- H5.0A: source review workflow in web shell
+- H5.0B: handbook version history in web shell
+- H5.1A/B/C: operator/chat JS and CSS extracted to `src/harbor/static/`
 
-### UX consolidation
-Before deeper automation:
-- unified operator dashboard
-- source review status changes in web shell (currently API-only)
-- chat session management (archive, delete, export)
+### UX consolidation (partial)
+Delivered:
+- C.1: collapsible operator section-cards with per-operator localStorage persistence
+- C.2: automation task log panel on project-detail (makes T6.0A visible)
+
+Open:
+- C.3: unified status/toast feedback (replaces scattered `data-*-status` mounts)
+- C.4: review queue as a central pending-actions view
+- (future) chat session management (archive, delete, export)
 
 ## Delivery discipline
 

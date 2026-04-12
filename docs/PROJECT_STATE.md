@@ -1,7 +1,8 @@
 # Project State
 
 ## Current phase
-T5.2A — operator action: draft handbook entry from chat
+T6.0B — automation task observer (failure survives rollback)
+Next: planning — more call-sites (T6.1) or deeper UX consolidation (C.3/C.4)
 
 ## Confirmed completed
 
@@ -47,6 +48,15 @@ T5.2A — operator action: draft handbook entry from chat
 - T5.1A handbook context in chat
 - T5.1B operator action: propose source from chat
 - T5.2A operator action: draft handbook entry from chat
+- H5.0A source-review workflow in web shell
+- H5.0B handbook version history in web shell
+- H5.1A extract BASE_SCRIPT into `src/harbor/static/operator.js`
+- H5.1B extract CHAT_SCRIPT into `src/harbor/static/chat.js`
+- H5.1C extract BASE_CSS into `src/harbor/static/operator.css`
+- T6.0A automation task registry (observability baseline)
+- C.1 collapsible operator section-cards (localStorage-persisted)
+- C.2 automation task log UI panel on project-detail
+- T6.0B side-channel observer records rolled-back failures
 
 ## Current runtime posture
 
@@ -87,6 +97,14 @@ Harbor now has:
 - **129 tests, 96% coverage** (T5.1A)
 - **132 tests, 96% coverage** (T5.1B)
 - **135 tests, 96% coverage** (T5.2A)
+- **172 tests, 96% coverage** (T6.0B — this session added 37 tests)
+- **12 Alembic migrations** (automation_task_registry added in T6.0A)
+- **12 ORM models** (AutomationTaskRecord added in T6.0A)
+- **51 API endpoints** (+2 read-only automation task endpoints)
+- **static assets extracted**: `operator.js`, `chat.js`, `operator.css` under `/static`
+- **automation task observability baseline** (state machine: pending → running → succeeded|failed)
+- **side-channel observer pattern** for persisting failures across transaction rollback
+- **collapsible section-cards with per-operator localStorage persistence**
 - **validation edge-case tests for all review-queue registry branches**
 - **Pydantic input-constraint boundary tests (422 rejection)**
 - **E2E workflow lifecycle test (project → campaign → run → candidate → review → source)**
@@ -115,6 +133,8 @@ Harbor now has:
 - `/api/v1/openai/projects/{project_id}/chat-turns`
 - `/api/v1/openai/projects/{project_id}/propose-source`
 - `/api/v1/openai/projects/{project_id}/draft-handbook`
+- `/api/v1/projects/{project_id}/automation-tasks`
+- `/api/v1/automation-tasks/{automation_task_id}`
 
 ## Validation rule
 
@@ -133,16 +153,12 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-T5.2A — operator action: draft handbook entry from chat (in progress)
+T6.0B complete — deciding between:
+- **T6.1** — second automation call-site (likely `propose-source` from chat) to prove the observer pattern generalizes
+- **C.3** — unified status/toast feedback, replacing the scattered `data-*-status` mounts
+- **C.4** — review queue as a central pending-actions view
 
-Scope:
-
-- `POST /api/v1/openai/projects/{project_id}/draft-handbook` convenience endpoint
-- operator can save assistant chat output as a new handbook version
-- collapsible "Draft as handbook" action in chat turn inspector panel
-- reuses existing `create_handbook_version` flow, default change note
-- 3 new API tests (full fields, default note, project not found)
-- 135 tests, 96% coverage, quality gates green
+See `docs/_handoff/HANDOFF_2026-04-12_T6_0B_to_next.md` for the full handoff.
 
 ## Intentionally not yet in scope
 
