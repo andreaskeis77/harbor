@@ -90,6 +90,24 @@ def test_operator_project_detail_contains_source_review_markers(
     assert 'data-source-review-actions="true"' in response.text
 
 
+def test_operator_static_stylesheet_is_served(client: TestClient) -> None:
+    response = client.get("/static/operator.css")
+    assert response.status_code == 200
+    body = response.text
+    assert ":root" in body
+    assert ".section-card" in body
+
+
+def test_operator_pages_reference_external_stylesheet(client: TestClient) -> None:
+    projects_page = client.get("/operator/projects")
+    assert projects_page.status_code == 200
+    assert '/static/operator.css' in projects_page.text
+
+    chat_page = client.get("/chat")
+    assert chat_page.status_code == 200
+    assert '/static/operator.css' in chat_page.text
+
+
 def test_chat_static_script_is_served(client: TestClient) -> None:
     response = client.get("/static/chat.js")
     assert response.status_code == 200
