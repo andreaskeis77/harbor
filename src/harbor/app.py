@@ -15,6 +15,7 @@ from harbor.api.routes.handbook_freshness import router as handbook_freshness_ro
 from harbor.api.routes.health import router as health_router
 from harbor.api.routes.openai_adapter import router as openai_adapter_router
 from harbor.api.routes.operator_web import router as operator_web_router
+from harbor.api.routes.overview import router as overview_router
 from harbor.api.routes.projects import router as projects_router
 from harbor.api.routes.review_queue import router as review_queue_router
 from harbor.api.routes.scheduler import router as scheduler_router
@@ -78,6 +79,7 @@ def create_app(settings: HarborSettings | None = None) -> FastAPI:
     app.include_router(automation_tasks_router, prefix=settings.api_v1_prefix)
     app.include_router(scheduler_router, prefix=settings.api_v1_prefix)
     app.include_router(search_router, prefix=settings.api_v1_prefix)
+    app.include_router(overview_router, prefix=settings.api_v1_prefix)
 
     logger.info(
         "Harbor %s started (env=%s, db=%s)",

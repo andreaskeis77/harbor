@@ -1980,8 +1980,112 @@ const initSortableTables = () => {
   document.querySelectorAll("table.sortable").forEach(initSortableTable);
 };
 
+// ---------------------------------------------------------------------------
+// Overview page (U5)
+// ---------------------------------------------------------------------------
+const renderOverviewTotals = (totals) => {
+  const grid = byId("overview-totals-grid");
+  if (!grid) return;
+  const cards = [
+    ["Projects", totals.projects],
+    ["Project sources", totals.project_sources],
+    ["Review-queue items", totals.review_queue_items],
+    ["Open review items", totals.open_review_queue_items],
+    ["Handbook versions", totals.handbook_versions],
+    ["Automation tasks", totals.automation_tasks],
+    ["Chat turns", totals.chat_turns],
+  ];
+  grid.innerHTML = cards
+    .map(
+      ([label, value]) =>
+        `<div class="overview-total-card">
+          <div class="overview-total-label">${escapeHtml(label)}</div>
+          <div class="overview-total-value">${escapeHtml(String(value))}</div>
+        </div>`,
+    )
+    .join("");
+};
+
+const renderOverviewProjects = (rows) => {
+  const body = byId("overview-projects-table-body");
+  if (!body) return;
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="5" class="empty">No projects yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows
+    .map(
+      (r) =>
+        `<tr>
+          <td><a href="/operator/projects/${encodeURIComponent(r.project_id)}">${safeText(r.title)}</a></td>
+          <td data-sort-value="${escapeHtml(r.updated_at)}">${formatDateTime(r.updated_at)}</td>
+          <td>${safeText(r.source_count)}</td>
+          <td>${safeText(r.open_review_count)}</td>
+          <td>${safeText(
+            r.latest_handbook_version_number === null
+              ? ""
+              : "v" + r.latest_handbook_version_number,
+          )}</td>
+        </tr>`,
+    )
+    .join("");
+};
+
+const renderOverviewTasks = (rows) => {
+  const body = byId("overview-tasks-table-body");
+  if (!body) return;
+  if (!rows.length) {
+    body.innerHTML =
+      '<tr><td colspan="6" class="empty">No automation tasks recorded yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows
+    .map(
+      (t) =>
+        `<tr>
+          <td>${safeText(t.task_kind)}</td>
+          <td>${
+            t.project_id
+              ? `<a href="/operator/projects/${encodeURIComponent(t.project_id)}">${safeText(t.project_id)}</a>`
+              : '<span class="muted">global</span>'
+          }</td>
+          <td>${safeText(t.status)}</td>
+          <td>${safeText(t.trigger_source)}</td>
+          <td data-sort-value="${escapeHtml(t.created_at)}">${formatDateTime(t.created_at)}</td>
+          <td data-sort-value="${escapeHtml(t.completed_at || "")}">${formatDateTime(t.completed_at)}</td>
+        </tr>`,
+    )
+    .join("");
+};
+
+const loadOverviewPage = async () => {
+  try {
+    const response = await fetch(`${apiBase}/overview`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    renderOverviewTotals(payload.totals);
+    renderOverviewProjects(payload.projects_summary);
+    renderOverviewTasks(payload.recent_automation_tasks);
+  } catch (err) {
+    const grid = byId("overview-totals-grid");
+    if (grid) {
+      grid.innerHTML = `<span class="empty">Overview load failed: ${escapeHtml(err.message || "unknown")}</span>`;
+    }
+  }
+};
+
+const initOverviewPage = () => {
+  const btn = byId("overview-reload-button");
+  if (btn) btn.addEventListener("click", loadOverviewPage);
+  loadOverviewPage();
+};
+
 initSectionCollapsibles();
 initSortableTables();
+
+if (bootstrap.page === "overview") {
+  initOverviewPage();
+}
 
 if (bootstrap.page === "projects") {
   loadProjectsPage();
