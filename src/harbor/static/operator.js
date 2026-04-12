@@ -45,15 +45,52 @@ const emptyRow = (colspan, text = "No items.") => (
   `<tr><td colspan="${colspan}" class="empty">${safeText(text)}</td></tr>`
 );
 
-const setStatus = (id, text, kind = "info") => {
-  const target = byId(id);
-  if (!target) {
+const TOAST_CONTAINER_ID = "harbor-toasts";
+const TOAST_MAX_VISIBLE = 5;
+const TOAST_KIND_DURATIONS_MS = {
+  info: 2500,
+  success: 4000,
+  error: 7000,
+};
+
+const showToast = (text, options = {}) => {
+  const container = byId(TOAST_CONTAINER_ID);
+  if (!container) {
     return;
   }
-  target.textContent = text;
-  target.classList.remove("info", "success", "error");
-  target.classList.add(kind);
-  target.dataset.statusKind = kind;
+  const kind = options.kind && TOAST_KIND_DURATIONS_MS[options.kind]
+    ? options.kind
+    : "info";
+  const duration = typeof options.duration === "number" && options.duration > 0
+    ? options.duration
+    : TOAST_KIND_DURATIONS_MS[kind];
+  const message = text === null || text === undefined ? "" : String(text);
+
+  while (container.children.length >= TOAST_MAX_VISIBLE) {
+    container.removeChild(container.firstElementChild);
+  }
+
+  const item = document.createElement("li");
+  item.className = `harbor-toast harbor-toast-${kind}`;
+  item.setAttribute("role", kind === "error" ? "alert" : "status");
+  item.dataset.toastKind = kind;
+  item.textContent = message;
+  container.appendChild(item);
+
+  window.setTimeout(() => {
+    if (item.isConnected) {
+      item.classList.add("harbor-toast-dismissing");
+      window.setTimeout(() => {
+        if (item.isConnected) {
+          item.remove();
+        }
+      }, 300);
+    }
+  }, duration);
+};
+
+const setStatus = (_id, text, kind = "info") => {
+  showToast(text, { kind });
 };
 
 const parseErrorDetail = async (response) => {

@@ -62,6 +62,7 @@ def _render_document(*, title: str, body: str, bootstrap_json: str) -> HTMLRespo
   </head>
   <body>
     {body}
+    <ol id="harbor-toasts" class="harbor-toasts" aria-live="polite" aria-atomic="false"></ol>
     <script id="harbor-operator-bootstrap" type="application/json">
       {bootstrap_json}
     </script>
@@ -103,7 +104,6 @@ def _projects_page() -> HTMLResponse:
       <p class="page-subtitle">
         Project list for the manual operator workflow baseline.
       </p>
-      <p class="status info" id="projects-status">Waiting to load projects.</p>
     </div>
     <div class="actions">
       <button
@@ -147,13 +147,6 @@ def _projects_page() -> HTMLResponse:
           </div>
         </div>
       </div>
-      <p
-        class="status info"
-        id="projects-create-status"
-        data-create-status="projects-create"
-      >
-        No create action executed yet.
-      </p>
     </form>
   </section>
 
@@ -201,7 +194,6 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
       <p class="page-subtitle">
         Read-heavy operator surface with targeted workflow actions.
       </p>
-      <p class="status info" id="detail-status">Waiting to load project detail.</p>
     </div>
     <div class="actions">
       <button
@@ -251,9 +243,6 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
         Review Queue -&gt; Source / ProjectSource
       </li>
     </ul>
-    <p class="status info" id="action-status" data-action-status="operator-actions">
-      No action executed yet.
-    </p>
   </section>
 
   <section
@@ -341,13 +330,6 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
         </span>
       </div>
     </form>
-    <p
-      class="status info"
-      id="openai-dry-run-status"
-      data-openai-status="project-dry-run"
-    >
-      No dry run executed yet.
-    </p>
     <div
       class="grid response-grid"
       data-openai-response="project-dry-run"
@@ -546,9 +528,6 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
         </div>
       </form>
     </div>
-    <p class="status info" id="create-status" data-create-status="project-create-actions">
-      No create action executed yet.
-    </p>
   </section>
 
   <section class="section-card" data-section-key="campaigns">

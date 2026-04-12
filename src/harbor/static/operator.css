@@ -506,3 +506,59 @@ td {
   background: #fee2e2;
   color: #991b1b;
 }
+
+.harbor-toasts {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 48px));
+  z-index: 9999;
+  pointer-events: none;
+}
+.harbor-toast {
+  pointer-events: auto;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: #0f172a;
+  background: #e5e7eb;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: translateY(8px);
+  animation: harbor-toast-in 200ms ease-out forwards;
+  word-break: break-word;
+}
+.harbor-toast-info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.harbor-toast-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+.harbor-toast-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.harbor-toast-dismissing {
+  animation: harbor-toast-out 280ms ease-in forwards;
+}
+@keyframes harbor-toast-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes harbor-toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
