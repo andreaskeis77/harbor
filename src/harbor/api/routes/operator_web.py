@@ -861,7 +861,7 @@ const setProjectDetailLoadingState = () => {
   setTableBodyMessage("runs-table-body", 6, "Loading...");
   setTableBodyMessage("candidates-table-body", 7, "Loading...");
   setTableBodyMessage("review-queue-table-body", 7, "Loading...");
-  setTableBodyMessage("project-sources-table-body", 6, "Loading...");
+  setTableBodyMessage("project-sources-table-body", 7, "Loading...");
   setTableBodyMessage("lineage-table-body", 6, "Loading...");
   setTableBodyMessage("openai-dry-run-history-body", 6, "Loading...");
   currentCampaigns = [];
@@ -877,7 +877,7 @@ const setProjectDetailErrorState = () => {
   setTableBodyMessage("runs-table-body", 6, "Load failed.");
   setTableBodyMessage("candidates-table-body", 7, "Load failed.");
   setTableBodyMessage("review-queue-table-body", 7, "Load failed.");
-  setTableBodyMessage("project-sources-table-body", 6, "Load failed.");
+  setTableBodyMessage("project-sources-table-body", 7, "Load failed.");
   setTableBodyMessage("lineage-table-body", 6, "Load failed.");
   setTableBodyMessage("openai-dry-run-history-body", 6, "Load failed.");
   currentCampaigns = [];
@@ -1350,25 +1350,57 @@ const renderReviewQueue = (items) => {
     .join("");
 };
 
+const renderProjectSourceActions = (item) => {
+  const id = encodeURIComponent(item.project_source_id);
+  const status = item.review_status;
+  const buttons = [];
+  if (status !== "accepted") {
+    buttons.push(
+      `<button type="button" class="source-review-action"` +
+        ` data-action="source-review-update"` +
+        ` data-project-source-id="${id}" data-target-status="accepted">` +
+        `Accept</button>`,
+    );
+  }
+  if (status !== "rejected") {
+    buttons.push(
+      `<button type="button" class="source-review-action"` +
+        ` data-action="source-review-update"` +
+        ` data-project-source-id="${id}" data-target-status="rejected">` +
+        `Reject</button>`,
+    );
+  }
+  if (status !== "candidate") {
+    buttons.push(
+      `<button type="button" class="source-review-action"` +
+        ` data-action="source-review-update"` +
+        ` data-project-source-id="${id}" data-target-status="candidate">` +
+        `Reset</button>`,
+    );
+  }
+  return buttons.join(" ");
+};
+
 const renderProjectSources = (items) => {
   const body = byId("project-sources-table-body");
   if (!body) {
     return;
   }
   if (!items.length) {
-    body.innerHTML = emptyRow(6);
+    body.innerHTML = emptyRow(7);
     return;
   }
   body.innerHTML = items
     .map(
       (item) => `
-        <tr>
+        <tr data-project-source-id="${encodeURIComponent(item.project_source_id)}">
           <td>${safeText(item.source.title)}</td>
           <td>${badge(item.review_status)}</td>
           <td>${safeText(item.relevance)}</td>
           <td>${safeText(item.source.trust_tier)}</td>
           <td>${inlineCode(item.project_source_id)}</td>
           <td>${safeText(item.source.canonical_url)}</td>
+          <td class="source-review-actions">${renderProjectSourceActions(item)}</td>
         </tr>
       `,
     )
@@ -1711,6 +1743,44 @@ document.addEventListener("click", async (event) => {
       () => postJson(url, { note: "Accepted from operator web shell." }),
       "Review queue item promoted to source.",
     );
+    return;
+  }
+
+  if (button.dataset.action === "source-review-update") {
+    const projectSourceId = button.dataset.projectSourceId;
+    const targetStatus = button.dataset.targetStatus;
+    if (!projectSourceId || !targetStatus) {
+      return;
+    }
+    const url = `${projectBase}/sources/${projectSourceId}/review-status`;
+    const row = button.closest("tr");
+    const peers = row
+      ? row.querySelectorAll("button[data-action=\\"source-review-update\\"]")
+      : [button];
+    peers.forEach((b) => {
+      b.disabled = true;
+    });
+    try {
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ review_status: targetStatus }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${response.status}`);
+      }
+      await loadProjectDetailPage();
+    } catch (err) {
+      setStatus(
+        "detail-status",
+        `Review status update failed: ${String(err.message || err)}`,
+        "error",
+      );
+      peers.forEach((b) => {
+        b.disabled = false;
+      });
+    }
   }
 });
 
@@ -3654,11 +3724,12 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
             <th>Trust tier</th>
             <th>Project source ID</th>
             <th>Canonical URL</th>
+            <th>Actions</th>
           </tr>
         </thead>
-        <tbody id="project-sources-table-body">
+        <tbody id="project-sources-table-body" data-source-review-actions="true">
           <tr>
-            <td colspan="6" class="empty">Loading...</td>
+            <td colspan="7" class="empty">Loading...</td>
           </tr>
         </tbody>
       </table>

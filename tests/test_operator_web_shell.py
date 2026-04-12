@@ -69,6 +69,21 @@ def test_operator_project_detail_contains_action_markers(client: TestClient) -> 
     assert "/promote-to-source" in response.text
 
 
+def test_operator_project_detail_contains_source_review_markers(
+    client: TestClient,
+) -> None:
+    project = create_project(client)
+
+    response = client.get(f"/operator/projects/{project['project_id']}")
+    assert response.status_code == 200
+    assert 'data-source-review-actions="true"' in response.text
+    assert 'class="source-review-action"' in response.text
+    assert 'data-target-status="accepted"' in response.text
+    assert 'data-target-status="rejected"' in response.text
+    assert 'data-target-status="candidate"' in response.text
+    assert "/review-status" in response.text
+
+
 def test_operator_projects_page_contains_create_project_form_markers(
     client: TestClient,
 ) -> None:

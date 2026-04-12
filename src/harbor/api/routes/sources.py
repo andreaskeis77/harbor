@@ -10,6 +10,7 @@ from harbor.source_registry import (
     ProjectSourceCreate,
     ProjectSourceListResponse,
     ProjectSourceRead,
+    ProjectSourceReviewUpdate,
     SourceCreate,
     SourceListResponse,
     SourceRead,
@@ -17,6 +18,7 @@ from harbor.source_registry import (
     create_source,
     list_project_sources,
     list_sources,
+    update_project_source_review_status,
 )
 
 router = APIRouter(tags=["sources"])
@@ -56,3 +58,22 @@ def list_project_sources_endpoint(project_id: str, session: DbSession) -> Projec
         for project_source, source in list_project_sources(session, project_id)
     ]
     return ProjectSourceListResponse(items=items)
+
+
+@router.patch(
+    "/projects/{project_id}/sources/{project_source_id}/review-status",
+    response_model=ProjectSourceRead,
+)
+def update_project_source_review_status_endpoint(
+    project_id: str,
+    project_source_id: str,
+    payload: ProjectSourceReviewUpdate,
+    session: DbSession,
+) -> ProjectSourceRead:
+    project_source, source = update_project_source_review_status(
+        session,
+        project_id,
+        project_source_id,
+        payload,
+    )
+    return ProjectSourceRead.from_records(project_source, source)
