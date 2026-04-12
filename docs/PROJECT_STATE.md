@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-U1 — server-side pagination primitive landed (`limit`/`offset`/`total` on automation-tasks, review-queue-items, search-result-candidates, chat-turns)
-Phase P2 in progress. Next: U2 full-text search
+U2 — cross-entity search primitive landed (`GET /api/v1/search?q=...` across projects/sources/handbook/chat-turns with snippets + kind/project_id filters)
+Phase P2 in progress. Next: U3 sortable tables
 
 ## Confirmed completed
 
@@ -72,6 +72,7 @@ Phase P2 in progress. Next: U2 full-text search
 - T7.2 `source_content_staleness_check` per-project driver (non-mutating survey: total_web_page_sources / never_fetched / stale / fresh / oldest_stale_age_days against 14-day threshold)
 - T7.3 optional in-process scheduler tick loop (`EmbeddedSchedulerLoop`, off by default, feature-flag `HARBOR_SCHEDULER_EMBEDDED` + interval config; lifespan-managed start/stop)
 - U1 server-side pagination primitive (`harbor.pagination` with DEFAULT_LIMIT=50/MAX_LIMIT=200; `limit`/`offset`/`total` on automation-tasks, review-queue-items, search-result-candidates, chat-turns, scheduler/recent-tasks)
+- U2 cross-entity search primitive (`GET /api/v1/search?q=&project_id=&kinds=`: ILIKE across project title/desc, source title/url, handbook markdown/change_note, chat turn input/output; returns kind/record_id/project_id/title/snippet/matched_field with per-kind cap of 25)
 
 ## Current runtime posture
 
