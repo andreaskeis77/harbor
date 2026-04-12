@@ -28,6 +28,7 @@ EXPECTED_TABLES = {
     "openai_project_dry_run_log_registry",
     "openai_project_chat_session_registry",
     "openai_project_chat_turn_registry",
+    "automation_task_registry",
 }
 
 

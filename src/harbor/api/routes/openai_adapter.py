@@ -6,6 +6,12 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from harbor.automation_task_registry import (
+    AutomationTaskCreate,
+    create_automation_task,
+    mark_automation_task_running,
+    mark_automation_task_succeeded,
+)
 from harbor.config import get_settings
 from harbor.exceptions import NotFoundError
 from harbor.handbook_registry import (
@@ -299,6 +305,16 @@ def openai_project_draft_handbook(
     if project_record is None:
         raise NotFoundError("Project", project_id)
 
+    task_record = create_automation_task(
+        session,
+        AutomationTaskCreate(
+            project_id=project_id,
+            task_kind="draft_handbook",
+            trigger_source="manual",
+        ),
+    )
+    mark_automation_task_running(session, task_record.automation_task_id)
+
     handbook_record = create_handbook_version(
         session,
         project_id,
@@ -306,5 +322,10 @@ def openai_project_draft_handbook(
             handbook_markdown=request.handbook_markdown,
             change_note=request.change_note or "Drafted from chat assistant output",
         ),
+    )
+    mark_automation_task_succeeded(
+        session,
+        task_record.automation_task_id,
+        result_summary=f"handbook_version_id={handbook_record.handbook_version_id}",
     )
     return HandbookVersionRead.from_record(handbook_record).model_dump(mode="json")

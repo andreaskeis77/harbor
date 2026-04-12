@@ -464,3 +464,46 @@ class OpenAIProjectDryRunLogRecord(Base):
         nullable=False,
         default=utcnow,
     )
+
+
+def default_automation_task_id() -> str:
+    return str(uuid.uuid4())
+
+
+class AutomationTaskRecord(Base):
+    __tablename__ = "automation_task_registry"
+
+    automation_task_id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=default_automation_task_id,
+    )
+    project_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("project_registry.project_id"),
+        nullable=True,
+    )
+    task_kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    trigger_source: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    result_summary: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )
