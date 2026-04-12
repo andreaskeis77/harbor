@@ -138,6 +138,63 @@ def test_operator_static_script_is_served(client: TestClient) -> None:
     assert "/handbook/versions" in body
 
 
+def test_operator_static_script_has_collapsible_initializer(
+    client: TestClient,
+) -> None:
+    response = client.get("/static/operator.js")
+    assert response.status_code == 200
+    body = response.text
+    assert "initSectionCollapsibles" in body
+    assert "harbor.operator.section." in body
+    assert "is-collapsed" in body
+    assert 'data-section-key' in body
+
+
+def test_operator_static_stylesheet_has_collapsible_rules(
+    client: TestClient,
+) -> None:
+    response = client.get("/static/operator.css")
+    assert response.status_code == 200
+    body = response.text
+    assert "[data-section-key]" in body
+    assert ".is-collapsed" in body
+
+
+def test_operator_projects_page_sections_carry_section_keys(
+    client: TestClient,
+) -> None:
+    response = client.get("/operator/projects")
+    assert response.status_code == 200
+    body = response.text
+    assert 'data-section-key="create-project"' in body
+    assert 'data-section-key="projects-list"' in body
+
+
+def test_operator_project_detail_sections_carry_section_keys(
+    client: TestClient,
+) -> None:
+    project = create_project(client)
+
+    response = client.get(f"/operator/projects/{project['project_id']}")
+    assert response.status_code == 200
+    body = response.text
+    for key in (
+        "project-meta",
+        "workflow-summary",
+        "operator-actions",
+        "openai-dry-run",
+        "manual-create",
+        "campaigns",
+        "runs",
+        "candidates",
+        "review-queue",
+        "project-sources",
+        "handbook-versions",
+        "candidate-lineage",
+    ):
+        assert f'data-section-key="{key}"' in body, f"missing section key {key}"
+
+
 def test_operator_projects_page_contains_create_project_form_markers(
     client: TestClient,
 ) -> None:

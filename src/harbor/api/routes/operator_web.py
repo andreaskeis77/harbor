@@ -120,7 +120,7 @@ def _projects_page() -> HTMLResponse:
     </div>
   </header>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="create-project">
     <h2>Create Project</h2>
     <p class="action-note">
       Create a new Harbor project and continue directly in the operator shell.
@@ -157,7 +157,7 @@ def _projects_page() -> HTMLResponse:
     </form>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="projects-list">
     <h2>Projects</h2>
     <p>
       Open a project to inspect workflow summary, runs, candidates,
@@ -220,14 +220,14 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </div>
   </header>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="project-meta">
     <h2>Project</h2>
     <div id="project-meta" class="meta-list">
       <div class="empty">Loading project metadata...</div>
     </div>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="workflow-summary">
     <h2>Workflow Summary</h2>
     <div
       class="grid summary-grid"
@@ -238,7 +238,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </div>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="operator-actions">
     <h2>Operator Actions</h2>
     <p class="action-note">
       Actions stay thin and call the existing Harbor APIs only.
@@ -256,7 +256,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </p>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="openai-dry-run">
     <h2>OpenAI Dry Run</h2>
     <p class="action-note">
       Send an explicit operator request through the Harbor OpenAI adapter and
@@ -370,7 +370,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </div>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="manual-create">
     <h2>Manual Create Actions</h2>
     <p class="action-note">
       Create the next workflow objects directly from the operator shell.
@@ -520,7 +520,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </p>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="campaigns">
     <h2>Search Campaigns</h2>
     <div class="table-wrap">
       <table>
@@ -543,7 +543,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </div>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="runs">
     <h2>Runs</h2>
     <div class="table-wrap">
       <table>
@@ -566,7 +566,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </div>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="candidates">
     <h2>Result Candidates</h2>
     <div class="table-wrap">
       <table>
@@ -590,7 +590,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </div>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="review-queue">
     <h2>Review Queue</h2>
     <div class="table-wrap">
       <table>
@@ -614,7 +614,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </div>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="project-sources">
     <h2>Project Sources</h2>
     <div class="table-wrap">
       <table>
@@ -638,7 +638,11 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </div>
   </section>
 
-  <section class="section-card" data-handbook-versions="project-detail">
+  <section
+    class="section-card"
+    data-handbook-versions="project-detail"
+    data-section-key="handbook-versions"
+  >
     <h2>Handbook Versions</h2>
     <div class="table-wrap">
       <table>
@@ -659,7 +663,7 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </div>
   </section>
 
-  <section class="section-card">
+  <section class="section-card" data-section-key="candidate-lineage">
     <h2>Candidate Lineage</h2>
     <div class="table-wrap">
       <table>
