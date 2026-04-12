@@ -170,6 +170,63 @@ def test_operator_projects_page_sections_carry_section_keys(
     assert 'data-section-key="projects-list"' in body
 
 
+def test_operator_project_detail_contains_automation_tasks_markers(
+    client: TestClient,
+) -> None:
+    project = create_project(client)
+
+    response = client.get(f"/operator/projects/{project['project_id']}")
+    assert response.status_code == 200
+    body = response.text
+    assert 'data-automation-tasks="project-detail"' in body
+    assert 'data-section-key="automation-tasks"' in body
+    assert 'id="automation-tasks-table-body"' in body
+    assert "Automation Tasks" in body
+
+
+def test_operator_static_script_loads_automation_tasks(
+    client: TestClient,
+) -> None:
+    response = client.get("/static/operator.js")
+    assert response.status_code == 200
+    body = response.text
+    assert "/automation-tasks" in body
+    assert "renderAutomationTasks" in body
+    assert "automation-tasks-table-body" in body
+
+
+def test_operator_static_stylesheet_has_automation_task_status_colors(
+    client: TestClient,
+) -> None:
+    response = client.get("/static/operator.css")
+    assert response.status_code == 200
+    body = response.text
+    assert ".automation-task-status-pending" in body
+    assert ".automation-task-status-running" in body
+    assert ".automation-task-status-succeeded" in body
+    assert ".automation-task-status-failed" in body
+
+
+def test_automation_tasks_surface_on_project_detail_load(
+    client: TestClient,
+) -> None:
+    project = create_project(client)
+    draft = client.post(
+        f"/api/v1/openai/projects/{project['project_id']}/draft-handbook",
+        json={"handbook_markdown": "# H\n\nBody."},
+    )
+    assert draft.status_code == 200
+
+    list_response = client.get(
+        f"/api/v1/projects/{project['project_id']}/automation-tasks"
+    )
+    assert list_response.status_code == 200
+    items = list_response.json()["items"]
+    assert len(items) == 1
+    assert items[0]["task_kind"] == "draft_handbook"
+    assert items[0]["status"] == "succeeded"
+
+
 def test_operator_project_detail_sections_carry_section_keys(
     client: TestClient,
 ) -> None:
@@ -182,6 +239,7 @@ def test_operator_project_detail_sections_carry_section_keys(
         "project-meta",
         "workflow-summary",
         "operator-actions",
+        "automation-tasks",
         "openai-dry-run",
         "manual-create",
         "campaigns",
