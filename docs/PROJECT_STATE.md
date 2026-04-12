@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-T7.0 — source snapshot model + migration landed (storage surface for T7.1 fetch handler)
-Phase P1 in progress. Next: T7.1 fetch_source_content handler
+T7.1 — `fetch_source_content` per-project handler landed (httpx-based, timeout+size cap, 5 sources/tick, never-fetched-first)
+Phase P1 in progress. Next: T7.2 source_content_staleness_check driver
 
 ## Confirmed completed
 
@@ -68,6 +68,7 @@ Phase P1 in progress. Next: T7.1 fetch_source_content handler
 - T6.5 first project-less automation driver (`stale_source_sweep` via new `GLOBAL_SCHEDULE_HANDLERS` registry; runs once per tick with project_id=None)
 - C.7 scheduler tick-outcome surface (`GET /scheduler/recent-tasks` + "Recent scheduled runs" table on `/operator/scheduler`)
 - T7.0 source_snapshot model + migration + registry CRUD (storage for T7.1 fetch handler; FK to project_source_registry, fetched_at/http_status/content_hash/extracted_text/fetch_error)
+- T7.1 `fetch_source_content` per-project scheduler handler (httpx-based, 10s timeout + 2MiB cap, 5 web_page sources/tick, never-fetched-first priority, writes SourceSnapshotRecord even on error)
 
 ## Current runtime posture
 
