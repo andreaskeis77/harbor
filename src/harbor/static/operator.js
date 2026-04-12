@@ -954,11 +954,58 @@ const renderHandbookVersions = (items) => {
               <summary>View markdown (${safeText(item.handbook_markdown.length)} chars)</summary>
               <pre class="handbook-version-markdown">${safeText(item.handbook_markdown)}</pre>
             </details>
+            <details
+              class="handbook-version-diff"
+              data-handbook-diff-for="${encodeURIComponent(item.handbook_version_id)}"
+            >
+              <summary>Diff vs previous</summary>
+              <div class="handbook-diff-body">
+                <span class="muted">Loading diff...</span>
+              </div>
+            </details>
           </td>
         </tr>
       `,
     )
     .join("");
+  body.querySelectorAll("details.handbook-version-diff").forEach((el) => {
+    el.addEventListener(
+      "toggle",
+      () => {
+        if (!el.open) return;
+        if (el.dataset.loaded === "1") return;
+        const target = el.getAttribute("data-handbook-diff-for");
+        loadHandbookVersionDiff(el, target);
+      },
+      { once: false },
+    );
+  });
+};
+
+const loadHandbookVersionDiff = async (container, handbookVersionId) => {
+  const body = container.querySelector(".handbook-diff-body");
+  if (!currentProject) return;
+  try {
+    const url =
+      `${apiBase}/projects/${encodeURIComponent(currentProject.project_id)}` +
+      `/handbook/versions/${encodeURIComponent(handbookVersionId)}/diff`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const stats = payload.stats || { added_lines: 0, removed_lines: 0 };
+    const baseLabel = payload.base
+      ? `v${payload.base.version_number}`
+      : "(first version)";
+    body.innerHTML =
+      `<div class="handbook-diff-meta">
+         Base: ${escapeHtml(baseLabel)} → Target: v${escapeHtml(String(payload.target.version_number))}
+         &middot; +${escapeHtml(String(stats.added_lines))} / -${escapeHtml(String(stats.removed_lines))}
+       </div>
+       <pre class="handbook-diff-text">${safeText(payload.diff_text || "(no changes)")}</pre>`;
+    container.dataset.loaded = "1";
+  } catch (err) {
+    body.innerHTML = `<span class="empty">Diff load failed: ${escapeHtml(err.message || "unknown")}</span>`;
+  }
 };
 
 const renderLineage = (items) => {

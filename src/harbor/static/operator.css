@@ -653,3 +653,22 @@ table.sortable th.sortable-header.sort-desc::after {
   font-weight: 600;
   color: #0f172a;
 }
+.handbook-version-diff {
+  margin-top: 4px;
+}
+.handbook-diff-meta {
+  font-size: 0.85rem;
+  color: #475569;
+  margin: 4px 0;
+}
+.handbook-diff-text {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 8px 10px;
+  border-radius: 4px;
+  max-height: 360px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  white-space: pre;
+}

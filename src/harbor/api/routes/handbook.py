@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from harbor.exceptions import NotFoundError
+from harbor.handbook_diff import HandbookVersionDiffResponse, compute_handbook_diff
 from harbor.handbook_registry import (
     HandbookCurrentResponse,
     HandbookVersionListResponse,
@@ -50,6 +51,25 @@ def put_handbook_endpoint(
     require_project(session, project_id)
     record = create_handbook_version(session, project_id, payload)
     return HandbookVersionRead.from_record(record)
+
+
+@router.get(
+    "/projects/{project_id}/handbook/versions/{handbook_version_id}/diff",
+    response_model=HandbookVersionDiffResponse,
+)
+def handbook_version_diff_endpoint(
+    project_id: str,
+    handbook_version_id: str,
+    session: DbSession,
+    base_handbook_version_id: str | None = None,
+) -> HandbookVersionDiffResponse:
+    require_project(session, project_id)
+    return compute_handbook_diff(
+        session,
+        project_id,
+        handbook_version_id,
+        base_handbook_version_id,
+    )
 
 
 @router.get(
