@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-T6.0B — automation task observer (failure survives rollback)
-Next: planning — more call-sites (T6.1) or deeper UX consolidation (C.3/C.4)
+T6.1 — `propose-source` instrumented through side-channel observer
+Next: planning — deeper UX consolidation (C.3/C.4) or third call-site / automation driver (T6.2)
 
 ## Confirmed completed
 
@@ -57,6 +57,7 @@ Next: planning — more call-sites (T6.1) or deeper UX consolidation (C.3/C.4)
 - C.1 collapsible operator section-cards (localStorage-persisted)
 - C.2 automation task log UI panel on project-detail
 - T6.0B side-channel observer records rolled-back failures
+- T6.1 `propose-source` instrumented through the automation task observer
 
 ## Current runtime posture
 
@@ -97,7 +98,8 @@ Harbor now has:
 - **129 tests, 96% coverage** (T5.1A)
 - **132 tests, 96% coverage** (T5.1B)
 - **135 tests, 96% coverage** (T5.2A)
-- **172 tests, 96% coverage** (T6.0B — this session added 37 tests)
+- **172 tests, 96% coverage** (T6.0B — previous session added 37 tests)
+- **175 tests, 96% coverage** (T6.1 — observer pattern validated on second call-site)
 - **12 Alembic migrations** (automation_task_registry added in T6.0A)
 - **12 ORM models** (AutomationTaskRecord added in T6.0A)
 - **51 API endpoints** (+2 read-only automation task endpoints)
@@ -153,12 +155,12 @@ Green tests without green quality gates are not enough.
 
 ## Active next implementation slice
 
-T6.0B complete — deciding between:
-- **T6.1** — second automation call-site (likely `propose-source` from chat) to prove the observer pattern generalizes
+T6.1 complete — observer pattern now validated on two call-sites (`draft-handbook`, `propose-source`). Deciding between:
 - **C.3** — unified status/toast feedback, replacing the scattered `data-*-status` mounts
 - **C.4** — review queue as a central pending-actions view
+- **T6.2** — first real automation driver (e.g. scheduled search run) on top of the proven observer baseline
 
-See `docs/_handoff/HANDOFF_2026-04-12_T6_0B_to_next.md` for the full handoff.
+See `docs/_handoff/HANDOFF_2026-04-12_T6_0B_to_next.md` for the prior handoff.
 
 ## Intentionally not yet in scope
 

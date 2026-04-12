@@ -272,25 +272,44 @@ def openai_project_propose_source(
     if project_record is None:
         raise NotFoundError("Project", project_id)
 
-    source_record = create_source(
-        session,
-        SourceCreate(
-            source_type="web_page",
-            title=request.title,
-            canonical_url=request.canonical_url,
-            content_type="text/html",
-            trust_tier="candidate",
+    task_id = start_automation_task_observer(
+        AutomationTaskCreate(
+            project_id=project_id,
+            task_kind="propose_source",
+            trigger_source="manual",
         ),
     )
-    project_source_record, source = attach_source_to_project(
+    try:
+        source_record = create_source(
+            session,
+            SourceCreate(
+                source_type="web_page",
+                title=request.title,
+                canonical_url=request.canonical_url,
+                content_type="text/html",
+                trust_tier="candidate",
+            ),
+        )
+        project_source_record, source = attach_source_to_project(
+            session,
+            project_id,
+            ProjectSourceCreate(
+                source_id=source_record.source_id,
+                relevance="candidate",
+                review_status="candidate",
+                note=request.note,
+            ),
+        )
+    except Exception as exc:
+        # Release the request session's write locks so the side-channel
+        # observer can record the failure even on SQLite (single-writer).
+        session.rollback()
+        fail_automation_task_observer(task_id, f"{type(exc).__name__}: {exc}")
+        raise
+    mark_automation_task_succeeded(
         session,
-        project_id,
-        ProjectSourceCreate(
-            source_id=source_record.source_id,
-            relevance="candidate",
-            review_status="candidate",
-            note=request.note,
-        ),
+        task_id,
+        result_summary=f"project_source_id={project_source_record.project_source_id}",
     )
     return ProjectSourceRead.from_records(project_source_record, source).model_dump(mode="json")
 
