@@ -1050,6 +1050,92 @@ def _chat_page() -> HTMLResponse:
     )
 
 
+def _overview_page() -> HTMLResponse:
+    body = """
+<div class="page" id="operator-shell" data-operator-shell="overview">
+  <header class="page-header">
+    <div>
+      <h1>Operator Overview</h1>
+      <p class="page-subtitle">
+        Cross-project health snapshot: totals, recent automation tasks,
+        and a per-project drill-down.
+      </p>
+    </div>
+    <div class="actions">
+      <a href="/operator/projects">Projects</a>
+      <a href="/operator/pending-actions">Pending actions</a>
+      <a href="/operator/scheduler">Scheduler</a>
+      <button
+        type="button"
+        class="action-button secondary"
+        id="overview-reload-button"
+        data-action="reload-overview"
+      >
+        Reload
+      </button>
+    </div>
+  </header>
+
+  <section class="section-card" data-section-key="overview-totals">
+    <h2>Totals</h2>
+    <div id="overview-totals-grid" class="overview-totals-grid">
+      <span class="empty">Loading...</span>
+    </div>
+  </section>
+
+  <section class="section-card" data-section-key="overview-projects">
+    <h2>Projects (latest 20 by update time)</h2>
+    <div class="table-wrap">
+      <table class="sortable" id="overview-projects-table">
+        <thead>
+          <tr>
+            <th data-sort-type="text">Title</th>
+            <th data-sort-type="date">Updated</th>
+            <th data-sort-type="number">Sources</th>
+            <th data-sort-type="number">Open review</th>
+            <th data-sort-type="number">Latest handbook</th>
+          </tr>
+        </thead>
+        <tbody id="overview-projects-table-body">
+          <tr>
+            <td colspan="5" class="empty">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section-card" data-section-key="overview-tasks">
+    <h2>Recent automation tasks</h2>
+    <div class="table-wrap">
+      <table class="sortable" id="overview-tasks-table">
+        <thead>
+          <tr>
+            <th data-sort-type="text">Kind</th>
+            <th data-sort-type="text">Project</th>
+            <th data-sort-type="text">Status</th>
+            <th data-sort-type="text">Trigger</th>
+            <th data-sort-type="date">Created</th>
+            <th data-sort-type="date">Completed</th>
+          </tr>
+        </thead>
+        <tbody id="overview-tasks-table-body">
+          <tr>
+            <td colspan="6" class="empty">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+"""
+    return _render_document(
+        title="Harbor Operator - Overview",
+        body=body,
+        bootstrap_json=_bootstrap_payload("overview"),
+    )
+
+
 def _pending_actions_page() -> HTMLResponse:
     body = """
 <div class="page" id="operator-shell" data-operator-shell="pending-actions">
@@ -1254,6 +1340,11 @@ def operator_root() -> RedirectResponse:
 @router.get("/operator/projects", include_in_schema=False)
 def operator_projects_page() -> HTMLResponse:
     return _projects_page()
+
+
+@router.get("/operator/overview", include_in_schema=False)
+def operator_overview_page() -> HTMLResponse:
+    return _overview_page()
 
 
 @router.get("/operator/pending-actions", include_in_schema=False)
