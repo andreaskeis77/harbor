@@ -3,9 +3,9 @@
 Records automation-triggered work with a simple state machine:
     pending -> running -> succeeded | failed
 
-Task records are created inside the request transaction boundary. A
-request that rolls back rolls back its task record too; observability
-for rolled-back failures is out of scope for the T6 baseline.
+The registry CRUD functions participate in the caller's session. The
+``*_observer`` helpers at the bottom open a short-lived side-channel
+session so task records survive rollback of the request transaction.
 """
 
 from __future__ import annotations
@@ -14,10 +14,11 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from harbor.exceptions import InvalidPayloadError, NotFoundError
 from harbor.persistence.models import AutomationTaskRecord, utcnow
+from harbor.persistence.session import DatabaseNotConfiguredError, get_session_factory
 from harbor.project_registry import get_project
 
 ALLOWED_TRIGGER_SOURCES: frozenset[str] = frozenset({"manual", "scheduled", "webhook"})
@@ -185,3 +186,75 @@ def list_automation_tasks_for_project(
         )
     )
     return list(session.execute(stmt).scalars().all())
+
+
+def _resolve_factory(
+    session_factory: sessionmaker[Session] | None,
+) -> sessionmaker[Session]:
+    factory = session_factory or get_session_factory()
+    if factory is None:
+        raise DatabaseNotConfiguredError
+    return factory
+
+
+def start_automation_task_observer(
+    payload: AutomationTaskCreate,
+    session_factory: sessionmaker[Session] | None = None,
+) -> str:
+    """Create a task and mark it running in a side-channel session.
+
+    Why: the returned task id lets the caller record a terminal state from
+    outside the request transaction, so a failed request still leaves a
+    ``failed`` row behind instead of a rolled-back blank.
+    """
+    factory = _resolve_factory(session_factory)
+    session = factory()
+    try:
+        record = create_automation_task(session, payload)
+        mark_automation_task_running(session, record.automation_task_id)
+        task_id = record.automation_task_id
+        session.commit()
+        return task_id
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def complete_automation_task_observer(
+    automation_task_id: str,
+    result_summary: str | None = None,
+    session_factory: sessionmaker[Session] | None = None,
+) -> None:
+    factory = _resolve_factory(session_factory)
+    session = factory()
+    try:
+        mark_automation_task_succeeded(
+            session,
+            automation_task_id,
+            result_summary=result_summary,
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def fail_automation_task_observer(
+    automation_task_id: str,
+    error_message: str,
+    session_factory: sessionmaker[Session] | None = None,
+) -> None:
+    factory = _resolve_factory(session_factory)
+    session = factory()
+    try:
+        mark_automation_task_failed(session, automation_task_id, error_message)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
