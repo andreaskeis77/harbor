@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-U6 — handbook version diff viewer landed (`GET .../handbook/versions/{id}/diff` + inline "Diff vs previous" toggle per row on project-detail)
-**Phase P2 complete** (U1-U6 all merged). Next: open P3 scope planning.
+Phase P3 in progress — **content activation**: T7 fetched content begins flowing into operator surfaces and chat grounding.
+P3.1 snapshot read API landed. Next: P3.2 snapshot visibility in operator UI.
 
 ## Confirmed completed
 
@@ -77,6 +77,7 @@ U6 — handbook version diff viewer landed (`GET .../handbook/versions/{id}/diff
 - U4 bulk review-queue status endpoint (`POST /projects/{id}/review-queue-items/bulk-status` accepting up to 200 ids; partial-success response with `updated` + `failed[review_queue_item_id,error]`; deduplicates ids and 404s on unknown project)
 - U5 operator overview dashboard (`GET /api/v1/overview` returns totals/recent_automation_tasks[10]/projects_summary[20]; new `/operator/overview` page renders totals grid + sortable per-project table + recent tasks table)
 - U6 handbook version diff viewer (`GET /projects/{id}/handbook/versions/{target}/diff?base_handbook_version_id=`: stdlib `difflib.unified_diff` against prior version by default, explicit base override supported; returns diff_text + stats{added_lines,removed_lines}; operator project-detail renders inline "Diff vs previous" `<details>` per handbook row)
+- P3.1 source-snapshot read API (`GET /projects/{project_id}/project-sources/{project_source_id}/snapshots` + `.../snapshots/latest`; cross-project access 404s; list ordered newest-first; latest returns null when no snapshot exists)
 
 ## Current runtime posture
 

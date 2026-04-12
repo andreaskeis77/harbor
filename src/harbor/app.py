@@ -23,6 +23,7 @@ from harbor.api.routes.search import router as search_router
 from harbor.api.routes.search_campaigns import router as search_campaigns_router
 from harbor.api.routes.search_result_candidates import router as search_result_candidates_router
 from harbor.api.routes.search_runs import router as search_runs_router
+from harbor.api.routes.source_snapshots import router as source_snapshots_router
 from harbor.api.routes.sources import router as sources_router
 from harbor.api.routes.workflow_summary import router as workflow_summary_router
 from harbor.config import HarborSettings, get_settings
@@ -69,6 +70,7 @@ def create_app(settings: HarborSettings | None = None) -> FastAPI:
     app.include_router(projects_router, prefix=settings.api_v1_prefix)
     app.include_router(handbook_router, prefix=settings.api_v1_prefix)
     app.include_router(sources_router, prefix=settings.api_v1_prefix)
+    app.include_router(source_snapshots_router, prefix=settings.api_v1_prefix)
     app.include_router(search_campaigns_router, prefix=settings.api_v1_prefix)
     app.include_router(search_runs_router, prefix=settings.api_v1_prefix)
     app.include_router(search_result_candidates_router, prefix=settings.api_v1_prefix)
