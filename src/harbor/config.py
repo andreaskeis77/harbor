@@ -40,6 +40,9 @@ class HarborSettings(BaseSettings):
     openai_base_url: str | None = Field(default=None)
     openai_timeout_seconds: float = Field(default=30.0)
 
+    scheduler_embedded: bool = Field(default=False)
+    scheduler_embedded_interval_seconds: int = Field(default=60, gt=0)
+
     @computed_field  # type: ignore[misc]
     @property
     def postgres_configured(self) -> bool:

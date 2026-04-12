@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-T7.2 — `source_content_staleness_check` per-project driver landed (non-mutating survey of never_fetched/stale/fresh snapshot counts)
-Phase P1 in progress. Next: T7.3 optional in-process tick loop
+T7.3 — optional in-process scheduler tick loop landed (feature-flagged `HARBOR_SCHEDULER_EMBEDDED`, default off, lifespan-managed)
+**Phase P1 complete** (6/6 bolts: T6.5, C.7, T7.0, T7.1, T7.2, T7.3). Next: select Phase P2 bolt.
 
 ## Confirmed completed
 
@@ -70,6 +70,7 @@ Phase P1 in progress. Next: T7.3 optional in-process tick loop
 - T7.0 source_snapshot model + migration + registry CRUD (storage for T7.1 fetch handler; FK to project_source_registry, fetched_at/http_status/content_hash/extracted_text/fetch_error)
 - T7.1 `fetch_source_content` per-project scheduler handler (httpx-based, 10s timeout + 2MiB cap, 5 web_page sources/tick, never-fetched-first priority, writes SourceSnapshotRecord even on error)
 - T7.2 `source_content_staleness_check` per-project driver (non-mutating survey: total_web_page_sources / never_fetched / stale / fresh / oldest_stale_age_days against 14-day threshold)
+- T7.3 optional in-process scheduler tick loop (`EmbeddedSchedulerLoop`, off by default, feature-flag `HARBOR_SCHEDULER_EMBEDDED` + interval config; lifespan-managed start/stop)
 
 ## Current runtime posture
 
