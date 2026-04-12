@@ -436,6 +436,10 @@ def test_operator_scheduler_page_renders(client: TestClient) -> None:
         assert f'data-scheduler-enabled-toggle="{task_kind}"' in response.text
         assert f'data-scheduler-interval-input="{task_kind}"' in response.text
         assert f'data-scheduler-save-button="{task_kind}"' in response.text
+    # Recent scheduled runs section must be present.
+    assert 'id="scheduler-recent-tasks-body"' in response.text
+    assert "data-scheduler-recent-tasks" in response.text
+    assert "Recent scheduled runs" in response.text
 
 
 def test_operator_projects_page_links_to_scheduler(client: TestClient) -> None:
@@ -454,3 +458,5 @@ def test_operator_js_registers_scheduler_page(client: TestClient) -> None:
     assert "saveSchedulerRow" in body
     assert '/scheduler/schedules' in body
     assert '/scheduler/tick' in body
+    assert "loadSchedulerRecentTasks" in body
+    assert '/scheduler/recent-tasks' in body

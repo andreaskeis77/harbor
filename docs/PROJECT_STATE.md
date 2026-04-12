@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-T6.5 — first genuinely project-less automation driver landed (`stale_source_sweep` + `GLOBAL_SCHEDULE_HANDLERS` registry)
-Phase P1 in progress. Next: C.7 tick-outcome surface
+C.7 — scheduler tick-outcome surface landed (recent scheduled runs list on `/operator/scheduler`, auto-reloads after tick)
+Phase P1 in progress. Next: T7.0 source_snapshot model
 
 ## Confirmed completed
 
@@ -66,6 +66,7 @@ Phase P1 in progress. Next: C.7 tick-outcome surface
 - T6.4 minimal scheduler primitive (schedule table, handler registry, externally-triggered tick)
 - C.6 operator scheduler page (`/operator/scheduler`: enable/interval/save/one-click tick)
 - T6.5 first project-less automation driver (`stale_source_sweep` via new `GLOBAL_SCHEDULE_HANDLERS` registry; runs once per tick with project_id=None)
+- C.7 scheduler tick-outcome surface (`GET /scheduler/recent-tasks` + "Recent scheduled runs" table on `/operator/scheduler`)
 
 ## Current runtime posture
 
