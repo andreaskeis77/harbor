@@ -7,9 +7,13 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from harbor.exceptions import DuplicateError, NotFoundError
+from harbor.exceptions import DuplicateError, InvalidPayloadError, NotFoundError
 from harbor.persistence.models import ProjectSourceRecord, SourceRecord
 from harbor.project_registry import get_project
+
+ALLOWED_PROJECT_SOURCE_REVIEW_STATUSES: frozenset[str] = frozenset(
+    {"candidate", "accepted", "rejected"}
+)
 
 
 class SourceCreate(BaseModel):
@@ -89,6 +93,11 @@ class ProjectSourceListResponse(BaseModel):
     items: list[ProjectSourceRead]
 
 
+class ProjectSourceReviewUpdate(BaseModel):
+    review_status: str = Field(min_length=1, max_length=32)
+    note: str | None = None
+
+
 def create_source(session: Session, payload: SourceCreate) -> SourceRecord:
     record = SourceRecord(
         source_type=payload.source_type,
@@ -140,6 +149,41 @@ def attach_source_to_project(
     except IntegrityError as exc:
         raise DuplicateError("ProjectSource", "Source already attached to project.") from exc
     session.refresh(record)
+    return record, source
+
+
+def update_project_source_review_status(
+    session: Session,
+    project_id: str,
+    project_source_id: str,
+    payload: ProjectSourceReviewUpdate,
+) -> tuple[ProjectSourceRecord, SourceRecord]:
+    if payload.review_status not in ALLOWED_PROJECT_SOURCE_REVIEW_STATUSES:
+        allowed = ", ".join(sorted(ALLOWED_PROJECT_SOURCE_REVIEW_STATUSES))
+        raise InvalidPayloadError(
+            "ProjectSource",
+            f"review_status must be one of: {allowed}",
+        )
+
+    project = get_project(session, project_id)
+    if project is None:
+        raise NotFoundError("Project", project_id)
+
+    record = session.get(ProjectSourceRecord, project_source_id)
+    if record is None or record.project_id != project_id:
+        raise NotFoundError("ProjectSource", project_source_id)
+
+    record.review_status = payload.review_status
+    if payload.note is not None:
+        record.note = payload.note
+
+    session.add(record)
+    session.flush()
+    session.refresh(record)
+
+    source = session.get(SourceRecord, record.source_id)
+    if source is None:
+        raise NotFoundError("Source", record.source_id)
     return record, source
 
 
