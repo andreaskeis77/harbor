@@ -383,7 +383,7 @@ const setProjectDetailLoadingState = () => {
   setTableBodyMessage("runs-table-body", 6, "Loading...");
   setTableBodyMessage("candidates-table-body", 7, "Loading...");
   setTableBodyMessage("review-queue-table-body", 7, "Loading...");
-  setTableBodyMessage("project-sources-table-body", 7, "Loading...");
+  setTableBodyMessage("project-sources-table-body", 8, "Loading...");
   setTableBodyMessage("handbook-versions-table-body", 4, "Loading...");
   setTableBodyMessage("lineage-table-body", 6, "Loading...");
   setTableBodyMessage("openai-dry-run-history-body", 6, "Loading...");
@@ -401,7 +401,7 @@ const setProjectDetailErrorState = () => {
   setTableBodyMessage("runs-table-body", 6, "Load failed.");
   setTableBodyMessage("candidates-table-body", 7, "Load failed.");
   setTableBodyMessage("review-queue-table-body", 7, "Load failed.");
-  setTableBodyMessage("project-sources-table-body", 7, "Load failed.");
+  setTableBodyMessage("project-sources-table-body", 8, "Load failed.");
   setTableBodyMessage("handbook-versions-table-body", 4, "Load failed.");
   setTableBodyMessage("lineage-table-body", 6, "Load failed.");
   setTableBodyMessage("openai-dry-run-history-body", 6, "Load failed.");
@@ -913,7 +913,7 @@ const renderProjectSources = (items) => {
     return;
   }
   if (!items.length) {
-    body.innerHTML = emptyRow(7);
+    body.innerHTML = emptyRow(8);
     return;
   }
   body.innerHTML = items
@@ -926,11 +926,68 @@ const renderProjectSources = (items) => {
           <td>${safeText(item.source.trust_tier)}</td>
           <td>${inlineCode(item.project_source_id)}</td>
           <td>${safeText(item.source.canonical_url)}</td>
+          <td>
+            <details
+              class="project-source-snapshot"
+              data-snapshot-for="${encodeURIComponent(item.project_source_id)}"
+            >
+              <summary>Latest snapshot</summary>
+              <div class="project-source-snapshot-body">
+                <span class="muted">Loading snapshot...</span>
+              </div>
+            </details>
+          </td>
           <td class="source-review-actions">${renderProjectSourceActions(item)}</td>
         </tr>
       `,
     )
     .join("");
+  body.querySelectorAll("details.project-source-snapshot").forEach((el) => {
+    el.addEventListener(
+      "toggle",
+      () => {
+        if (!el.open) return;
+        if (el.dataset.loaded === "1") return;
+        const target = el.getAttribute("data-snapshot-for");
+        loadProjectSourceSnapshot(el, target);
+      },
+      { once: false },
+    );
+  });
+};
+
+const loadProjectSourceSnapshot = async (container, projectSourceId) => {
+  const body = container.querySelector(".project-source-snapshot-body");
+  if (!currentProject) return;
+  try {
+    const url =
+      `${apiBase}/projects/${encodeURIComponent(currentProject.project_id)}` +
+      `/project-sources/${encodeURIComponent(projectSourceId)}/snapshots/latest`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    if (payload === null) {
+      body.innerHTML = `<span class="empty">No snapshot yet.</span>`;
+      container.dataset.loaded = "1";
+      return;
+    }
+    const preview = (payload.extracted_text || "").slice(0, 500);
+    const truncated = (payload.extracted_text || "").length > 500;
+    const errorLine = payload.fetch_error
+      ? `<div class="project-source-snapshot-error">Error: ${safeText(payload.fetch_error)}</div>`
+      : "";
+    body.innerHTML =
+      `<div class="project-source-snapshot-meta">
+         ${formatTimestamp(payload.fetched_at)}
+         &middot; HTTP ${escapeHtml(String(payload.http_status ?? "-"))}
+         &middot; hash ${inlineCode((payload.content_hash || "").slice(0, 12) || "-")}
+       </div>
+       ${errorLine}
+       <pre class="project-source-snapshot-preview">${safeText(preview)}${truncated ? "\n…" : ""}</pre>`;
+    container.dataset.loaded = "1";
+  } catch (err) {
+    body.innerHTML = `<span class="empty">Snapshot load failed: ${escapeHtml(err.message || "unknown")}</span>`;
+  }
 };
 
 const renderHandbookVersions = (items) => {

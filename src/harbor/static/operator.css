@@ -672,3 +672,24 @@ table.sortable th.sortable-header.sort-desc::after {
   font-size: 0.8rem;
   white-space: pre;
 }
+.project-source-snapshot-meta {
+  font-size: 0.8rem;
+  color: #475569;
+  margin: 4px 0;
+}
+.project-source-snapshot-error {
+  font-size: 0.8rem;
+  color: #b91c1c;
+  margin: 4px 0;
+}
+.project-source-snapshot-preview {
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 6px 8px;
+  border-radius: 4px;
+  max-height: 240px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+}
