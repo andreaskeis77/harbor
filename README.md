@@ -3,8 +3,9 @@
 Harbor is a project-partitioned research and monitoring system.
 
 ## Current phase
-T6.0B complete — automation observability baseline (registry + UI + side-channel failure observer)
-Next: planning (T6.1 second call-site, or C.3/C.4 UX consolidation)
+Phase P4 complete — **refresh & error recovery**: manual fetch-now, snapshot history inline, staleness + fetch-error signals on the overview.
+Release cut as `v0.3.0-alpha` (VPS-deployment baseline).
+Next: VPS deployment (local-on-VPS first, then decide on public reach). Feature bolts (P5 cite-back, cross-project dedup, P6 automated search) deferred until deploy is accepted.
 
 ## Repository posture
 Harbor currently contains:
@@ -45,10 +46,11 @@ Harbor currently contains:
 - **automation task log panel** on project-detail (kind / trigger / status / timestamps / result-or-error)
 
 ## Release baseline
-Historical release baseline:
+- `v0.3.0-alpha` — current baseline: snapshot pipeline + scheduler + content activation + refresh/error recovery; VPS-deployment-ready with SQLite
+- `v0.2.0-alpha` — scheduler + snapshot baseline (T6/T7 + U1–U6 operator UX primitives)
 - `v0.1.0-alpha` — manual operator flow baseline
 
-Current `main` is materially ahead of that alpha baseline.
+See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/RELEASE_NOTES_v0_3_0_alpha.md](docs/RELEASE_NOTES_v0_3_0_alpha.md) for current release notes.
 
 ## Local repository root
 Canonical local path:
@@ -60,7 +62,7 @@ Canonical local path:
 3. `docs/STRATEGY_ROADMAP_v0_1.md`
 4. `docs/WORKING_AGREEMENT.md`
 5. `docs/VALIDATION_PROTOCOL.md`
-6. `docs/_handoff/HANDOFF_2026-04-12_T6_0B_to_next.md`
+6. `docs/_handoff/HANDOFF_2026-04-12_P4_to_next.md`
 
 ## Standard local commands
 ```powershell
@@ -107,12 +109,12 @@ python .\tools\task_runner.py smoke-chat-surface-slice
 - `/api/v1/automation-tasks/{automation_task_id}`
 
 ## Current metrics
-- 172 tests, 96% coverage (70% gate enforced)
-- 12 Alembic migrations (linear chain, integrity-tested)
-- 51 API endpoints, 12 ORM models
+- 291 tests, 95.55% coverage (70% gate enforced)
+- 14 Alembic migrations (linear chain, integrity-tested)
+- 14 ORM models
 - typed domain exceptions, middleware exception handlers
 - request-scoped transaction middleware (commit-on-success/rollback-on-error)
-- side-channel observer pattern for observability across rollback (T6.0B)
+- side-channel observer pattern for observability across rollback
 - structured request logging with request-id propagation
 - expanded Ruff lint rules: E, F, I, B, UP, SIM, PIE, LOG, RUF
 - 24 permanent engineering manifest rules
