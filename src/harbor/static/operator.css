@@ -489,3 +489,20 @@ td {
 .section-card[data-section-key].is-collapsed > *:not(h2) {
   display: none;
 }
+
+.badge.automation-task-status-pending {
+  background: #e5e7eb;
+  color: #374151;
+}
+.badge.automation-task-status-running {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.badge.automation-task-status-succeeded {
+  background: #d1fae5;
+  color: #065f46;
+}
+.badge.automation-task-status-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}

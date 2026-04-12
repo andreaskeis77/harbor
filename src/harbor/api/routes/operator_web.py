@@ -256,6 +256,37 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
     </p>
   </section>
 
+  <section
+    class="section-card"
+    data-section-key="automation-tasks"
+    data-automation-tasks="project-detail"
+  >
+    <h2>Automation Tasks</h2>
+    <p class="action-note">
+      Recent automation-triggered work for this project. Rows reflect the
+      state machine: pending &rarr; running &rarr; succeeded / failed.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Kind</th>
+            <th>Trigger</th>
+            <th>Status</th>
+            <th>Started</th>
+            <th>Completed</th>
+            <th>Result / Error</th>
+          </tr>
+        </thead>
+        <tbody id="automation-tasks-table-body">
+          <tr>
+            <td colspan="6" class="empty">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="section-card" data-section-key="openai-dry-run">
     <h2>OpenAI Dry Run</h2>
     <p class="action-note">

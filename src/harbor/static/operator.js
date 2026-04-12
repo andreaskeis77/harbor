@@ -350,6 +350,7 @@ const setProjectDetailLoadingState = () => {
   setTableBodyMessage("handbook-versions-table-body", 4, "Loading...");
   setTableBodyMessage("lineage-table-body", 6, "Loading...");
   setTableBodyMessage("openai-dry-run-history-body", 6, "Loading...");
+  setTableBodyMessage("automation-tasks-table-body", 6, "Loading...");
   currentCampaigns = [];
   currentRuns = [];
   currentDryRunLogs = [];
@@ -367,6 +368,7 @@ const setProjectDetailErrorState = () => {
   setTableBodyMessage("handbook-versions-table-body", 4, "Load failed.");
   setTableBodyMessage("lineage-table-body", 6, "Load failed.");
   setTableBodyMessage("openai-dry-run-history-body", 6, "Load failed.");
+  setTableBodyMessage("automation-tasks-table-body", 6, "Load failed.");
   currentCampaigns = [];
   currentRuns = [];
   currentDryRunLogs = [];
@@ -963,6 +965,37 @@ const renderLineage = (items) => {
     .join("");
 };
 
+const renderAutomationTasks = (items) => {
+  const body = byId("automation-tasks-table-body");
+  if (!body) {
+    return;
+  }
+  if (!items.length) {
+    body.innerHTML = emptyRow(6, "No automation tasks yet.");
+    return;
+  }
+  body.innerHTML = items
+    .map((item) => {
+      const detail = item.error_message || item.result_summary || "";
+      return `
+        <tr data-automation-task-id="${encodeURIComponent(item.automation_task_id)}">
+          <td>${safeText(item.task_kind)}</td>
+          <td>${safeText(item.trigger_source)}</td>
+          <td>
+            <span class="badge automation-task-status-${escapeHtml(item.status)}"
+                  data-automation-task-status="${escapeHtml(item.status)}">
+              ${safeText(item.status)}
+            </span>
+          </td>
+          <td>${formatDateTime(item.started_at)}</td>
+          <td>${formatDateTime(item.completed_at)}</td>
+          <td>${detail ? safeText(detail) : textFallback}</td>
+        </tr>
+      `;
+    })
+    .join("");
+};
+
 const loadProjectsPage = async () => {
   const loadToken = ++projectsLoadToken;
   setProjectsPageDisabled(true);
@@ -1023,6 +1056,7 @@ const loadProjectDetailPage = async () => {
     const dryRunLogsPromise = fetchJson(
       `${apiBase}/openai/projects/${encodeURIComponent(projectId)}/dry-run-logs`,
     );
+    const automationTasksPromise = fetchJson(`${projectBase}/automation-tasks`);
 
     const [
       project,
@@ -1032,6 +1066,7 @@ const loadProjectDetailPage = async () => {
       projectSourcesPayload,
       handbookVersionsPayload,
       dryRunLogsPayload,
+      automationTasksPayload,
     ] = await Promise.all([
       projectPromise,
       summaryPromise,
@@ -1040,6 +1075,7 @@ const loadProjectDetailPage = async () => {
       projectSourcesPromise,
       handbookVersionsPromise,
       dryRunLogsPromise,
+      automationTasksPromise,
     ]);
 
     if (loadToken !== detailLoadToken) {
@@ -1058,6 +1094,7 @@ const loadProjectDetailPage = async () => {
     renderHandbookVersions(handbookVersionsPayload.items);
     renderLineage(summary.lineage_items);
     renderOpenAIDryRunHistory(dryRunLogsPayload.items);
+    renderAutomationTasks(automationTasksPayload.items);
 
     const runs = [];
     const candidates = [];
