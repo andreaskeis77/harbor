@@ -95,6 +95,22 @@ class ReviewQueueListResponse(BaseModel):
     offset: int = 0
 
 
+class ReviewQueueBulkStatusRequest(BaseModel):
+    review_queue_item_ids: list[str] = Field(min_length=1, max_length=200)
+    status: str = Field(min_length=1, max_length=32)
+    note: str | None = None
+
+
+class ReviewQueueBulkStatusFailure(BaseModel):
+    review_queue_item_id: str
+    error: str
+
+
+class ReviewQueueBulkStatusResponse(BaseModel):
+    updated: list[ReviewQueueItemRead]
+    failed: list[ReviewQueueBulkStatusFailure]
+
+
 class PendingActionRead(BaseModel):
     review_queue_item_id: str
     project_id: str
@@ -295,6 +311,40 @@ def update_review_queue_item_status(
     session.flush()
     session.refresh(record)
     return record
+
+
+def bulk_update_review_queue_status(
+    session: Session,
+    project_id: str,
+    payload: ReviewQueueBulkStatusRequest,
+) -> tuple[list[ReviewQueueItemRecord], list[tuple[str, str]]]:
+    project = get_project(session, project_id)
+    if project is None:
+        raise NotFoundError("Project", project_id)
+
+    updated: list[ReviewQueueItemRecord] = []
+    failed: list[tuple[str, str]] = []
+    # Deduplicate while preserving caller order.
+    seen: set[str] = set()
+    ordered_ids = [
+        rid for rid in payload.review_queue_item_ids if not (rid in seen or seen.add(rid))
+    ]
+
+    for rid in ordered_ids:
+        record = get_review_queue_item(session, project_id, rid)
+        if record is None:
+            failed.append((rid, "not_found"))
+            continue
+        record.status = payload.status
+        if payload.note is not None:
+            record.note = payload.note
+        session.add(record)
+        updated.append(record)
+
+    session.flush()
+    for record in updated:
+        session.refresh(record)
+    return updated, failed
 
 
 def promote_search_result_candidate_to_review_queue(

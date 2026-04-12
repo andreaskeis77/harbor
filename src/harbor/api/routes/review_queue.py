@@ -10,11 +10,15 @@ from harbor.persistence.session import get_db_session
 from harbor.review_queue_registry import (
     PendingActionRead,
     PendingActionsListResponse,
+    ReviewQueueBulkStatusFailure,
+    ReviewQueueBulkStatusRequest,
+    ReviewQueueBulkStatusResponse,
     ReviewQueueItemCreate,
     ReviewQueueItemRead,
     ReviewQueueListResponse,
     ReviewQueueSourcePromotionRequest,
     ReviewQueueStatusUpdate,
+    bulk_update_review_queue_status,
     create_review_queue_item,
     get_review_queue_item,
     list_pending_actions,
@@ -111,6 +115,25 @@ def list_pending_actions_endpoint(session: DbSession) -> PendingActionsListRespo
         for item, project in list_pending_actions(session)
     ]
     return PendingActionsListResponse(items=items)
+
+
+@router.post(
+    "/projects/{project_id}/review-queue-items/bulk-status",
+    response_model=ReviewQueueBulkStatusResponse,
+)
+def bulk_update_review_queue_status_endpoint(
+    project_id: str,
+    payload: ReviewQueueBulkStatusRequest,
+    session: DbSession,
+) -> ReviewQueueBulkStatusResponse:
+    updated, failed = bulk_update_review_queue_status(session, project_id, payload)
+    return ReviewQueueBulkStatusResponse(
+        updated=[ReviewQueueItemRead.from_record(r) for r in updated],
+        failed=[
+            ReviewQueueBulkStatusFailure(review_queue_item_id=rid, error=err)
+            for rid, err in failed
+        ],
+    )
 
 
 @router.post(
