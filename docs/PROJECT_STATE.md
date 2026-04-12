@@ -183,26 +183,33 @@ Green tests without green quality gates are not enough.
 
 ## Historical release baseline
 
-- `v0.1.0-alpha` remains the last explicitly documented alpha release baseline
-- current `main` is substantially ahead of that point
+- `v0.3.0-alpha` — current baseline (2026-04-12): snapshot pipeline + scheduler + content activation + refresh/error recovery; VPS-deployment-ready with SQLite
+- `v0.2.0-alpha` — scheduler + snapshot baseline (T6/T7 + U1–U6 operator UX primitives)
+- `v0.1.0-alpha` — manual operator flow baseline
+
+See `CHANGELOG.md` and `docs/RELEASE_NOTES_v0_3_0_alpha.md`.
 
 ## Active next implementation slice
 
-Phases P3 (content activation) and P4 (refresh & error recovery) complete.
-Snapshot content flows into chat grounding, staleness + fetch-error signals
-are on the overview, operators can trigger manual fetches and inspect
-snapshot history inline.
+Release `v0.3.0-alpha` cut (2026-04-12). Next work stream is **VPS
+deployment** on the shared Contabo Windows VPS (alongside Capsule), not
+feature delivery. Two phases:
 
-Candidate next bolts:
-- **P5 cite-back** — attach `snapshot_id` to chat attributions so citations
-  link to the exact snapshot content; closes the P3.3 → operator-UI loop.
+- **B1 — local-on-VPS**: Harbor at `C:\Harbor`, bind `127.0.0.1:8100`
+  (Capsule owns 8000), SQLite at `C:\Harbor\var\harbor.db`, admin via
+  Tailscale-RDP. Deploy scripts under `deploy/vps-windows/`.
+- **B2 — access pattern**: operator UI accessed via Tailscale from dev
+  laptop browser (`http://<vps-tailscale-ip>:8100`). No Cloudflare Tunnel,
+  no domain, no public reach for v0.3.x.
+
+Feature bolts explicitly **paused** until VPS deploy is accepted:
+- **P5 cite-back** — attach `snapshot_id` to chat attributions.
 - **P5-alt** — cross-project source dedup via `content_hash`.
-- **UX polish** — bulk fetch-now, fetch-error inline details on overview,
+- **UX polish** — bulk fetch-now, fetch-error inline drilldown,
   snapshot-diff column.
-- **P6** — automated search execution (still explicitly out-of-scope until
-  the operator feedback loop on snapshots is closed).
+- **P6** — automated search execution.
 
-See `docs/_handoff/HANDOFF_2026-04-12_P4_to_next.md` for the current handoff.
+See `docs/_handoff/HANDOFF_2026-04-12_P4_to_next.md` for the prior handoff.
 
 ## Intentionally not yet in scope
 
