@@ -65,8 +65,7 @@ def test_operator_project_detail_contains_action_markers(client: TestClient) -> 
     assert 'data-action-status="operator-actions"' in response.text
     assert 'data-operator-action="promote-to-review"' in response.text
     assert 'data-operator-action="promote-to-source"' in response.text
-    assert "/promote-to-review" in response.text
-    assert "/promote-to-source" in response.text
+    assert '/static/operator.js' in response.text
 
 
 def test_operator_project_detail_contains_handbook_versions_markers(
@@ -79,7 +78,6 @@ def test_operator_project_detail_contains_handbook_versions_markers(
     assert 'data-handbook-versions="project-detail"' in response.text
     assert 'id="handbook-versions-table-body"' in response.text
     assert "Handbook Versions" in response.text
-    assert "/handbook/versions" in response.text
 
 
 def test_operator_project_detail_contains_source_review_markers(
@@ -90,11 +88,21 @@ def test_operator_project_detail_contains_source_review_markers(
     response = client.get(f"/operator/projects/{project['project_id']}")
     assert response.status_code == 200
     assert 'data-source-review-actions="true"' in response.text
-    assert 'class="source-review-action"' in response.text
-    assert 'data-target-status="accepted"' in response.text
-    assert 'data-target-status="rejected"' in response.text
-    assert 'data-target-status="candidate"' in response.text
-    assert "/review-status" in response.text
+
+
+def test_operator_static_script_is_served(client: TestClient) -> None:
+    response = client.get("/static/operator.js")
+    assert response.status_code == 200
+    body = response.text
+    # Behaviors previously asserted against the inline script
+    assert "/promote-to-review" in body
+    assert "/promote-to-source" in body
+    assert 'class="source-review-action"' in body
+    assert 'data-target-status="accepted"' in body
+    assert 'data-target-status="rejected"' in body
+    assert 'data-target-status="candidate"' in body
+    assert "/review-status" in body
+    assert "/handbook/versions" in body
 
 
 def test_operator_projects_page_contains_create_project_form_markers(

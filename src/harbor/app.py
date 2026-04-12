@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from harbor.api.middleware import register_middleware
 from harbor.api.routes.db import router as db_router
@@ -21,6 +23,8 @@ from harbor.config import HarborSettings, get_settings
 
 logger = logging.getLogger("harbor.app")
 
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
+
 
 def create_app(settings: HarborSettings | None = None) -> FastAPI:
     settings = settings or get_settings()
@@ -28,6 +32,8 @@ def create_app(settings: HarborSettings | None = None) -> FastAPI:
     app = FastAPI(title=settings.app_name, version=settings.version)
 
     register_middleware(app, log_level=settings.log_level)
+
+    app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
     app.include_router(health_router)
     app.include_router(operator_web_router)
