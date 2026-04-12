@@ -31,6 +31,35 @@ def test_operator_projects_page_contains_shell_and_bootstrap(client: TestClient)
     assert '"apiBase": "/api/v1"' in response.text
 
 
+def test_operator_pages_contain_unified_toast_container(client: TestClient) -> None:
+    projects_response = client.get("/operator/projects")
+    assert projects_response.status_code == 200
+    assert 'id="harbor-toasts"' in projects_response.text
+    assert 'aria-live="polite"' in projects_response.text
+    # Legacy inline status mounts are fully retired.
+    assert 'id="projects-status"' not in projects_response.text
+    assert 'data-create-status' not in projects_response.text
+
+    project = create_project(client)
+    detail_response = client.get(f"/operator/projects/{project['project_id']}")
+    assert detail_response.status_code == 200
+    assert 'id="harbor-toasts"' in detail_response.text
+    assert 'id="detail-status"' not in detail_response.text
+    assert 'id="action-status"' not in detail_response.text
+    assert 'id="openai-dry-run-status"' not in detail_response.text
+    assert 'data-openai-status' not in detail_response.text
+    assert 'data-action-status' not in detail_response.text
+
+
+def test_operator_js_exposes_toast_primitive(client: TestClient) -> None:
+    response = client.get("/static/operator.js")
+    assert response.status_code == 200
+    body = response.text
+    assert "const showToast" in body
+    assert "harbor-toasts" in body
+    assert "TOAST_MAX_VISIBLE" in body
+
+
 def test_operator_projects_page_contains_reload_marker(client: TestClient) -> None:
     response = client.get("/operator/projects")
     assert response.status_code == 200
@@ -62,7 +91,6 @@ def test_operator_project_detail_contains_action_markers(client: TestClient) -> 
 
     response = client.get(f"/operator/projects/{project['project_id']}")
     assert response.status_code == 200
-    assert 'data-action-status="operator-actions"' in response.text
     assert 'data-operator-action="promote-to-review"' in response.text
     assert 'data-operator-action="promote-to-source"' in response.text
     assert '/static/operator.js' in response.text
@@ -259,7 +287,6 @@ def test_operator_projects_page_contains_create_project_form_markers(
     response = client.get("/operator/projects")
     assert response.status_code == 200
     assert 'data-create-form="create-project"' in response.text
-    assert 'data-create-status="projects-create"' in response.text
     assert 'id="create-project-title"' in response.text
 
 
@@ -273,7 +300,6 @@ def test_operator_project_detail_contains_manual_create_form_markers(
     assert 'data-create-form="create-search-campaign"' in response.text
     assert 'data-create-form="create-search-run"' in response.text
     assert 'data-create-form="create-result-candidate"' in response.text
-    assert 'data-create-status="project-create-actions"' in response.text
     assert 'data-create-target="campaign-select"' in response.text
     assert 'data-create-target="run-select"' in response.text
 
@@ -286,7 +312,6 @@ def test_operator_project_detail_contains_openai_dry_run_markers(
     response = client.get(f"/operator/projects/{project['project_id']}")
     assert response.status_code == 200
     assert 'data-openai-form="project-dry-run"' in response.text
-    assert 'data-openai-status="project-dry-run"' in response.text
     assert 'data-openai-response="project-dry-run"' in response.text
     assert 'data-openai-history="project-dry-run"' in response.text
     assert 'id="openai-dry-run-input-text"' in response.text

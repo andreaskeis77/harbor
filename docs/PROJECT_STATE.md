@@ -58,6 +58,7 @@ Next: planning — deeper UX consolidation (C.3/C.4) or third call-site / automa
 - C.2 automation task log UI panel on project-detail
 - T6.0B side-channel observer records rolled-back failures
 - T6.1 `propose-source` instrumented through the automation task observer
+- C.3 unified toast/status primitive (replaces 5 scattered inline mounts)
 
 ## Current runtime posture
 
@@ -100,6 +101,7 @@ Harbor now has:
 - **135 tests, 96% coverage** (T5.2A)
 - **172 tests, 96% coverage** (T6.0B — previous session added 37 tests)
 - **175 tests, 96% coverage** (T6.1 — observer pattern validated on second call-site)
+- **177 tests, 96% coverage** (C.3 — unified toast/status primitive)
 - **12 Alembic migrations** (automation_task_registry added in T6.0A)
 - **12 ORM models** (AutomationTaskRecord added in T6.0A)
 - **51 API endpoints** (+2 read-only automation task endpoints)
