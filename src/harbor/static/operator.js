@@ -1002,13 +1002,94 @@ const renderLineage = (items) => {
     .join("");
 };
 
-const renderAutomationTasks = (items) => {
+const AUTOMATION_TASK_FILTER_STORAGE_KEY = "harbor.operator.automation-tasks.filters";
+let currentAutomationTasks = [];
+let automationTaskFilters = { kind: "", status: "" };
+
+const loadAutomationTaskFiltersFromStorage = () => {
+  try {
+    const raw = window.localStorage.getItem(AUTOMATION_TASK_FILTER_STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      automationTaskFilters = {
+        kind: typeof parsed.kind === "string" ? parsed.kind : "",
+        status: typeof parsed.status === "string" ? parsed.status : "",
+      };
+    }
+  } catch (error) {
+    /* storage unavailable or malformed — keep defaults */
+  }
+};
+
+const persistAutomationTaskFilters = () => {
+  try {
+    window.localStorage.setItem(
+      AUTOMATION_TASK_FILTER_STORAGE_KEY,
+      JSON.stringify(automationTaskFilters),
+    );
+  } catch (error) {
+    /* storage unavailable — state remains in-memory */
+  }
+};
+
+const filterAutomationTasks = (items, filters) => {
+  return items.filter((item) => {
+    if (filters.kind && item.task_kind !== filters.kind) {
+      return false;
+    }
+    if (filters.status && item.status !== filters.status) {
+      return false;
+    }
+    return true;
+  });
+};
+
+const refreshAutomationTaskKindOptions = (items) => {
+  const select = byId("automation-tasks-filter-kind");
+  if (!select) {
+    return;
+  }
+  const kinds = Array.from(new Set(items.map((item) => item.task_kind))).sort();
+  const previous = automationTaskFilters.kind;
+  const options = [`<option value="">All kinds</option>`].concat(
+    kinds.map(
+      (kind) =>
+        `<option value="${escapeHtml(kind)}"${
+          kind === previous ? " selected" : ""
+        }>${escapeHtml(kind)}</option>`,
+    ),
+  );
+  select.innerHTML = options.join("");
+  // If the persisted kind is no longer present in the data, reset it
+  // silently so the table does not render as "empty due to stale filter".
+  if (previous && !kinds.includes(previous)) {
+    automationTaskFilters.kind = "";
+    persistAutomationTaskFilters();
+  }
+};
+
+const updateAutomationTaskFilterSummary = (total, visible) => {
+  const target = byId("automation-tasks-filter-summary");
+  if (!target) {
+    return;
+  }
+  if (total === visible) {
+    target.textContent = `${total} task(s)`;
+  } else {
+    target.textContent = `${visible} of ${total} task(s) shown`;
+  }
+};
+
+const renderAutomationTasksBody = (items) => {
   const body = byId("automation-tasks-table-body");
   if (!body) {
     return;
   }
   if (!items.length) {
-    body.innerHTML = emptyRow(6, "No automation tasks yet.");
+    body.innerHTML = emptyRow(6, "No automation tasks match the current filters.");
     return;
   }
   body.innerHTML = items
@@ -1031,6 +1112,43 @@ const renderAutomationTasks = (items) => {
       `;
     })
     .join("");
+};
+
+const applyAutomationTaskFilters = () => {
+  const filtered = filterAutomationTasks(currentAutomationTasks, automationTaskFilters);
+  renderAutomationTasksBody(filtered);
+  updateAutomationTaskFilterSummary(currentAutomationTasks.length, filtered.length);
+};
+
+const renderAutomationTasks = (items) => {
+  currentAutomationTasks = Array.isArray(items) ? items : [];
+  refreshAutomationTaskKindOptions(currentAutomationTasks);
+  const statusSelect = byId("automation-tasks-filter-status");
+  if (statusSelect) {
+    statusSelect.value = automationTaskFilters.status;
+  }
+  applyAutomationTaskFilters();
+};
+
+const initAutomationTaskFilters = () => {
+  loadAutomationTaskFiltersFromStorage();
+  const kindSelect = byId("automation-tasks-filter-kind");
+  const statusSelect = byId("automation-tasks-filter-status");
+  if (kindSelect) {
+    kindSelect.addEventListener("change", (event) => {
+      automationTaskFilters.kind = event.target.value || "";
+      persistAutomationTaskFilters();
+      applyAutomationTaskFilters();
+    });
+  }
+  if (statusSelect) {
+    statusSelect.value = automationTaskFilters.status;
+    statusSelect.addEventListener("change", (event) => {
+      automationTaskFilters.status = event.target.value || "";
+      persistAutomationTaskFilters();
+      applyAutomationTaskFilters();
+    });
+  }
 };
 
 const loadProjectsPage = async () => {
@@ -1472,6 +1590,7 @@ if (bootstrap.page === "projects") {
   loadProjectsPage();
 }
 if (bootstrap.page === "project-detail") {
+  initAutomationTaskFilters();
   loadProjectDetailPage();
 }
 if (bootstrap.page === "pending-actions") {

@@ -256,6 +256,34 @@ def _project_detail_page(project_id: str) -> HTMLResponse:
       Recent automation-triggered work for this project. Rows reflect the
       state machine: pending &rarr; running &rarr; succeeded / failed.
     </p>
+    <div class="filter-bar" data-automation-tasks-filters>
+      <label class="filter-label" for="automation-tasks-filter-kind">
+        Kind
+        <select
+          id="automation-tasks-filter-kind"
+          data-automation-tasks-filter="kind"
+        >
+          <option value="">All kinds</option>
+        </select>
+      </label>
+      <label class="filter-label" for="automation-tasks-filter-status">
+        Status
+        <select
+          id="automation-tasks-filter-status"
+          data-automation-tasks-filter="status"
+        >
+          <option value="">All statuses</option>
+          <option value="pending">pending</option>
+          <option value="running">running</option>
+          <option value="succeeded">succeeded</option>
+          <option value="failed">failed</option>
+        </select>
+      </label>
+      <span class="filter-summary" id="automation-tasks-filter-summary"
+            data-automation-tasks-filter-summary>
+        &mdash;
+      </span>
+    </div>
     <div class="table-wrap">
       <table>
         <thead>

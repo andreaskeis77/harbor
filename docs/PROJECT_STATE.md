@@ -1,8 +1,8 @@
 # Project State
 
 ## Current phase
-T6.2 — workflow-summary snapshot as first non-mutating automation driver
-Next: planning — second automation driver (stale-review sweep, periodic handbook-freshness checks) or scheduler primitive (T6.3+)
+C.5 — automation task filter/search controls on the project-detail task log
+Next: T6.3 (second non-mutating automation driver — handbook freshness check), then T6.4 (minimal scheduler primitive)
 
 ## Confirmed completed
 
@@ -61,6 +61,7 @@ Next: planning — second automation driver (stale-review sweep, periodic handbo
 - C.3 unified toast/status primitive (replaces 5 scattered inline mounts)
 - C.4 cross-project pending-actions queue (API + operator page)
 - T6.2 workflow-summary snapshot automation driver (first non-mutating observer call-site)
+- C.5 automation task kind/status filter controls on project-detail task log (localStorage-persisted)
 
 ## Current runtime posture
 

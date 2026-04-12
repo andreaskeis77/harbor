@@ -76,6 +76,38 @@ def test_operator_js_registers_pending_actions_page(client: TestClient) -> None:
     assert "pending-actions-table-body" in body
 
 
+def test_operator_project_detail_contains_automation_task_filter_controls(
+    client: TestClient,
+) -> None:
+    project = create_project(client)
+    response = client.get(f"/operator/projects/{project['project_id']}")
+    assert response.status_code == 200
+    assert "data-automation-tasks-filters" in response.text
+    assert 'data-automation-tasks-filter="kind"' in response.text
+    assert 'data-automation-tasks-filter="status"' in response.text
+    assert 'id="automation-tasks-filter-kind"' in response.text
+    assert 'id="automation-tasks-filter-status"' in response.text
+    assert 'data-automation-tasks-filter-summary' in response.text
+    # All four terminal states are pre-listed so filtering works before
+    # any tasks exist.
+    for status_value in ("pending", "running", "succeeded", "failed"):
+        assert f'value="{status_value}"' in response.text
+
+
+def test_operator_js_exposes_automation_task_filter_primitives(
+    client: TestClient,
+) -> None:
+    response = client.get("/static/operator.js")
+    assert response.status_code == 200
+    body = response.text
+    assert "filterAutomationTasks" in body
+    assert "applyAutomationTaskFilters" in body
+    assert "initAutomationTaskFilters" in body
+    assert "AUTOMATION_TASK_FILTER_STORAGE_KEY" in body
+    # Persisted filter key is namespaced under harbor.operator.
+    assert '"harbor.operator.automation-tasks.filters"' in body
+
+
 def test_operator_js_exposes_toast_primitive(client: TestClient) -> None:
     response = client.get("/static/operator.js")
     assert response.status_code == 200
