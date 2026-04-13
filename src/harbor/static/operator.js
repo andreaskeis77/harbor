@@ -1602,7 +1602,7 @@ document.addEventListener("click", async (event) => {
     const url = `${projectBase}/sources/${projectSourceId}/review-status`;
     const row = button.closest("tr");
     const peers = row
-      ? row.querySelectorAll("button[data-action=\\"source-review-update\\"]")
+      ? row.querySelectorAll('button[data-action="source-review-update"]')
       : [button];
     peers.forEach((b) => {
       b.disabled = true;
